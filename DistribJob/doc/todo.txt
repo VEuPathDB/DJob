@@ -1,3 +1,11 @@
+ (from Brian)
+- execSubtask - takes only subtaskdir, not /results
+- avoid copying back results unless failure
+- in integrateSubTask do operation from Node (pass in node)
+- execSubtask redirects stderr and stdour to one file.  don't.
+- killBadBlast needs to work for TBlastn
+
+-when writing blastables to nodes, use fork for parallelization
 -upgrade docs to reflect $GUS_HOME and new installation procedure
 -PropertySet should print out declaration when the config file parse fails
 -use an installation-wide config file so controller.prop can hide nodeDir=
