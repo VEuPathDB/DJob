@@ -57,8 +57,8 @@ sub initSubTask {
     print "DEBUG: done\n" if $self->{'debug'};
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $cmd = $self->{props}->getProp("cmd");
     my $nodeDir = $node->getDir();
@@ -67,16 +67,15 @@ sub runSubTask {
     $cmd =~ s/\$nodeDir/$nodeDir/g; #substitute nodeDir
     $cmd =~ s/\\s/ /g; #substiture space
     print "DEBUG: SimpleTask::runSubTask: running subTask w\/ command $cmd...\n" if $self->{'debug'};
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
-    print "DEBUG: done\n" if $self->{'debug'};
+    return $cmd;
 }
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    my $cmd = "cp -r $subTaskResultDir/* $mainResultDir";
+    my $cmd = "cp -r $nodeExecDir/* $mainResultDir";
     print "DEBUG: SimpleTask::integrateSubTaskResults: running command $cmd...\n" if $self->{'debug'};
-    &runCmd("$cmd");
+    $node->runCmd("$cmd");
     $cmd = "mv $mainResultDir/subtask.output $mainResultDir/task.out";
     &runCmd($cmd) if -f "$mainResultDir/subtask.output";
     print "DEBUG: done\n" if $self->{'debug'};

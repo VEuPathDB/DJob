@@ -3,7 +3,7 @@ package DJob::DistribJob::SubTask;
 use strict;
 
 sub new {
-    my ($class, $subTaskNum, $subTaskDir, $task) = @_;
+    my ($class, $subTaskNum, $subTaskDir, $nodeSlot, $task) = @_;
 
     my $self = {};
     bless $self;
@@ -11,7 +11,13 @@ sub new {
     $self->{subTaskDir} = $subTaskDir;
     $self->{task} = $task;
     $self->{subTaskResultDir} = "$subTaskDir/result";
+    $self->{nodeSlot} = $nodeSlot;
     return $self;
+}
+
+sub getNodeSlot {
+  my($self) = @_;
+  return $self->{nodeSlot};
 }
 
 sub getDir {

@@ -58,8 +58,8 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $rmPath = $self->{props}->getProp("rmPath");
     my $rmOptions = $self->{props}->getProp("rmOptions");
@@ -67,15 +67,15 @@ sub runSubTask {
     my $dangleMax = $self->{props}->getProp("dangleMax");
 
     my $options = $rmOptions eq "NONE"? "" : "--rmOptions $rmOptions";
-    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeSlotDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";
+    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeExecDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";
 
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
+    return $cmd;
 }
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    &runCmd("cat $subTaskResultDir/blocked.seq >> $mainResultDir/blocked.seq");
-    &runCmd("cat $subTaskResultDir/blocked.err >> $mainResultDir/blocked.err");
+    $node->runCmd("cat $nodeExecDir/blocked.seq >> $mainResultDir/blocked.seq");
+    $node->runCmd("cat $nodeExecDir/blocked.err >> $mainResultDir/blocked.err");
 }
 1;

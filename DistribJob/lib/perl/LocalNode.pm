@@ -30,9 +30,9 @@ sub runCmd {
 }
     
 sub execSubTask {
-    my ($self, $nodeRunDir, $serverResultDir, $cmd) = @_;
+    my ($self, $nodeRunDir, $serverSubtaskDir, $cmd) = @_;
     
-    $cmd = "subtaskInvoker $nodeRunDir $serverResultDir " . $cmd;
+    $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result " . $cmd;
     my $rc = system("$cmd &");
     my $status = $rc >> 8;
     die "Failed with status $status running '$cmd'\n" if $status;

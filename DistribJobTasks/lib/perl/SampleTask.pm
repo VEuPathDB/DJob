@@ -173,54 +173,45 @@ sub initSubTask {
 #     run from.
 #   - return non-zero exit status on failure.
 #
-# To run the subtask, use the $node->execSubTask() method.  It has three
-# arguments ($nodeRunDir, $serverResultDir, $cmd): 
-#   
-#  1) $nodeRunDir: the directory on the node from which to run the command. 
-#     The controller changes into that dir before running the command.
-#  2) $serverResultDir: the directory on the server to copy the contents of
-#     $nodeRunDir when the command is complete.
-#  3) $cmd: the command to run
+# To run the subtask, you just need to return the command in the makeSubTaskCommand method.  
 #
-# After the command completes successfully, the controller copies the
-# contents of $nodeRunDir to $serverResultDir.
+# NOTE:  All STDOUT will be redirected into a file called subtask.output
+#        All STDERR will be redirected into a file called subtask.stderr
+#        Users can NOT redirect either STDERR or STDOUT to files of their choice
 #
-# param node The Node object on which the subtask will run.
-# param inputDir The input dir on the server where the task's input is found.
-# param serverSubTaskDir The subtask specific input dir on the server.
-# param nodeSubTaskDir The subtask specific input dir on the node.
+# param $node The Node object on which the subtask will run.
+# param $inputDir The input dir on the server where the task's input is found.
+# param nodeExecDir The subtask specific dir on the node where the command will be run.
 # 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $serverSubTaskDir, $nodeSubTaskDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $msg = $self->{props}->getProp("msg");
 
-    my $cmd = "samplecmd $nodeSubTaskDir/inputset $msg";
+    my $cmd = "samplecmd $nodeExecDir/inputset $msg";
 
-    $node->execSubTask("$nodeSubTaskDir/result", "$serverSubTaskDir/result", $cmd);
+    return $cmd;
+
 }
 
-# Merge subTask results from $subTaskResultDir into the main result in
+# Merge subTask results from $nodeExecDir into the main result in
 # $mainResultDir as needed.  This method is called once by the controller
 # for each subtask after it completes successfully.
 #
-# Each subtask produces results in $subTaskResultDir (which was the second
-# argument to $node->execSubTask() called above in runSubTask()).  These
+# Each subtask produces results in $nodeExecDir.   These
 # results must be placed or merged into the main result, which is stored
 # in $mainResultDir.
 #
-# The controller deletes $subTaskResultDir after this method is called.
-#
 # param subTaskNum The index of this subtask.  Use this if you want to store
 #                  subtask results by subtask number.
-# param subTaskResultDir The directory in which all files produced by the
-#                        subtask's command are available.
+# param node the node obect that this subtask was run on
+# param nodeExecDir subtask specific dir on node where command was executed...result files here
 # param mainResultDir The directory in which the main result is stored.
 #
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    &runCmd("cat $subTaskResultDir/answer >> $mainResultDir/answer");
+    $node->runCmd("cat $nodeExecDir/answer >> $mainResultDir/answer");
 }
 
 1;

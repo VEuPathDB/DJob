@@ -61,28 +61,30 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $gaBinPath = $self->{props}->getProp("gaBinPath");
     my $targetListPath = $self->{props}->getProp("targetListPath");
     my $paramsPath = $inputDir . '/params.prop';
 
-    my $cmd =  "blatSearch --blatBinPath $gaBinPath --targetListPath $targetListPath --seqPath $nodeSlotDir/seqsubset.fsa --paramsPath $paramsPath";
+    my $cmd =  "blatSearch --blatBinPath $gaBinPath --targetListPath $targetListPath --seqPath $nodeExecDir/seqsubset.fsa --paramsPath $paramsPath";
 
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
+    return $cmd;
 }
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    opendir(STRD, $subTaskResultDir);
-    my @files = readdir(STRD);
+#    opendir(STRD, $subTaskResultDir);
+#    my @files = readdir(STRD);
+    my @files = $node->runCmd("ls -1 $nodeExecDir");
     my @chrs = grep(/chr/i, @files);
     close STRD;
     foreach my $chr (@chrs) {
-	&runCmd("mkdir -p $mainResultDir/per-chr") unless -d "$mainResultDir/per-chr";
-	&runCmd("cat $subTaskResultDir/$chr >> $mainResultDir/per-chr/$chr");
+	$node->runCmd("mkdir -p $mainResultDir/per-chr") unless -d "$mainResultDir/per-chr";
+        chomp $chr;
+	$node->runCmd("cat $nodeExecDir/$chr >> $mainResultDir/per-chr/$chr");
     }
 }
 1;

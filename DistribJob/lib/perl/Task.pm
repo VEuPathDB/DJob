@@ -52,25 +52,27 @@ sub nextSubTask {
 
     if ($self->_subTaskAvailable()) {
 
-	my $subTaskDir = $self->_newSubTaskDir($nodeSlot->getNodeNum(),
+	my $serverSubTaskDir = $self->_newSubTaskDir($nodeSlot->getNodeNum(),
 					       $nodeSlot->getNum());
 
-	$nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $subTaskDir, $self);
+	$nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $serverSubTaskDir, $nodeSlot, $self);
 
 	my $nodeNum = $nodeSlot->getNodeNum();
 	my $slotNum = $nodeSlot->getNum();
-	my $nodeDir = $nodeSlot->getDir();
+	my $nodeSlotDir = $nodeSlot->getDir();
 
 	my $date = `date`;
 	chomp $date;
 	print "\n[$date] subTask $self->{subTaskNum} dispatching to node $nodeNum.$slotNum\n";
 
-	$node->runCmd("/bin/rm -rf $nodeDir/*");
+	$node->runCmd("/bin/rm -rf $nodeSlotDir/*");
 
 	$self->initSubTask($self->{start}, $self->{end}, $node, 
-			   $self->{inputDir}, $subTaskDir, $nodeDir);
-
-	$self->runSubTask($node, $self->{inputDir}, $subTaskDir, $nodeDir);
+			   $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
+        
+        my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
+        print STDERR "Task.pm command: $cmd\n";
+        $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
     }
     return $nextSubTask;
 }
@@ -91,12 +93,14 @@ sub passSubTask {
     my $subTaskNum = $subTask->getNum();
     my $subTaskDir = $subTask->getDir();
     my $subTaskResultDir = $subTask->getResultDir();
+    my $node = $subTask->getNodeSlot()->getNode();
+    my $nodeSlotDir = $subTask->getNodeSlot()->getDir();
 
     my $date = `date`;
     chomp $date;
     print "\n[$date] subTask $subTaskNum succeeded\n";
 
-    $self->integrateSubTaskResults($subTaskNum, $subTaskResultDir, 
+    $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
 				   $self->{mainResultDir});
     &runCmd("/bin/rm -rf $subTaskDir");
     &log($self->{completeLog}, "$subTaskNum\n");

@@ -7,14 +7,14 @@ shift 2
 
 cd $localdir
 
-$* > $localdir/subtask.output 2>&1     #stdout & stderr to same file
+$* > subtask.output 2> subtask.stderr    ## stdout goes into subtask.output and stderr into subtask.stderr
 
 status=$?
 
-cp -r $localdir/* $serverdir
 
 if [ $status != 0 ]; then
   touch $serverdir/failed
+  cp -r $localdir/* $serverdir
 fi
 
 touch $serverdir/done

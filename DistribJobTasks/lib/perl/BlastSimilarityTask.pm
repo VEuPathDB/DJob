@@ -114,17 +114,17 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
 
     my $blastParamsFile = $self->{props}->getProp("blastParamsFile");
-    &runCmd("cp $inputDir/$blastParamsFile $subTaskDir");
-    $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
+    &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
+    $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
 
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $blastBin = $self->{props}->getProp("blastBinDir");
     my $lengthCutoff = $self->{props}->getProp("lengthCutoff");
@@ -139,15 +139,14 @@ sub runSubTask {
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeSlotDir/$blastParamsFile".($saveGood == 1 ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood == 1 ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
 
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
+    return $cmd;
 }
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
-
-    &runCmd("cat $subTaskResultDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
-    &runCmd("cat $subTaskResultDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log");
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+    $node->runCmd("cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
+    $node->runCmd("cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log");
 }
 1;

@@ -10,7 +10,8 @@ use strict;
 sub new {
     my ($class, $nodeNum, $nodeDir, $slotcount) = @_;
     my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
-    return undef unless $self->_initNodeDir();  
+    return undef unless $self->checkNode();
+    $self->_initNodeDir();  
     $self->{nodeDir} = $nodeDir;
     return $self;
 }
@@ -40,9 +41,9 @@ sub runCmd {
 }
 
 sub execSubTask {
-    my ($self, $nodeRunDir, $serverResultDir, $cmd) = @_;
+    my ($self, $nodeRunDir, $serverSubtaskDir, $cmd) = @_;
     
-    $cmd = "subtaskInvoker $nodeRunDir $serverResultDir " . $cmd;
+    $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result " . $cmd;
 
     my $rc = system("bpsh -n $self->{nodeNum} $cmd &");
     my $status = $rc >> 8;
@@ -64,14 +65,15 @@ sub checkNode {
   ##First run diagnose to see if load is too high
   my @diag = `diagnose -n node$node`;
   foreach my $line (@diag){
-    if($line =~ /node$node.*DEF\s*(\d+)/){
-#      print STDERR $line;
-#      print STDERR "  processes: $1\n";
-      return 0 if $1 > 3;
+    if($line =~ /node$node.*DEF\s*(\d+\.\d+)/){
+      if($1 > 3.2){
+#       print STDERR $line;
+       print STDERR "  Load: $1\n";
+       return 0;
+     }
     }
   }
   ##need to try these things and time out!!
-#  return 0 unless $self->tryCommand("echo cmd","cmd",1);
   return 0 unless $self->tryCommand("bpsh -n $node hostname","node$node",1);
   return $self->tryCommand("bpsh -n $node ls $ENV{HOME}","No such",0);
 }
@@ -100,7 +102,7 @@ sub tryCommand {
       kill('KILL', $pid);
 #      print STDERR "KILL: $@\n";
     }else{
-      print STDERR "Something bad happened $@\n";
+      print STDERR "Something bad happened: $@\n";
     }
   }
   return $hit ? $test : !$test; 

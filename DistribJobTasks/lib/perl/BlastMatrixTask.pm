@@ -82,8 +82,8 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $blastBin = $self->{props}->getProp("blastBinDir");
     my $lengthCutoff = $self->{props}->getProp("lengthCutoff");
@@ -95,14 +95,14 @@ sub runSubTask {
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd = "blastMatrix --blastBinDir $blastBin --db $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --endSlop $endSlop $maskRepeats";
+    my $cmd = "blastMatrix --blastBinDir $blastBin --db $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --endSlop $endSlop $maskRepeats";
    
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
+    return $cmd;
 }
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    &runCmd("cat $subTaskResultDir/blastMatrix.out >> $mainResultDir/blastMatrix.out");
+    $node->runCmd("cat $nodeExecDir/blastMatrix.out >> $mainResultDir/blastMatrix.out");
 }
 1;
