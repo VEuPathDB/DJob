@@ -23,9 +23,19 @@ sub new {
 
 sub initialize {
   my ($self,$initDir) = shift;
-  return undef if $self->{cmdPid} =~ /^open2/;  ##already have a valid open connection
-  $self->{cmdPid} = open2($self->{readH}, $self->{writeH}, "qrsh -V -cwd -pe smp 2 bash -s");  
-  return undef if $self->{cmdPid} =~ /^open2/;  ##open failed...
+  return undef if $self->{cmdPid} > 1;  ##already have a valid open connection
+
+  ##test to  see if can get connection...
+  my $hn = `qrsh -cwd -pe smp 2 -nostdin -noshell hostname 2> /dev/null`;
+  return unless $hn =~ /^node/;
+  $self->{cmdPid} = open2($self->{readH}, $self->{writeH}, "qrsh -V -cwd -now no -pe smp 2 bash -s");
+  if($self->{cmdPid} =~ /^open2/){
+    print "ERROR: $@\n";
+    print STDERR "\nOPEN FAILED:\n$self->{cmdPid}\n"; ##open failed...
+    close $self->{readH};
+    close $self->{writeH};
+    return undef;
+  }
   ##set file handles to flush immediately
   my $oldfh = select($self->{readH});
   $| = 1;
@@ -61,12 +71,13 @@ sub _initNodeDir {
 ##over ride so make specific to QrshNode
 sub getNum {
   my $self = shift;
-  if(!defined $self->{nodeNum}){
+  if(!defined $self->{nodeNum} && $self->getState() >= 2){
     my $hostname = $self->runCmd('hostname');
     if($hostname =~ /^(node\d+)/){
       $self->{nodeNum} = "$1.q";
     }else{
-      print STDERR "Unable to determine the Node number\n";
+      print STDERR "Unable to determine the Node number: $hostname\n";
+      $self->setState(6);
     }
   }
   return $self->{nodeNum};
@@ -165,11 +176,13 @@ sub cleanUp {
       }
     }
     print "Cleaning up node ".$self->getNum()."\n";
-    $self->runCmd("/bin/rm -r $self->{nodeDir}");
-    close $self->{readH};
-    close $self->{writeH};
-    $self->{clean} = 1;
-    waitpid($self->{cmdPid}, 0);
+    if($self->getState() >= 2){
+      $self->runCmd("/bin/rm -r $self->{nodeDir}");
+      close $self->{readH};
+      close $self->{writeH};
+      $self->{clean} = 1;
+      waitpid($self->{cmdPid}, 0);
+    }
     $self->setState(5);
 }
 
