@@ -14,7 +14,10 @@ print "Liniac user id: $ENV{USER}\n";
 system($cmd);
 
 sub getNodes {
-  my $nodelist = `getnodes $ENV{JOBID}`;
+  my $c = "cmgetnodes $ENV{JOBID}";
+  my $nodelist = `$c`;
+  my $status = $? >> 8;
+  die "Failed with status $status running '$c'\n" if $status;
   my %tmp;
 
   foreach my $n (split(/\s+/, $nodelist)){
