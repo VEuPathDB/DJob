@@ -1,3 +1,8 @@
+PropertySet should print out declaration when the config file parse fails
+use an installation-wide config file so controller.prop can hide nodeDir=
+deleting nodedir on initialization is dangerous
+repeatmask task.prop: to differennt meaninns for xxxPath= used
+
 improve sample.pm to make sure it has all critical logic
 improve creation of node/result dir
 controller should handle node death by continuing, not dying. (make a node_xx_offline in running)
