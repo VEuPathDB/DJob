@@ -1,4 +1,4 @@
-#!@perl@
+#!/usr/bin/perl
 
 use strict;
 use Getopt::Long;
@@ -19,17 +19,21 @@ die "you must provide --blastProgram <pgm>\n" unless $blastProgram;
 
 my %previousSnapshot;
 
+my $rpsBlast = $blastProgram =~ /rpsblast/;
+
 while (1){
   my %currentSnapshot;
 
   # take snapshot
   my @procs = `ps -auxwww`;
   foreach my $p (@procs){
+#pinney    7035  0.0  8.3 947612 172572 ?     S    16:34   0:00 /genomics/share/pkg/bio/ncbi-blast/current/rpsblast -d /scratch/user/pinney/All -i seqTmp -a 2 -e .1 -p F 
     #pspinney    9803 99.5  0.4 45732 8992 ?        R    16:21   0:08 /genomics/share/pkg/bio/wu-blast/current/blastx /scratch/user/pinney/
     if ($p =~ /^\w+\s+(\d+).*?(\d+:\d+)\s+$blastProgram/) {
       my $processId = $1;
       my $totalCPU = $2;
       $totalCPU =~ s/:/\./;
+      #print STDERR "found one: $processId:  $totalCPU\n";
       $currentSnapshot{$processId} = $totalCPU;
     }
   }
@@ -42,7 +46,11 @@ while (1){
     $countInactiveProcesses++ if $currentSnapshot{$processId} == $prevCPU;
   }
 
-  if ($countInactiveProcesses > 1) {
+  # regular blast normally has an inactive process, so need more than one to be bad;  
+  # rpsblast does not, so only need one inactive process to be bad 
+  my $shouldKill = $rpsBlast? $countInactiveProcesses >= 1 : $countInactiveProcesses > 1;
+
+  if ($shouldKill) {
     my $toKill = join(" ", sort(keys(%currentSnapshot)));
     my $cmd = "kill -9 $toKill";
     print STDERR "Killing bad blast jobs: '$cmd' \n";
