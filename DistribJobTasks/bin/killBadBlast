@@ -1,4 +1,4 @@
-#!@perlLocation@
+#!@perl@
 
 ## runs and looks for hung blast processes...killing the offendng sucker..
 

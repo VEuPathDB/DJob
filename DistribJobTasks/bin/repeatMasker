@@ -1,4 +1,4 @@
-#!@perlLocation@
+#!@perl@
 
 ## takes in a library file, runs cross_match to block repeated sequences (Human)
 ## and writes back out a blocked library to STDOUT
