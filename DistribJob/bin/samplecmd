@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perlLocation@
 
 # usage: samplecmd inputset_file local_dir server_results_dir message
 

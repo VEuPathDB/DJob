@@ -17,6 +17,22 @@
   </target>  
    
 
+  <!-- oooooooooooooooooo  Installation Postprocess  ooooooooooooooooooooo -->
+
+  <target name="DJob-Installation-postprocess">
+    <echo message="Postprocessing the DJob installation"/>
+
+    <replace dir="${targetDir}/bin" 
+             propertyFile="${targetDir}/config/replacements.prop" > 
+      <include name="**/*" />
+      <replacefilter token="@perl@" property="perl"/>
+    </replace> 
+
+  </target>
+
+
+  <!-- ooooooooooooooooooooooo  Install Components  ooooooooooooooooooooooo -->
+
   <target name="DJob/DistribJobTasks-Installation" depends="DJob/DistribJob-Installation">
     <ant target="defaultComponentInstall">
       <property name="component" value="DJob/DistribJobTasks"/>

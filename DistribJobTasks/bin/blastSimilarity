@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perlLocation@
 
 ## script for running blast over a batch of sequences against a database and outputting either similarityspans
 ## or summaries ??or both??.
