@@ -1,4 +1,4 @@
-#!@perl@
+#!/usr/bin/perl
 
 ## script for running blast over a batch of sequences against a database and outputting either similarityspans
 ## or summaries ??or both??.
@@ -76,9 +76,9 @@ select STDOUT;
 
 ##fork off the process to kill blast processes that are bad!!
 #my $progbase = basename($program);
-if($program !~ /rpsblast/){
+#if($program !~ /rpsblast/){
   system("killBadBlast --blastProgram $program &");
-}
+#}
 
 
 ### loop through seqs, processing one at a time
@@ -110,7 +110,8 @@ while(<F>){
 close F;
 close OUT;
 unlink $tempfile;
-stopKillBadBlast() if ($program !~ /rpsblast/);
+#stopKillBadBlast() if ($program !~ /rpsblast/);
+stopKillBadBlast();
 close LOG;
 
 ######################### subroutines ###########################
@@ -196,7 +197,7 @@ sub error {
 sub stopKillBadBlast {
     print LOG "Attempting to stop killBadBlast\n";
     
-    foreach my $p (`ps -auxwww | grep killBad | grep -v ps | grep -v grep`){
+    foreach my $p (`ps -auxwww | grep killBad | grep -v "ps " | grep -v grep`){
 	if($p =~ /^\w+\s+(\d+)/){
 	    system("kill -9 $1");
 	    print LOG "... Stopping killBadBlast process: $p\n";
