@@ -42,13 +42,15 @@
 
   <target name="DJob/DistribJobTasks-Installation" depends="DJob/DistribJob-Installation">
     <ant target="defaultComponentInstall">
-      <property name="component" value="DJob/DistribJobTasks"/>
+      <property name="project" value="DJob"/>
+      <property name="component" value="DistribJobTasks"/>
     </ant>
   </target>  
 
   <target name="DJob/DistribJob-Installation" depends="ProjectTree">
     <ant target="defaultComponentInstall">
-      <property name="component" value="DJob/DistribJob"/>
+      <property name="project" value="DJob"/>
+      <property name="component" value="DistribJob"/>
     </ant>
   </target>  
 
