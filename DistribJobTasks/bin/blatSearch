@@ -29,10 +29,9 @@ print STDERR "blatSearch: searching against ", scalar(@files), " target files.\n
 # Run BLAT search against each target file in turn
 #
 my $opts = &parseBlatParams($paramsPath);
-system("mkdir per-chr");
 foreach my $targetFile (@files) {
     my ($chr) = ($targetFile =~ /chr([^\.\/]*)\.fa$/);
-    my $out_file = "per-chr/blat-chr$chr.psl";
+    my $out_file = "blat-chr$chr.psl";
     my $cmd = "$blatBinPath $targetListPath $seqPath $opts $out_file";
     system("$cmd >& blat.log");
 }
