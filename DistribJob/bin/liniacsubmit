@@ -8,7 +8,7 @@ my ($nodecount, $minutes, $controllerPropFile) = &parseArgs(@ARGV);
 ##need to write to a file so that user can cancel this job if fails for some reason
 my $tmp = "cancelLiniacJob.$$";
 my $cancelFile = "$ENV{HOME}/$tmp";
-open(F,">$cancelFile");
+open(F,">$cancelFile") || die "couldn't open '$cancelFile'";
 print F "#!/bin/sh\n\ncanceljob ";
 close F;
 system("chmod +x $cancelFile");
