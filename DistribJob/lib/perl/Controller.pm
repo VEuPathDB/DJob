@@ -61,6 +61,11 @@ sub new {
     foreach my $nodenum (@$nodenumlist) {
 	print "Initializing node $nodenum...\n";
 	my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode);
+        ##First check the node to make certain it is functional...
+        if(!$node){  ##failed to initialize so is null..
+          print "  Unable to initialize node $nodenum....skipping\n";
+          next;
+        }
 	push(@nodeSlots, @{$node->getSlots()});
 	$task->initNode($node, $inputDir);
     }
