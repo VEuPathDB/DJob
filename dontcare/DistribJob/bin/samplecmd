@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+# usage: samplecmd inputset_file local_dir server_results_dir message
+
+$inputsetFile = $ARGV[0];
+$message = $ARGV[1];
+
+open(I, $inputsetFile) || die "couldn't open $inputsetFile\n";
+open(O, ">answer") || die "couldn't open answer\n";
+
+while(<I>) {
+    chomp;
+    if (/oops/) {
+	die "bad input in $inputsetFile\n";
+    }
+    /(\d+)\s+(\d+)/;
+    print O "$1 $message\n";
+    sleep($2);
+}
+close(I);
+close(O);
+

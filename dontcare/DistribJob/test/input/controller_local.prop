@@ -1,0 +1,8 @@
+masterdir=$ENV{HOME}/test/master
+inputdir=$ENV{HOME}/test/DistribJob/input
+nodedir=$ENV{HOME}/test
+slotspernode=1
+subtasksize=3
+taskclass=DistribJob::SampleTask
+nodeclass=DistribJob::LocalNode
+restart=no

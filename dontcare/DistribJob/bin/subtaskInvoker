@@ -1,0 +1,21 @@
+#!/bin/sh
+
+localdir=$1
+serverdir=$2
+
+shift 2
+
+cd $localdir
+
+$* > $localdir/subtask.output 2>&1     #stdout & stderr to same file
+
+status=$?
+
+cp -r $localdir/* $serverdir
+
+if [ $status != 0 ]; then
+  touch $serverdir/failed
+fi
+
+touch $serverdir/done
+

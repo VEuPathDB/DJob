@@ -1,0 +1,8 @@
+masterdir=$ENV{HOME}/test/master
+inputdir=$ENV{HOME}/test/DistribJob/input
+nodedir=/scratch/user/$ENV{USER}
+slotspernode=1
+subtasksize=3
+taskclass=DistribJob::SampleTask
+nodeclass=DistribJob::BprocNode
+restart=no

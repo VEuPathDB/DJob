@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use strict;
+use Cwd;
+
+my ($nodecount, $minutes, $controllerPropFile) = &parseArgs(@ARGV);
+
+my $liniacjobPath = `which liniacjob`;
+
+chomp $liniacjobPath;
+
+my $processors = $nodecount * 2;
+
+my $dir = getcwd();
+
+my $cmd = "cmsubmit -y -d $dir -p $processors -t $minutes -c Batch $liniacjobPath $controllerPropFile";
+
+system($cmd);
+
+sub parseArgs {
+    my ($nodecount, $minutes, $controllerPropFile) = @ARGV;
+
+    &usage unless ($nodecount && $minutes && $controllerPropFile);
+
+    &usage if ($nodecount < 0 || $nodecount > 10000); 
+    &usage if ($minutes < 0 || $minutes > 100000); 
+    &usage unless $controllerPropFile =~ /^\//;
+
+    die "controller properties file $controllerPropFile does not exist"
+	unless -e $controllerPropFile;
+
+    return ($nodecount, $minutes, $controllerPropFile);
+}
+
+sub usage {
+
+    print "usage: liniacsubmit nodecount minutes controllerPropFileFullPath\n";
+    exit(1);
+}

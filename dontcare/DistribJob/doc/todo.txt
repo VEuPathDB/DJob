@@ -1,0 +1,22 @@
+improve sample.pm to make sure it has all critical logic
+improve creation of node/result dir
+controller should handle node death by continuing, not dying. (make a node_xx_offline in running)
+add showSubtaskNodes command which reports which node subtasks are on
+add failSubtask command, and add to user guide
+in subtask dir, change result/ to output/
+document how to maintain input order in the result
+add saveSubtaskDirs property
+change slotsPerNode property to subtasksPerNode
+
+
+DONE
+add time stamp to logging of start and end of subtask
+install in real bin/ on alpha
+don't hard code in test props
+improve comment in SampleTask
+"indexing fasta file"
+validation should show how many are missing
+lose install/
+rename buildscript to install
+controller should report if there were failures on the last line of output
+die if input set size is 0

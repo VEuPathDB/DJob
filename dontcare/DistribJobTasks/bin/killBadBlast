@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+
+## runs and looks for hung blast processes...killing the offendng sucker..
+
+use strict;
+use Getopt::Long;
+
+my($blastProgram);
+
+&GetOptions("blastProgram=s" => \$blastProgram);
+
+die "you must provide --blastProgram <pgm>\n" unless $blastProgram;
+
+my $hostname = `hostname`;
+chomp $hostname;
+
+my $ctBad = 0;
+while(1){
+  my @procs = `ps -auxwww | grep $blastProgram | grep -v sh | grep -v perl`;
+  my @pid;
+  foreach my $p (@procs){
+    if($p =~ /^\w+\s+(\d+).*?(\d+:\d+)\s+$blastProgram/){
+      my $proc = $1;
+      my $time = $2;
+      $time =~ s/:/\./;
+      push(@pid,[$proc,$time]);
+#      print STDERR "$proc $time\n";
+    }
+  }
+  my @sort = sort{$b->[1] <=> $a->[1]}@pid;
+  my $big = shift @sort;
+  my $smalltot;
+  foreach my $a (@sort){
+    $smalltot += $a->[1];
+  }
+  my $div = $big->[1] / ($smalltot ? $smalltot : 0.1);
+#  print STDERR "  div = $div\n";
+  if( $div > 100){
+    $ctBad++;
+    if($ctBad > 3){
+      print STDERR "ERROR: node $hostname - Process $big->[0] has run away...div = $div\n".@procs;
+      $ctBad = 0;
+      system("kill -9 $big->[0]");
+    }
+  }else{
+    $ctBad = 0;
+  }
+  sleep 15;
+}
