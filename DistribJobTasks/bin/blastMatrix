@@ -93,7 +93,7 @@ sub processEntry {
     my $countRedo = 0;
     my $needToRepeat = 1;
     do {
-	my $cmd = "$program $db $tempfile cpus=1 B=1000 -noseqs N=-10 M=5  2> $tempfile.stderr";
+	my $cmd = "$program $db $tempfile cpus=1 B=1000 -novalidctxok -noseqs N=-10 M=5  2> $tempfile.stderr";
 
 	my @blastn_out = `$cmd`;
 	my $status = $? >> 8;
