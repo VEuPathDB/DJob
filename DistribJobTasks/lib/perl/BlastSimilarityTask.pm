@@ -23,6 +23,8 @@ my @properties =
  ["blastProgram",    "",     "rpsblast if cdd | any wu-blast"],
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
+ ["saveGoodBlastFiles",   "0",    "If 1 then blast results that meet parse are saved"],
+ ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=1 [$ENV{HOME}/blastFiles"],
  );
 
 sub new {
@@ -33,6 +35,17 @@ sub new {
 # called once 
 sub initServer {
     my ($self, $inputDir) = @_;
+
+    ##deal with saving blast files if desired
+    if($self->{props}->getProp("saveGoodBlastFiles")){
+      ##check to make certain directory exists and if doesn't, create it
+      my $fileDir = $self->{props}->getProp("blastFileDirPath");
+      print STDERR "Saving good blast files to $fileDir\n";
+      if(!-d "$fileDir"){
+        mkdir($fileDir) || die "directory '$fileDir' for storing blast files can not be created\n";
+      }
+    }
+
 
     my $blastBin = $self->{props}->getProp("blastBinDir");
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
@@ -56,7 +69,7 @@ sub initServer {
 	    &runCmd("$blastBin/copymat -r T -P $dbFilePath");
 	}
 
-	my @ls = `ls -rt $dbFilePath $dbFilePath.p*`;
+	@ls = `ls -rt $dbFilePath $dbFilePath.p*`;
 	map { chomp } @ls;
 	if (scalar(@ls) != 6 || $ls[0] ne $dbFilePath) {
 	    &runCmd("$blastBin/formatdb -o T -i $dbFilePath");
@@ -121,10 +134,12 @@ sub runSubTask {
     my $regex = $self->{props}->getProp("regex");
     my $blastParamsFile = $self->{props}->getProp("blastParamsFile");
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $saveGood = $self->{props}->getProp("saveGoodBlastFiles");
+    my $blastFilePath = $self->{props}->getProp("blastFileDirPath");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeSlotDir/$blastParamsFile";
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeSlotDir/$blastParamsFile".($saveGood ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
 
     $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
 }
