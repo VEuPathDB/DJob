@@ -75,9 +75,9 @@ select OUT; $| = 1;
 select STDOUT;
 
 ##fork off the process to kill blast processes that are bad!!
-my $progbase = basename($program);
+#my $progbase = basename($program);
 if($program !~ /rpsblast/){
-  system("killBadBlast --blastProgram $progbase &");
+  system("killBadBlast --blastProgram $program &");
 }
 
 
