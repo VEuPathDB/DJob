@@ -32,7 +32,7 @@ my $opts = &parseBlatParams($paramsPath);
 foreach my $targetFile (@files) {
     my ($chr) = ($targetFile =~ /chr([^\.\/]*)\.fa$/);
     my $out_file = "blat-chr$chr.psl";
-    my $cmd = "$blatBinPath $targetListPath $seqPath $opts $out_file";
+    my $cmd = "$blatBinPath $targetFile $seqPath $opts $out_file";
     system("$cmd >& blat.log");
 }
 
