@@ -11,7 +11,9 @@ my $cmd = "distribjob $ARGV[0] $nodes";
 
 print "Liniac user id: $ENV{USER}\n";
 
-system($cmd);
+my $status = system($cmd) >> 8;
+
+die "Failed running '$cmd' with status '$status'" if $status;
 
 sub getNodes {
   my $c = "cmgetnodes $ENV{JOBID}";
