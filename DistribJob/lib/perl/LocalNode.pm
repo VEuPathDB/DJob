@@ -1,16 +1,16 @@
-package DistribJob::LocalNode;
+package DJob::DistribJob::LocalNode;
 
-use DistribJob::Node;
-use Common::Utils;
+use DJob::DistribJob::Node;
+use CBIL::Util::Utils;
 
 
-@ISA = qw(DistribJob::Node);
+@ISA = qw(DJob::DistribJob::Node);
 
 use strict;
 
 sub new {
     my ($class, $nodeNum, $nodeDir, $slotcount) = @_;
-    my $self = &DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
+    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
     $self->{nodeDir} = "$nodeDir/$nodeNum";
     $self->_initNodeDir();  
     return $self;
@@ -26,7 +26,7 @@ sub _initNodeDir {
 
 sub runCmd {
     my ($self, $cmd) = @_;
-    return &Common::Utils::runCmd($cmd);
+    return &CBIL::Util::Utils::runCmd($cmd);
 }
     
 sub execSubTask {

@@ -1,8 +1,8 @@
-masterdir=$ENV{HOME}/test/master
-inputdir=$ENV{HOME}/test/DistribJob/input
-nodedir=$ENV{HOME}/test
+masterdir=$ENV{GUS_HOME}/test/DJob/master
+inputdir=$ENV{GUS_HOME}/test/DJob/DistribJob/input
+nodedir=$ENV{GUS_HOME}/test/DJob
 slotspernode=1
 subtasksize=3
-taskclass=DistribJob::SampleTask
-nodeclass=DistribJob::LocalNode
+taskclass=DJob::DistribJob::SampleTask
+nodeclass=DJob::DistribJob::LocalNode
 restart=no

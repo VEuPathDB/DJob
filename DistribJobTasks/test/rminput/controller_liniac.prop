@@ -1,8 +1,8 @@
-masterdir=$ENV{HOME}/test/master
-inputdir=$ENV{HOME}/test/DistribJobTasks/rminput
+masterdir=$ENV{GUS_HOME}/test/DJob/master
+inputdir=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/rminput
 nodedir=/scratch/user/$ENV{USER}
 slotspernode=1
 subtasksize=3
-taskclass=DistribJobTasks::RepeatMaskerTask
-nodeclass=DistribJob::BprocNode
+taskclass=DJob::DistribJobTasks::RepeatMaskerTask
+nodeclass=DJob::DistribJob::BprocNode
 restart=no

@@ -1,9 +1,9 @@
-package DistribJob::Task;
+package DJob::DistribJob::Task;
 
 use strict;
-use Common::Utils;
-use Common::PropertySet;
-use DistribJob::SubTask;
+use CBIL::Util::Utils;
+use CBIL::Util::PropertySet;
+use DJob::DistribJob::SubTask;
 
 my $haveReadJobscript = 0;
 
@@ -14,7 +14,7 @@ sub new {
     my $self = {};
     bless $self, $class;
 
-    $self->{props} = Common::PropertySet->new("$inputDir/task.prop", $props);
+    $self->{props} = CBIL::Util::PropertySet->new("$inputDir/task.prop", $props);
 
     print "Finding input set size\n";
     $self->{size} = $self->getInputSetSize($inputDir);
@@ -55,7 +55,7 @@ sub nextSubTask {
 	my $subTaskDir = $self->_newSubTaskDir($nodeSlot->getNodeNum(),
 					       $nodeSlot->getNum());
 
-	$nextSubTask = DistribJob::SubTask->new($self->{subTaskNum}, $subTaskDir, $self);
+	$nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $subTaskDir, $self);
 
 	my $nodeNum = $nodeSlot->getNodeNum();
 	my $slotNum = $nodeSlot->getNum();

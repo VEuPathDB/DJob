@@ -1,10 +1,10 @@
 #!/usr/local/bin/perl
 
-package DistribJob::Controller;
+package DJob::DistribJob::Controller;
 
 use strict;
-use Common::Utils;
-use Common::PropertySet;
+use CBIL::Util::PropertySet;
+use CBIL::Util::Utils;
 
 my $KILLNOW = 2;
 
@@ -18,8 +18,8 @@ my @properties =
  ["nodedir",      "",  "Directory on the node's disk to use as a working dir"],
  ["slotspernode", "",  "Number of subtasks to run on a node simultaneously"],
  ["subtasksize",  "",  "Number of input elements to include in each subtask"],
- ["taskclass",    "",  "Subclass of DistribJob::Task that manages the task"],
- ["nodeclass",    "",  "Subclass of DistribJob::Node that handles the node"],
+ ["taskclass",    "",  "Subclass of DJob::DistribJob::Task that manages the task"],
+ ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
  ["restart",      "",  "yes/no: restart a task"],
  );
 
@@ -128,7 +128,7 @@ sub parseArgs {
 sub readPropFile {
     my ($self, $propfile, $propDeclaration) = @_;
 
-    my $props  = Common::PropertySet->new($propfile, $propDeclaration);
+    my $props  = CBIL::Util::PropertySet->new($propfile, $propDeclaration);
 
     die "property 'nodeDir' in $propfile must be a full path"
 	unless $props->getProp('nodedir') =~ /^\//;

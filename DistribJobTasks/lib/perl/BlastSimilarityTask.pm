@@ -1,14 +1,12 @@
-package DistribJobTasks::BlastSimilarityTask;
+package DJob::DistribJobTasks::BlastSimilarityTask;
 
-use Common::Utils;
-use DistribJob::Task;
-use FastaFile;
+use DJob::DistribJob::Task;
+use CBIL::Bio::FastaFile;
 use File::Basename;
 use Cwd;
+use CBIL::Util::Utils;
 
-
-
-@ISA = (DistribJob::Task);
+@ISA = (DJob::DistribJob::Task);
 
 use strict;
 
@@ -28,7 +26,7 @@ my @properties =
  );
 
 sub new {
-    my $self = &DistribJob::Task::new(@_, \@properties);
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
     return $self;
 }
 
@@ -98,7 +96,7 @@ sub getInputSetSize {
     }
 
     print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = FastaFile->new($fastaFileName);
+    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 

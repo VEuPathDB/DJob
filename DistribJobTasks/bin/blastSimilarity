@@ -3,6 +3,7 @@
 ## script for running blast over a batch of sequences against a database and outputting either similarityspans
 ## or summaries ??or both??.
 
+use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Bio::Blast::BlastAnal;
 use strict;
 use Getopt::Long;
@@ -227,7 +228,7 @@ sub analyzeBlast{
     system("gzip -f $blastFileDir/$accession.$fileExtension");
     return;
   }
-  my $blast = BlastAnal->new($debug);
+  my $blast = CBIL::Bio::Blast::BlastAnal->new($debug);
   $blast->parseBlast($lengthCutoff,$percentCutoff,$pValCutoff,$regex,\@blastn_out,$remMaskedRes,($program =~ /rpsblast/ ? 1 : undef)); ##parse with less stringent params
   ##to aid in detection of repeats...
 

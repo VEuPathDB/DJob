@@ -1,9 +1,9 @@
-package DistribJob::SampleTask;
+package DJob::DistribJob::SampleTask;
 
-use Common::Utils;
-use DistribJob::Task;
+use CBIL::Util::Utils;
+use DJob::DistribJob::Task;
 
-@ISA = (DistribJob::Task);
+@ISA = (DJob::DistribJob::Task);
 
 use strict;
 
@@ -26,7 +26,7 @@ use strict;
 #    [name_of_property, default_value, description_of_property]
 # If the default value is "" then the property is required.  
 #
-# The properties are made available to your task in a Common::PropertySet 
+# The properties are made available to your task in a CBIL::Util::PropertySet 
 # object in $self{props}.  Access a property by calling the getProp() method:
 #   $self{props}->getProp('name_of_property');
 #
@@ -38,7 +38,7 @@ my @properties =
 # Construct a new instance of your task.  This method should be copied 
 # verbatim into your task.
 sub new {
-    my $self = &DistribJob::Task::new(@_, \@properties);
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
     return $self;
 }
 

@@ -1,15 +1,15 @@
-package DistribJob::BprocNode;
+package DJob::DistribJob::BprocNode;
 
-use DistribJob::Node;
-use Common::Utils;
+use DJob::DistribJob::Node;
+use CBIL::Util::Utils;
 
-@ISA = qw(DistribJob::Node);
+@ISA = qw(DJob::DistribJob::Node);
 
 use strict;
 
 sub new {
     my ($class, $nodeNum, $nodeDir, $slotcount) = @_;
-    my $self = &DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
+    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
     $self->{nodeDir} = $nodeDir;
     $self->_initNodeDir();  
     return $self;
@@ -33,7 +33,7 @@ sub _initNodeDir {
 sub runCmd {
     my ($self, $cmd) = @_;
     
-    return &Common::Utils::runCmd("bpsh -n $self->{nodeNum} $cmd");
+    return &CBIL::Util::Utils::runCmd("bpsh -n $self->{nodeNum} $cmd");
 }
 
 sub execSubTask {

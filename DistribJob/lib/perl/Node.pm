@@ -1,6 +1,6 @@
-package DistribJob::Node;
+package DJob::DistribJob::Node;
 
-use DistribJob::NodeSlot;
+use DJob::DistribJob::NodeSlot;
 
 use strict;
 
@@ -31,7 +31,7 @@ sub getSlots {
     unless ($self->{slots}) {
 	$self->{slots} = [];
 	for(my $i=0; $i<$self->{slotCount}; $i++) {
-	    push(@{$self->{slots}}, DistribJob::NodeSlot->new($self, $i+1));
+	    push(@{$self->{slots}}, DJob::DistribJob::NodeSlot->new($self, $i+1));
 	}
     }
 

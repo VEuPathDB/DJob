@@ -6,6 +6,7 @@ BEGIN {
 #  unshift(@INC,"/home/brunkb/perldev");
 }
 
+use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Bio::Blast::BlastAnal;
 use strict;
 use Getopt::Long;
@@ -110,7 +111,7 @@ sub processEntry {
 
 sub analyzeBlast{
   my($accession,@blastn_out) = @_;
-  my $blast = BlastAnal->new($debug);
+  my $blast = CBIL::Bio::Blast::BlastAnal->new($debug);
   $blast->parseBlast($parseLength,$parsePercent,$parsePVal,'(\S+)',\@blastn_out); ##parse with less stringent params
          ##to aid in detection of repeats...
 

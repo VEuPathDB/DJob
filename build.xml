@@ -4,13 +4,20 @@
   <!-- oooooooooooooooooooooooooo  Dependencies  oooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
+  <target name="CBIL-Installation">
+    <ant antfile="../CBIL/build.xml" target="CBIL-Installation">
+      <property name="project" value="CBIL"/>
+      <property name="version" value="latest"/>
+    </ant>
+  </target>  
 
 
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooo  Installation  oooooooooooooooooooooooooo -->
   <!-- oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo -->
 
-  <target name="DJob-Installation" depends="DJob/DistribJobTasks-Installation">
+  <target name="DJob-Installation" depends="CBIL-Installation,
+                                            DJob/DistribJobTasks-Installation">
 
     <ant target="defaultProjectInstall"/>
 

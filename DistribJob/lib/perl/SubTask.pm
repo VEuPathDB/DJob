@@ -1,4 +1,4 @@
-package DistribJob::SubTask;
+package DJob::DistribJob::SubTask;
 
 use strict;
 

@@ -1,8 +1,8 @@
-masterdir=$ENV{HOME}/test/master
-inputdir=$ENV{HOME}/test/DistribJob/input
+masterdir=$ENV{GUS_HOME}/test/DJob/master
+inputdir=$ENV{GUS_HOME}/test/DJob/DistribJob/input
 nodedir=/scratch/user/$ENV{USER}
 slotspernode=1
 subtasksize=3
-taskclass=DistribJob::SampleTask
-nodeclass=DistribJob::BprocNode
+taskclass=DJob::DistribJob::SampleTask
+nodeclass=DJob::DistribJob::BprocNode
 restart=no

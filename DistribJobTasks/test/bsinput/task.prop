@@ -1,7 +1,7 @@
-#blastBinDir=/usr/local/pkg/bio/wu-blast/latest
-blastBinDir=/genomics/share/pkg/bio/wu-blast/latest
-dbFilePath=$ENV{HOME}/test/DotsBuild/db.fsa
-inputFilePath=$ENV{HOME}/test/DotsBuild/bsinput/seqs.fsa
+blastBinDir=/usr/local/pkg/bio/wu-blast/latest
+#blastBinDir=/genomics/share/pkg/bio/wu-blast/current
+dbFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/bsinput/seqs.fsa
+inputFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/bsinput/seqs.fsa
 dbType=n
 blastProgram=blastn
 blastParamsFile=blastParams

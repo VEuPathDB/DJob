@@ -1,4 +1,4 @@
-package DistribJob::NodeSlot;
+package DJob::DistribJob::NodeSlot;
 
 use strict;
 

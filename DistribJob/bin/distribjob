@@ -1,5 +1,7 @@
 #!@perl@
 
+use lib "$ENV{GUS_HOME}/lib/perl";
+
 use DJob::DistribJob::Controller;
 
 @args = &DJob::DistribJob::Controller::parseArgs();

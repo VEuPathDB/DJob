@@ -1,5 +1,5 @@
 #rmPath=/genomics/binf/src/bio/RepeatMasker/latest
 rmPath=/usr/local/src/bio/RepeatMasker/latest
-inputFileName=seqs.fsa
+inputFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/rminput/seqs.fsa
 trimDangling=y
 rmOptions='-mus'
