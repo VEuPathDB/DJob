@@ -130,24 +130,24 @@ sub readPropFile {
 
     my $props  = CBIL::Util::PropertySet->new($propfile, $propDeclaration);
 
-    die "property 'nodeDir' in $propfile must be a full path"
+    die "Error: property 'nodeDir' in $propfile must be a full path"
 	unless $props->getProp('nodedir') =~ /^\//;
 
-    die "property 'slotspernode' in $propfile must be between 1 and 10" 
+    die "Error: property 'slotspernode' in $propfile must be between 1 and 10" 
 	if ($props->getProp('slotspernode') < 1 
 	    || $props->getProp('slotspernode') > 10);
 	
-    die "property 'subtasksize' in $propfile must be between 1 and 100000" 
+    die "Error: property 'subtasksize' in $propfile must be between 1 and 100000" 
 	if ($props->getProp('subtasksize') < 1 
 	    || $props->getProp('subtasksize') > 100000);
 
-    die "property 'taskclass' must be set to the name of a subclass of Task"
+    die "Error: property 'taskclass' must be set to the name of a subclass of Task"
 	unless $props->getProp('taskclass');
 	
-    die "property 'noceclass' must be set to the name of a subclass of Node"
+    die "Error: property 'noceclass' must be set to the name of a subclass of Node"
 	unless $props->getProp('nodeclass');
 	
-    die "property 'restart' in $propfile must be 'yes' or 'no'" 
+    die "Error: property 'restart' in $propfile must be 'yes' or 'no'" 
 	if ($props->getProp('restart') ne 'yes' 
 	    && $props->getProp('restart') ne 'no');
 
