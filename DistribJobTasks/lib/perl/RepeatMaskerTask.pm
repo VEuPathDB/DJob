@@ -16,6 +16,7 @@ my @properties =
  ["inputFilePath", "",  "full path to input file"],
  ["trimDangling",  "",  "y or n"],
  ["rmOptions",     "NONE",  ""],
+ ["dangleMax", "", "trim this or fewer bases"]
 
  );
 
@@ -63,9 +64,10 @@ sub runSubTask {
     my $rmPath = $self->{props}->getProp("rmPath");
     my $rmOptions = $self->{props}->getProp("rmOptions");
     my $trimDangling = $self->{props}->getProp("trimDangling") eq "y"? "--trimDangling" : "";
+    my $dangleMax = $self->{props}->getProp("dangleMax");
 
     my $options = $rmOptions eq "NONE"? "" : "--rmOptions $rmOptions";
-    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeSlotDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling";
+    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeSlotDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";
 
     $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
 }
