@@ -30,8 +30,8 @@ print STDERR "blatSearch: searching against ", scalar(@files), " target files.\n
 #
 my $opts = &parseBlatParams($paramsPath);
 foreach my $targetFile (@files) {
-    my ($chr) = ($targetFile =~ /chr([^\.\/]*)\.fa$/);
-    my $out_file = "blat-chr$chr.psl";
+    my ($seq) = ($targetFile =~ /([^\.\/]*)\.(fa|fasta)$/);
+    my $out_file = "blat-$seq.psl";
     my $cmd = "$blatBinPath $targetFile $seqPath $opts $out_file";
     system("$cmd >& blat.log");
 }
