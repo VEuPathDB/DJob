@@ -23,7 +23,7 @@ my @properties =
  ["blastProgram",    "",     "rpsblast if cdd | any wu-blast"],
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
- ["saveGoodBlastFiles",   "0",    "If 1 then blast results that meet parse are saved"],
+ ["saveGoodBlastFiles",   "5",    "If 1 then blast results that meet parse are saved"],
  ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=1 [$ENV{HOME}/blastFiles"],
  );
 
@@ -37,7 +37,7 @@ sub initServer {
     my ($self, $inputDir) = @_;
 
     ##deal with saving blast files if desired
-    if($self->{props}->getProp("saveGoodBlastFiles")){
+    if($self->{props}->getProp("saveGoodBlastFiles") == 1){
       ##check to make certain directory exists and if doesn't, create it
       my $fileDir = $self->{props}->getProp("blastFileDirPath");
       print STDERR "Saving good blast files to $fileDir\n";
@@ -139,7 +139,7 @@ sub runSubTask {
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeSlotDir/$blastParamsFile".($saveGood ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeSlotDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeSlotDir/$blastParamsFile".($saveGood == 1 ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
 
     $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
 }
