@@ -12,7 +12,7 @@ use FileHandle;
 use Getopt::Long;
 
 my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling,
-  $dangleLength);
+  $dangleLength,$dangleMax);
 &GetOptions('rmOptions=s' => \$rmOptions,
             'rmPath=s' => \$rmPath,
             'seqFile=s' => \$inFile,
@@ -20,7 +20,7 @@ my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling,
             'outFile=s' => \$outFile,
             'mod=i' => \$mod, 'modValue=i' => \$modValue,
             'trimDangling!' => \$trimDangling,
-	    'dangleMax' => \$dangleMax);
+	    'dangleMax=i' => \$dangleMax);
 
 
 ##usage etc
@@ -207,7 +207,7 @@ sub trimDanglingNNN_sub {
 
   my $trimmed; 
   if ($seq =~ /^(.*?)NNNNNNNNNN+(.*?)$/) {
-    if (length($1) < $dangleMax) {
+    if (length($1) <= $dangleMax) {
       $seq = $2;
       $trimmed = 1;
     }
