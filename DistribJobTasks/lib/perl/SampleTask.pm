@@ -188,7 +188,7 @@ sub makeSubTaskCommand {
 
     my $msg = $self->{props}->getProp("msg");
 
-    my $cmd = "/scratch/mheiges/distribjob/bin/samplecmd $nodeExecDir/inputset $msg";
+    my $cmd = "samplecmd $nodeExecDir/inputset $msg";
 
     return $cmd;
 
