@@ -11,19 +11,21 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
-my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling);
+my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling,
+  $dangleLength);
 &GetOptions('rmOptions=s' => \$rmOptions,
             'rmPath=s' => \$rmPath,
             'seqFile=s' => \$inFile,
             'errorFile=s' => \$errFile,
             'outFile=s' => \$outFile,
             'mod=i' => \$mod, 'modValue=i' => \$modValue,
-            'trimDangling!' => \$trimDangling );
+            'trimDangling!' => \$trimDangling,
+	    'dangleMax' => \$dangleMax);
 
 
 ##usage etc
 if (!$inFile || !$outFile ) {
-	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --rmOptions '<RepeatMasker options>' --mod <number of logical parts to split file into> --modValue <mod value for this run>\n\n";
+	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --rmOptions '<RepeatMasker options>' --mod <number of logical parts to split file into> --modValue <mod value for this run>  --trimDangling <boolean: trim bases from end if dangling off of masked seq> --dangleMax <this number or less of bases will be trimmed>  \n\n";
 	system("$rmPath/RepeatMasker");
 	exit 1;
 }
@@ -174,28 +176,46 @@ sub readSeqFileToArray{					##read into array or arrays
 }
 
 sub trimDanglingNNN {
-  my($seq) = @_;
-  if($seq =~ /^(.*?)NNNNNNNNNN+(.*?)$/){
-    $seq = $2 if length($1) < 20;  ##don't want to leave 20 bp at end...
+  my ($seq) = @_;
+
+
+  # forward strand
+  my $mightNeedTrimming = 1;
+  while($mightNeedTrimming) {
+    ($seq, $mightNeedTrimming) = &trimDanglingNNN_sub($seq);
   }
-  
-  if($seq =~ /N/){  ##still has at least one N so..
+
+  # reverse strand (only bother if there are and NNNs left)
+  if ($seq =~ /N/) {
     my $rev = &reverseComplementSequence($seq);
-    if($rev =~ /^(.*?)NNNNNNNNNN+(.*?)$/){
-#                       print "matched ending NNNN length\$1=".length($1)." length\$2=".length($2)."\nSEQ:$seq\n";
-                        $rev = $2 if length($1) < 20;  ##don't want to leave 20 bp at end...
-                      }
-    if(length($rev) == length($seq)){
-      return $seq;
-    }else{
-      return &reverseComplementSequence($rev);
+    $mightNeedTrimming = 1;
+    while($mightNeedTrimming) {
+      ($rev, $mightNeedTrimming) = &trimDanglingNNN_sub($rev);
     }
-  }else{
-    return $seq;
+    # don't bother unreversing if not changed
+    if (length($rev) != length($seq)) {
+      $seq = &reverseComplementSequence($rev);
+    }
   }
+  return $seq;
 }
 
-sub reverseComplementSequence{  ##for reverseComplementing sequences
+
+
+sub trimDanglingNNN_sub {
+  my($seq) = @_;
+
+  my $trimmed; 
+  if ($seq =~ /^(.*?)NNNNNNNNNN+(.*?)$/) {
+    if (length($1) < $dangleMax) {
+      $seq = $2;
+      $trimmed = 1;
+    }
+  }
+  return ($seq, $trimmed);
+}
+
+sub reverseComplementSequence{ ##for reverseComplementing sequences
   my($seq) = @_;
   $seq =~ s/\s//g;
   my $revcompseq = "";
