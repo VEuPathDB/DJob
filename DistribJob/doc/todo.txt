@@ -4,6 +4,7 @@
 - in integrateSubTask do operation from Node (pass in node)
 - execSubtask redirects stderr and stdour to one file.  don't.
 - killBadBlast needs to work for TBlastn
+- have a flag to ignore errors (so that bad apples don't spoil bunch)
 
 -when writing blastables to nodes, use fork for parallelization
 -upgrade docs to reflect $GUS_HOME and new installation procedure
