@@ -61,29 +61,41 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+  my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $gaBinPath = $self->{props}->getProp("gaBinPath");
-    my $targetListPath = $self->{props}->getProp("targetListPath");
-    my $paramsPath = $inputDir . '/params.prop';
+  my $gaBinPath = $self->{props}->getProp("gaBinPath");
+  my $targetListPath = $self->{props}->getProp("targetListPath");
+  my $paramsPath = $inputDir . '/params.prop';
 
-    my $cmd =  "blatSearch --blatBinPath $gaBinPath --targetListPath $targetListPath --seqPath $nodeSlotDir/seqsubset.fsa --paramsPath $paramsPath";
+  my $cmd =  "blatSearch --blatBinPath $gaBinPath --targetListPath $targetListPath --seqPath $nodeExecDir/seqsubset.fsa --paramsPath $paramsPath";
 
-    $node->execSubTask("$nodeSlotDir/result", "$subTaskDir/result", $cmd);
+  return $cmd;
 }
 
-sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $subTaskResultDir, $mainResultDir) = @_;
 
-    opendir(STRD, $subTaskResultDir);
-    my @files = readdir(STRD);
-    # expect output file name to be like blat-chr5.psl
-    my @seqs = grep(/\-.+\./i, @files);
-    close STRD;
-    foreach my $seq (@seqs) {
-	&runCmd("mkdir -p $mainResultDir/per-seq") unless -d "$mainResultDir/per-seq";
-	&runCmd("cat $subTaskResultDir/$seq >> $mainResultDir/per-seq/$seq");
+sub integrateSubTaskResults {
+  my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+
+  my @files = split /\n/, $node->runCmd("ls -1 $nodeExecDir");
+
+  # expect output file name to be like blat-chr5.psl
+  my @seqs = grep(/\-.+\./i, @files);
+  foreach my $seq (@seqs) {
+    chomp $seq;
+    my $outdir = "$mainResultDir/per-seq";
+    my $outfile = "$outdir/$seq";
+    $node->runCmd("mkdir -p $outdir") unless -d $outdir;
+
+    # workaround to odd bpsh problem:
+    # cat >> $file fails if $file does not exist,
+    # even if we "touch $file" first.
+    if (-e $outfile) {
+	$node->runCmd("cat $nodeExecDir/$seq >> $outfile");
+    } else {
+	$node->runCmd("cp $nodeExecDir/$seq $outfile");
     }
+
+ }
 }
 1;
