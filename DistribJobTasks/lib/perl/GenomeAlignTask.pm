@@ -82,7 +82,7 @@ sub integrateSubTaskResults {
     close STRD;
     foreach my $chr (@chrs) {
 	&runCmd("mkdir -p $mainResultDir/per-chr") unless -d "$mainResultDir/per-chr";
-	&runCmd("cat $subTaskResultDir/per-chr/$chr >> $mainResultDir/per-chr/$chr");
+	&runCmd("cat $subTaskResultDir/$chr >> $mainResultDir/per-chr/$chr");
     }
 }
 1;
