@@ -59,7 +59,9 @@ if($doNotParse){
 }
 if($saveAllBlastFiles || $saveGoodBlastFiles){
   if(!$fileExtension){
-    $fileExtension = "$database\_$program";
+    my $db = basename($database);
+    my $pg = basename($program);
+    $fileExtension = "$db\_$pg";
   }
   die "ERROR: you must specify --blastFileDir in order to save blast files\n" unless $blastFileDir;
   if(!  -e "$blastFileDir"){
@@ -198,7 +200,7 @@ sub stopKillBadBlast {
     print LOG "Attempting to stop killBadBlast\n";
     
     foreach my $p (`ps -auxwww | grep killBad | grep -v "ps " | grep -v grep`){
-	if($p =~ /^\w+\s+(\d+)/){
+	if($p =~ /^\S+\s+(\d+)/){
 	    system("kill -9 $1");
 	    print LOG "... Stopping killBadBlast process: $p\n";
 	}
