@@ -1,4 +1,4 @@
-package DJob::DistribJob::SampleTask;
+package DJob::DistribJobTasks::SampleTask;
 
 use CBIL::Util::Utils;
 use DJob::DistribJob::Task;
@@ -188,7 +188,7 @@ sub makeSubTaskCommand {
 
     my $msg = $self->{props}->getProp("msg");
 
-    my $cmd = "samplecmd $nodeExecDir/inputset $msg";
+    my $cmd = "/scratch/mheiges/distribjob/bin/samplecmd $nodeExecDir/inputset $msg";
 
     return $cmd;
 
