@@ -16,7 +16,7 @@ chomp $hostname;
 
 my $ctBad = 0;
 while(1){
-  my @procs = `ps -auxwww | grep $blastProgram | grep -v sh | grep -v perl`;
+  my @procs = `ps -auxwww | grep $blastProgram `;
   my @pid;
   foreach my $p (@procs){
     if($p =~ /^\w+\s+(\d+).*?(\d+:\d+)\s+$blastProgram/){
