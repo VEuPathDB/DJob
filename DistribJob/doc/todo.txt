@@ -1,6 +1,6 @@
  (from Brian)
 - execSubtask - takes only subtaskdir, not /results
-- avoid copying back results unless failure
+- documentation: alert Task author to remove temp files to avoid unnec. xfer
 - in integrateSubTask do operation from Node (pass in node)
 - execSubtask redirects stderr and stdour to one file.  don't.
 - killBadBlast needs to work for TBlastn
