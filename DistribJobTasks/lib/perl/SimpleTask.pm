@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::SimpleTask;
 
 use DJob::DistribJob::Task;
-
+use CBIL::Util::Utils;
 
 @ISA = (DJob::DistribJob::Task);
 
@@ -77,6 +77,8 @@ sub integrateSubTaskResults {
     my $cmd = "cp -r $subTaskResultDir/* $mainResultDir";
     print "DEBUG: SimpleTask::integrateSubTaskResults: running command $cmd...\n" if $self->{'debug'};
     &runCmd("$cmd");
+    $cmd = "mv $mainResultDir/subtask.output $mainResultDir/task.out";
+    &runCmd($cmd) if -f "$mainResultDir/subtask.output";
     print "DEBUG: done\n" if $self->{'debug'};
 }
 1;
