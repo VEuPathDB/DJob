@@ -11,10 +11,13 @@ $* > subtask.output 2> subtask.stderr    ## stdout goes into subtask.output and 
 
 status=$?
 
+for file in $localdir/*
+do
+  cp -r $file $serverdir
+done 
 
 if [ $status != 0 ]; then
   touch $serverdir/failed
-  cp -r $localdir/* $serverdir
 fi
 
 touch $serverdir/done
