@@ -1,0 +1,38 @@
+#!/bin/sh
+
+targetBin=$1
+targetLibPerl=$2
+targetTest=$3
+checkoutFirst=$4
+
+if [ "$targetTest" = "" ]; then
+  echo "usage: install targetBin targetLibPerl targetTest -checkoutfirst";
+  exit 1;
+fi
+
+mkdir -p $targetBin
+mkdir -p $targetLibPerl
+mkdir -p $targetTest
+
+cd $COMPONENTS_HOME
+
+if [ "$checkoutFirst" = "-checkoutfirst" ]; then
+  cvs co \
+  DistribJob \
+  perl/lib/Common
+fi
+
+# bin
+/bin/cp DistribJob/bin/*                        $targetBin
+
+# perl lib
+/bin/rm -rf $targetLibPerl/DistribJob
+/bin/cp -r DistribJob/lib/perl/DistribJob       $targetLibPerl
+/bin/cp -r perl/lib/Common                      $targetLibPerl
+
+# test
+/bin/rm -rf $targetTest/DistribJob
+/bin/cp -r DistribJob/test/                     $targetTest/DistribJob
+
+chmod +x $targetBin/*
+ 

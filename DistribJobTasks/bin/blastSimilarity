@@ -1,0 +1,260 @@
+#!/usr/bin/perl
+
+## script for running blast over a batch of sequences against a database and outputting either similarityspans
+## or summaries ??or both??.
+
+use CBIL::Bio::Blast::BlastAnal;
+use strict;
+use Getopt::Long;
+use File::Basename;
+
+open(LOG,">blastSimilarity.log");
+
+#print STDERR "args:\n"; foreach my $a (@ARGV){ print STDERR " '$a'\n"; }
+
+my $debug = 0;
+
+$| = 1;
+
+my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
+    $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
+    $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,$blastParamsFile, $blastBinDir);
+
+&GetOptions("regex=s" => \$regex, 
+            "pValCutoff=f" => \$pValCutoff, 
+            "lengthCutoff=i"=> \$lengthCutoff,
+            "percentCutoff=i" => \$percentCutoff,
+            "outputType=s" => \$outputType,
+            "blastProgram=s" => \$program,
+            "database=s" => \$database,
+            "seqFile=s" => \$seqFile,
+            "dataFile=s" => \$dataFile,
+            "adjustMatchLength!" => \$remMaskedRes,
+            "blastFileDir=s" => \$blastFileDir,
+            "fileExtension=s" => \$fileExtension,
+            "blastParamsFile=s" => \$blastParamsFile,
+            "saveAllBlastFiles!" => \$saveAllBlastFiles,
+            "saveGoodBlastFiles!" => \$saveGoodBlastFiles,
+            "doNotParse!" => \$doNotParse,
+	    "blastBinDir=s" => \$blastBinDir,
+            );
+die "Usage: generateBlastSimilarity.perl --regex='regular expression following ^\> of defline...ie '(\S+)'' --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile> --numSeqs=<num_sequences in sequencefile> --setSize=<batch size of sequences to process> --trackingFile=<filename to track progress> --blastVersion <alpha>(def=blast2) --blastParams 'extra blast parameters' --adjustMatchLength --saveAllBlastFiles --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles --fileExtension [.database_blastProgram] --doNotParse\n" unless ( $program && $database && $seqFile );
+
+###set the defaullts...
+$pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
+$lengthCutoff = $lengthCutoff ? $lengthCutoff : 10;
+$percentCutoff = $percentCutoff ? $percentCutoff : 20;  ##low for blastp
+$outputType = $outputType ? $outputType : "both";
+$blast_version = $blast_version ? $blast_version : "blast2";
+$dataFile = $dataFile ? $dataFile : "blastSimilarity.out";
+$regex = $regex ? $regex : '(\S+)';
+
+##having problems passing in blastParams so get from blastParamsFile...
+my $blastParams = &parseBlastParams($blastParamsFile);
+
+##deal  with saving files...
+if($doNotParse){
+  $saveAllBlastFiles = 1;
+}
+if($saveAllBlastFiles || $saveGoodBlastFiles){
+  if(!$fileExtension){
+    $fileExtension = "$database\_$program";
+  }
+  die "ERROR: you must specify --blastFileDir in order to save blast files\n" unless $blastFileDir;
+  if(!  -e "$blastFileDir"){
+    system("mkdir $blastFileDir") or die "cannot mkdir $blastFileDir";
+  }
+}
+
+$ENV{BLASTFILTER} = "$blastBinDir/filter";
+$ENV{BLASTMAT} = "$blastBinDir/matrix";
+
+open(OUT, ">$dataFile") or &error("cannot open output file $dataFile for writing");
+select OUT; $| = 1;
+select STDOUT;
+
+##fork off the process to kill blast processes that are bad!!
+my $progbase = basename($program);
+if($program !~ /rpsblast/){
+  system("killBadBlast --blastProgram $progbase &");
+}
+
+
+### loop through seqs, processing one at a time
+print LOG "processing $seqFile\n";
+open(F, "$seqFile") || &error("couldn't open seqfile $seqFile");
+my $tempfile = "seqTmp";
+my $tmpid = "";
+my $seq;
+my $cmd;
+if($program =~ /rpsblast/){
+    $cmd = "$program -d $database -i $tempfile $blastParams 2> blast.stderr";
+}else{
+    $cmd= "$program $database $tempfile $blastParams 2> blast.stderr";
+}
+print LOG "$cmd\n\n"; 
+ 
+while(<F>){
+  if(/^\>(\S+)/){  ##check to see that this is the accession!!
+   &processEntry($cmd, $tmpid, $seq, $program, $tempfile) unless $tmpid eq "";
+    $tmpid = $1;
+    $seq = "";
+  }else{
+    $seq .= $_;
+  }
+}
+&processEntry($cmd, $tmpid, $seq, $program, $tempfile) unless $tmpid eq ""; ##do the last one!!
+
+## clean up
+close F;
+close OUT;
+unlink $tempfile;
+stopKillBadBlast() if ($program !~ /rpsblast/);
+close LOG;
+
+######################### subroutines ###########################
+
+sub parseBlastParams {
+    my ($blastParamsFile) = @_;
+
+    open(C, "$blastParamsFile") or &error("cannot open blastParams file $blastParamsFile");
+    while(<C>){
+	next if /^\s*#/;
+	chomp;
+	$blastParams .= "$_ ";
+    }
+    close(C);
+    return $blastParams;
+}
+
+sub processEntry {
+  my($cmd, $accession, $sequence, $program, $tempfile) = @_;
+
+  print STDERR "processing $accession\n" if $debug;
+  open (TEMPFILE, ">$tempfile") or &error("cannot open temp file $tempfile for writing");
+  print TEMPFILE "\>$accession\n$sequence"; 
+  close TEMPFILE;
+
+  my ($validOutput, $noHits, @blastn_out, $status);
+  my $retry = 2;
+  my $try = 1;
+  do {
+      @blastn_out = `$cmd`;
+      $status = $? >> 8;
+      ($validOutput, $noHits) = 
+	  &checkOutput($accession, $program, $status, @blastn_out);
+  } while (!$validOutput && ($try++ < $retry));
+
+  if (!$validOutput) {
+      open(B, ">blast.out");
+      print B @blastn_out;
+      close(B);
+      &error("failed ($try times) with status $status running '$cmd'");
+  }
+  
+  if ($noHits) {
+      print OUT "\>$accession (0 subjects)\n";
+  } else {
+      &analyzeBlast($accession,@blastn_out);
+  }
+}
+
+sub checkOutput {
+    my ($accession, $program, $status, @blastn_out) = @_;
+
+    my ($validOutput, $noHits);
+    
+    if ($status == 16 && `grep "no valid contexts" blast.stderr`) {    
+	print LOG "\>$accession blast failed on low complexity seq\n";
+	$validOutput = 1;
+	$noHits = 1;
+    } else {
+	foreach my $line (@blastn_out){
+	    if ($line =~ /^Sequences producing/) {
+		$validOutput = 1;
+		$noHits = 0;
+		last;
+	    } elsif ($program =~ /rpsblast/ && $line =~ /^No\shits/) {
+		$validOutput = 1;
+		$noHits = 1;
+		last;
+	    }
+	}
+    }
+    print LOG "Invalid output for $accession. will retry\n" if !$validOutput;
+    return ($validOutput, $noHits);
+}
+
+sub error {
+    my ($msg) = @_;
+    
+    &stopKillBadBlast();
+    die $msg;
+}
+
+sub stopKillBadBlast {
+    print LOG "Attempting to stop killBadBlast\n";
+    
+    foreach my $p (`ps -auxwww | grep killBad | grep -v ps | grep -v grep`){
+	if($p =~ /^\w+\s+(\d+)/){
+	    system("kill -9 $1");
+	    print LOG "... Stopping killBadBlast process: $p\n";
+	}
+    }
+}
+
+sub analyzeBlast{
+  my($accession, @blastn_out) = @_;
+
+  my $printSum = 0;
+  my $printSpan = 0;
+  if($outputType =~ /sum/i){
+      $printSum = 1;
+  }elsif($outputType =~ /span/i){
+      $printSpan = 1;
+  }elsif($outputType =~ /both/i){
+      $printSum = 1;
+      $printSpan = 1;
+  }
+
+  if($doNotParse){ ##in this case must  be saving all blast files...
+      my $blastOutFile = "$blastFileDir/$accession.$fileExtension";
+    open(B,">$blastOutFile") or &error("cannnot open $blastOutFile for writing");
+    print B @blastn_out;
+    print  @blastn_out;
+    close B;
+    print OUT "\>$accession (Saving blastFile)\n";
+    system("gzip -f $blastFileDir/$accession.$fileExtension");
+    return;
+  }
+  my $blast = BlastAnal->new($debug);
+  $blast->parseBlast($lengthCutoff,$percentCutoff,$pValCutoff,$regex,\@blastn_out,$remMaskedRes,($program =~ /rpsblast/ ? 1 : undef)); ##parse with less stringent params
+  ##to aid in detection of repeats...
+
+  print OUT "\>$accession (".$blast->getSubjectCount()." subjects)\n";
+  print STDERR "\>$accession (".$blast->getSubjectCount()." subjects)\n" if $debug;
+  foreach my $s ($blast->getSubjects()){
+    print OUT $s->getSimilaritySummary(":")."\n" if $printSum;
+    print OUT $s->getSimilaritySpans(":")."\n" if $printSpan;
+  }
+
+  if(($saveAllBlastFiles && !$doNotParse) || ($saveGoodBlastFiles && $blast->getSubjectCount() >= 1)){
+    open(B,">$blastFileDir/$accession.$fileExtension");
+    print B @blastn_out;
+    close B;
+    system("gzip -f $blastFileDir/$accession.$fileExtension");
+  }
+}
+
+
+sub breakSequence{
+  my($seq) = @_;
+  my $s;
+  my $formSeq = "";
+  $seq =~ s/\s//g;  ##cleans up newlines and spaces
+  for($s=0;$s<length($seq);$s+=80){
+    $formSeq .= substr($seq,$s,80) . "\n";
+  }
+  return $formSeq;
+}
+

@@ -1,0 +1,8 @@
+masterdir=$ENV{HOME}/test/master
+inputdir=$ENV{HOME}/test/DistribJobTasks/bsinput
+nodedir=/scratch/user/$ENV{USER}
+slotspernode=1
+subtasksize=3
+taskclass=DistribJobTasks::BlastSimilarityTask
+nodeclass=DistribJob::BprocNode
+restart=no
