@@ -66,9 +66,14 @@ sub _initDir {
     $self->{node}->runCmd("mkdir -p $self->{nodeSlotDir}");
 }
 
+sub isFinished {
+    my $self = shift;
+    return $self->{finished};
+}
+
 sub cleanUp {
     my ($self) = @_;
-
+    $self->{finished} = 1;
     $self->{node}->cleanUp();
 }
 

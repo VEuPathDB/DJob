@@ -3,38 +3,58 @@
 use lib "$ENV{GUS_HOME}/lib/perl";
 
 use DJob::DistribJob::Controller;
+use Getopt::Long;
 
-@args = &DJob::DistribJob::Controller::parseArgs();
+my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName);
 
-usage() unless scalar(@args);
+&GetOptions("help|h!" => \$help, 
+            "kill|k!"=> \$kill,
+            "killslow|ks!" => \$killslow,
+            "numNodes|n=i" => \$numNodes,
+            "runTime|t=i" => \$runTime,
+            "parallelInit|pi=i" => \$parInit,
+            "propFile|p=s" => \$propFile,
+            "fileName|f=s" => \$fileName,
+            );
 
-help() if $args[0] eq "-help";
+usage() unless (-e "$propFile");
 
-DJob::DistribJob::Controller->new(@args);
+help() if $help;
+
+my $killVal = $kill ? 1 : $killslow ? 2 : 0;
+
+DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName);
 
 sub usage {
 
     print "
 Usage:
-  distribjob -help
-  distribjob propfile node1 node2...
-  distribjob propfile -kill
-  distribjob propfile -killslow
+  distribjob --help
+  distribjob --propFile propfile --numNodes <number of nodes> --runTime <minutes for expected run> --parallelInit <number of nodes to initialize task on at a time>
+  distribjob --propFile propfile node1 node2...
+  distribjob --propFile propfile -kill
+  distribjob --propFile propfile -killslow
 
 where:
 
-  -help         Print full help.
+  --help         Print full help.
 
-  propfile      A file containing configuration properties for the distributed
+  --propFile    A file containing configuration properties for the distributed
                 job controller.  (See The Controller Properties File in full 
                 help).
 
   node1 ...	List of nodes to run on.
 
-  -kill         Gracefully kill the controller and node subtasks as soon as 
+  --numNodes    Number of nodes to run on ... only valid if there is no list of nodes
+
+  --parallelInit  Number of ndoes to initialize the task on at a time
+
+  --fileName    file name to be passed to the controller that nodes can utilize
+
+  --kill         Gracefully kill the controller and node subtasks as soon as 
                 possible.
   
-  -killslow     Gracefully kill the controller when all current node subtasks
+  --killslow     Gracefully kill the controller when all current node subtasks
                 are done.
 ";
     exit(1);

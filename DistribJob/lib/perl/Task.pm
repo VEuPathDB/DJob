@@ -6,6 +6,7 @@ use CBIL::Util::PropertySet;
 use DJob::DistribJob::SubTask;
 
 my $haveReadJobscript = 0;
+$| = 1;
 
 sub new {
     my ($class, $inputDir, $subTaskSize, $restart, $masterDir,
@@ -65,14 +66,17 @@ sub nextSubTask {
 	chomp $date;
 	print "\n[$date] subTask $self->{subTaskNum} dispatching to node $nodeNum.$slotNum\n";
 
-	$node->runCmd("/bin/rm -rf $nodeSlotDir/*");
+	$node->runCmd("/bin/rm -rf $nodeSlotDir");
+	$node->runCmd("mkdir $nodeSlotDir");
 
 	$self->initSubTask($self->{start}, $self->{end}, $node, 
 			   $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
         
         my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
-        print STDERR "Task.pm command: $cmd\n";
+        print "Task.pm command: $cmd\n";
         $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
+    }else{
+	$nodeSlot->cleanUp(); ##clean up node here as will release it if using SGE
     }
     return $nextSubTask;
 }
@@ -98,7 +102,7 @@ sub passSubTask {
 
     my $date = `date`;
     chomp $date;
-    print "\n[$date] subTask $subTaskNum succeeded\n";
+    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded\n";
 
     $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
 				   $self->{mainResultDir});

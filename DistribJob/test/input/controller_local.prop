@@ -1,5 +1,5 @@
-masterdir=$ENV{GUS_HOME}/test/DJob/master
-inputdir=$ENV{GUS_HOME}/test/DJob/DistribJob/input
+masterdir=$ENV{GUS_HOME}/GUS_BUILD/projects/DJob/DistribJob/test/input/master
+inputdir=$ENV{GUS_HOME}/GUS_BUILD/projects/DJob/DistribJob/test/input
 nodedir=$ENV{GUS_HOME}/test/DJob
 slotspernode=1
 subtasksize=3

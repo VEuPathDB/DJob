@@ -19,7 +19,8 @@ $| = 1;
 
 my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
     $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
-    $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,$blastParamsFile, $blastBinDir);
+    $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,
+    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure);
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -37,9 +38,10 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
             "saveAllBlastFiles!" => \$saveAllBlastFiles,
             "saveGoodBlastFiles!" => \$saveGoodBlastFiles,
             "doNotParse!" => \$doNotParse,
+            "doNotExitOnBlastFailure!" => \$doNotExitOnBlastFailure,
 	    "blastBinDir=s" => \$blastBinDir,
             );
-die "Usage: generateBlastSimilarity.perl --regex='regular expression following ^\> of defline...ie '(\S+)'' --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile> --numSeqs=<num_sequences in sequencefile> --setSize=<batch size of sequences to process> --trackingFile=<filename to track progress> --blastVersion <alpha>(def=blast2) --blastParams 'extra blast parameters' --adjustMatchLength --saveAllBlastFiles --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles --fileExtension [.database_blastProgram] --doNotParse\n" unless ( $program && $database && $seqFile );
+die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure!\n" unless ( $program && $database && $seqFile );
 
 ###set the defaullts...
 $pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
@@ -69,8 +71,8 @@ if($saveAllBlastFiles || $saveGoodBlastFiles){
   }
 }
 
-$ENV{BLASTFILTER} = "$blastBinDir/filter";
-$ENV{BLASTMAT} = "$blastBinDir/matrix";
+$ENV{BLASTFILTER} = "$blastBinDir/filter" unless $ENV{BLASTFILTER};
+$ENV{BLASTMAT} = "$blastBinDir/matrix" unless $ENV{BLASTMAT};
 
 open(OUT, ">$dataFile") or &error("cannot open output file $dataFile for writing");
 select OUT; $| = 1;
@@ -150,10 +152,15 @@ sub processEntry {
   } while (!$validOutput && ($try++ < $retry));
 
   if (!$validOutput) {
+    if($doNotExitOnBlastFailure){
+      print OUT "\>$accession (ERROR: BLAST failed ($try times) with status $status)\n";
+      return; ##am finished with this one
+    }else{
       open(B, ">blast.out");
       print B @blastn_out;
       close(B);
       &error("failed ($try times) with status $status running '$cmd'");
+    }
   }
   
   if ($noHits) {

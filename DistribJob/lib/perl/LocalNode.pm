@@ -16,13 +16,6 @@ sub new {
     return $self;
 }
 
-sub _initNodeDir {
-    my($self) = @_;
-    if (-e $self->{nodeDir}) {
-	$self->runCmd("/bin/rm -r $self->{nodeDir}");
-    }
-    $self->runCmd("mkdir -p $self->{nodeDir}");
-}
 
 sub runCmd {
     my ($self, $cmd) = @_;

@@ -1,12 +1,12 @@
-#!/usr/local/bin/perl
-
 package DJob::DistribJob::Controller;
 
 use strict;
 use CBIL::Util::PropertySet;
 use CBIL::Util::Utils;
+use DJob::DistribJob::Node ":states";
 
 my $KILLNOW = 2;
+
 
 $| = 1;
 
@@ -23,83 +23,117 @@ my @properties =
  ["restart",      "",  "yes/no: restart a task"],
  );
 
+my @nodes;
+
 sub new {
-    my ($class, $propfile, $nodenumlist, $kill) = @_;
+  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName) = @_;
 
-    my $self = {};
-    bless $self;
+  my $self = {};
+  bless $self;
 
-    my ($inputDir, $masterDir, $nodeDir, $slotsPerNode, $subTaskSize, 
-	$taskClass, $nodeClass, $restart) = 
-	    $self->readPropFile($propfile, \@properties);
+  my ($inputDir, $masterDir, $nodeDir, $slotsPerNode, $subTaskSize, $taskClass, $nodeClass, $restart) = $self->readPropFile($propfile, \@properties);
 
-    return if ($self->kill($kill, $masterDir));
+  return if ($self->kill($kill, $masterDir));
 
-    if ($restart) {
-	die "masterDir $masterDir must exist to restart." unless -e $masterDir;
-	$self->resetKill($masterDir);
-    } else {
-	die "masterDir $masterDir already exists. Delete it or use -restart." 
-	    if  -e $masterDir;
-	&runCmd("mkdir -p $masterDir");
-    }
+  if ($restart) {
+    die "masterDir $masterDir must exist to restart." unless -e $masterDir;
+    $self->resetKill($masterDir);
+  } else {
+    die "masterDir $masterDir already exists. Delete it or use -restart." 
+      if -e $masterDir;
+    &runCmd("mkdir -p $masterDir");
+  }
 
-    my $taskPath = $taskClass;
-    $taskPath =~ s/::/\//g;  # work around perl 'require' wierdness
-    require "$taskPath.pm";
+  my $taskPath = $taskClass;
+  $taskPath =~ s/::/\//g;       # work around perl 'require' wierdness
+  require "$taskPath.pm";
 
-    my $nodePath = $nodeClass;
-    $nodePath =~ s/::/\//g;  # work around perl 'require' wierdness
-    require "$nodePath.pm";
+  my $nodePath = $nodeClass;
+  $nodePath =~ s/::/\//g;       # work around perl 'require' wierdness
+  require "$nodePath.pm";
 
-    my $task = $taskClass->new($inputDir, $subTaskSize, $restart, $masterDir);
+  my $task = $taskClass->new($inputDir, $subTaskSize, $restart, $masterDir);
 
-    print "Initializing server...\n\n";
-    $task->initServer($inputDir);
+  print "Initializing server...\n\n";
+  $task->initServer($inputDir);
 
-    my @nodeSlots;
+  my $amRunning = 0;
+  my $runpid;
+  if(ref($nodenumlist) =~ /ARRAY/){
     foreach my $nodenum (@$nodenumlist) {
-	print "Initializing node $nodenum...\n";
-	my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode);
-        ##First check the node to make certain it is functional...
-        if(!$node){  ##failed to initialize so is null..
-          print "  Unable to initialize node $nodenum....skipping\n";
-          next;
-        }
-	push(@nodeSlots, @{$node->getSlots()});
-	$task->initNode($node, $inputDir);
+      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime);
+      if (!$node) {               ##failed to initialize so is null..
+        print "  Unable to create node $nodenum....skipping\n";
+        next;
+      }
+      push(@nodes,$node);
     }
-    $self->run($task, \@nodeSlots, $masterDir, $propfile); 
-}
+  }else{
+    for(my$a=1;$a<=scalar($nodenumlist);$a++){
+      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName);
+      if (!$node) {               ##failed to initialize so is null..
+        print "Unable to create new node number $a....skipping\n";
+        next;
+      }
+      push(@nodes,$node);
+    }
+  }
+  ##now start running....
+  $self->run($task, $inputDir, $masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit);
+} 
 
 sub run {
-    my ($self, $task, $nodeSlots, $masterDir, $propfile) = @_;
+    my ($self, $task, $inputDir,$masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit) = @_;
 
-    my ($running, $kill);
-    
+    my $running = 1;
+    my $kill;
+    $parInit = 1 unless $parInit;
+    my $complete = 0;
+
     do {
 	
-	print  ($kill? "!" : ".");
+	print  ($kill ? "!" : ".");
 
 	$kill = $self->checkKill($kill, $masterDir);
 
-	$running = 0;
-    
-	foreach my $nodeSlot (@$nodeSlots) {
+        my $ctRunning = 0;
+        my $ctInitTask = 0;
 
-	    if ($nodeSlot->taskComplete() && !$kill) {
+        foreach my $node (@nodes){
+
+          if($node->getState() < 3 && $complete){  ##no more tasks...clean up these  nodes...
+            $node->cleanUp(1);
+            next;
+          }
+          
+          if(!$node->getState()){  ##does not have connection to node..
+            print "Initializing node\n";
+            $node->initialize();
+          }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
+            next if($ctInitTask > $parInit);
+            $ctInitTask++;
+            print "Initializing task on node ".$node->getNum()."...".`date`;
+            $node->initializeTask($task,$inputDir);
+          }elsif($node->getState() == $INITIALIZINGTASK){  ##still initializing task
+            $ctInitTask++;
+          }elsif($node->getState() == $RUNNINGTASK){  ##running...
+            $ctRunning++;
+            foreach my $nodeSlot (@{$node->getSlots()}) {
+              if ($nodeSlot->taskComplete() && !$kill) {
 		$nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
-	    }
+              }
+              $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
+            }
+          }
+        } 
+        $running = !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
+        sleep(1);
 
-	    $running |= $nodeSlot->isRunning();
-	}
-	sleep(1);
-
-    } while ($running && $kill != $KILLNOW);
+      } while ($running && $kill != $KILLNOW);
 
     print "Cleaning up nodes...\n";
-    foreach my $nodeSlot (@$nodeSlots) {
-	$nodeSlot->cleanUp();
+    foreach my $node (@nodes) {
+	$node->cleanUp(1);
     }
 
     $self->reportFailures($masterDir, $propfile);
@@ -219,7 +253,7 @@ sub reportFailures {
 
     my @failures = split("\n", &runCmd("ls -l $masterDir/failures"));
     my $count = scalar(@failures) - 1;
-    if ($count) {
+    if ($count > 0) {
 	print "
 Failure: $count subtasks failed
 Please look in $masterDir/failures/*/result

@@ -23,8 +23,9 @@ my @properties =
  ["blastProgram",    "",     "rpsblast if cdd | any wu-blast"],
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
- ["saveGoodBlastFiles",   "5",    "If 1 then blast results that meet parse are saved"],
+ ["saveGoodBlastFiles",   "no",    "If yes then blast results that meet parse are saved"],
  ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=1 [$ENV{HOME}/blastFiles"],
+ ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
  );
 
 sub new {
@@ -37,7 +38,7 @@ sub initServer {
     my ($self, $inputDir) = @_;
 
     ##deal with saving blast files if desired
-    if($self->{props}->getProp("saveGoodBlastFiles") == 1){
+    if($self->{props}->getProp("saveGoodBlastFiles") =~ /yes/i){
       ##check to make certain directory exists and if doesn't, create it
       my $fileDir = $self->{props}->getProp("blastFileDirPath");
       print STDERR "Saving good blast files to $fileDir\n";
@@ -136,10 +137,11 @@ sub makeSubTaskCommand {
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
     my $saveGood = $self->{props}->getProp("saveGoodBlastFiles");
     my $blastFilePath = $self->{props}->getProp("blastFileDirPath");
+    my $doNotExitOnBlastFailure = $self->{props}->getProp("doNotExitOnBlastFailure");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood == 1 ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " -doNotExitOnBlastFailure" : "");
 
     return $cmd;
 }

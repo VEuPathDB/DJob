@@ -56,7 +56,7 @@ sub initNode {
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
     my $nodeDir = $node->getDir();
 
-    $node->runCmd("cp $dbFilePath.* $nodeDir");
+    $node->runCmd("cp $dbFilePath.x* $nodeDir");
 }
 
 sub getInputSetSize {
