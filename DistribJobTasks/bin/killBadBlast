@@ -1,7 +1,5 @@
 #!@perl@
 
-## runs and looks for hung blast processes...killing the offendng sucker..
-
 use strict;
 use Getopt::Long;
 
@@ -11,39 +9,46 @@ my($blastProgram);
 
 die "you must provide --blastProgram <pgm>\n" unless $blastProgram;
 
-my $hostname = `hostname`;
-chomp $hostname;
+# approach:  blast forks so that there are three processes running.
+# it seems that when things are ok, at least two of the three are
+# spending CPU time (the middle process seems to stay at 0).  it has
+# been observed that in a bad blast, one of those two stops using CPU time. 
+#
+# so we test here to make sure that at least two are progressing across
+# snapshots
 
-my $ctBad = 0;
-while(1){
-  my @procs = `ps -auxwww | grep $blastProgram `;
-  my @pid;
+my %previousSnapshot;
+
+while (1){
+  my %currentSnapshot;
+
+  # take snapshot
+  my @procs = `ps -auxwww`;
   foreach my $p (@procs){
-    if($p =~ /^\w+\s+(\d+).*?(\d+:\d+)\s+$blastProgram/){
-      my $proc = $1;
-      my $time = $2;
-      $time =~ s/:/\./;
-      push(@pid,[$proc,$time]);
-#      print STDERR "$proc $time\n";
+    #pspinney    9803 99.5  0.4 45732 8992 ?        R    16:21   0:08 /genomics/share/pkg/bio/wu-blast/current/blastx /scratch/user/pinney/
+    if ($p =~ /^\w+\s+(\d+).*?(\d+:\d+)\s+$blastProgram/) {
+      my $processId = $1;
+      my $totalCPU = $2;
+      $totalCPU =~ s/:/\./;
+      $currentSnapshot{$processId} = $totalCPU;
     }
   }
-  my @sort = sort{$b->[1] <=> $a->[1]}@pid;
-  my $big = shift @sort;
-  my $smalltot;
-  foreach my $a (@sort){
-    $smalltot += $a->[1];
+
+  # compare with previous
+  my $countInactiveProcesses = 0;
+  foreach my $processId (sort keys($currentSnapshot)) {
+    my $prevCPU = $previousSnapshot{$processId};
+    last unless defined $prevCPU;
+    $countInactiveProcesses++ if $currentSnapshot{$processId} == $prevCPU;
   }
-  my $div = $big->[1] / ($smalltot ? $smalltot : 0.1);
-#  print STDERR "  div = $div\n";
-  if( $div > 100){
-    $ctBad++;
-    if($ctBad > 3){
-      print STDERR "ERROR: node $hostname - Process $big->[0] has run away...div = $div\n".@procs;
-      $ctBad = 0;
-      system("kill -9 $big->[0]");
-    }
-  }else{
-    $ctBad = 0;
+
+  if ($countInactiveProcesses > 1) {
+    my $toKill = join(" ", sort(keys(%currentSnapshot)));
+    my $cmd = "kill -9 $toKill";
+    print STDERR "Killing bad blast jobs: '$cmd' \n";
+    system($cmd) || "failed running $cmd with STDERR: '$!'";
+  } else {
+    %previousSnapshot = %currentSnapshot;
   }
   sleep 15;
 }
