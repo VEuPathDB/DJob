@@ -3,6 +3,6 @@ inputdir=$ENV{GUS_HOME}/test/DJob/DistribJob/input
 nodedir=$ENV{GUS_HOME}/test/DJob
 slotspernode=1
 subtasksize=3
-taskclass=DJob::DistribJob::SampleTask
+taskclass=DJob::DistribJob::DistribJobTasks::SampleTask
 nodeclass=DJob::DistribJob::LocalNode
 restart=no
