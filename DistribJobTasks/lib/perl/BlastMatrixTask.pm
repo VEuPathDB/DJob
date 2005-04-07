@@ -33,8 +33,8 @@ sub new {
 sub initServer {
     my ($self, $inputDir) = @_;
 
-    my $blastBin = $self->{props}->getProp("blastBinDir");
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $blastBin = $self->getProperty("blastBinDir");
+    my $dbFilePath = $self->getProperty("dbFilePath");
 
     if (-e "$dbFilePath.gz") {
 	&runCmd("gunzip $dbFilePath.gz");
@@ -53,7 +53,7 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $dbFilePath = $self->getProperty("dbFilePath");
     my $nodeDir = $node->getDir();
 
     $node->runCmd("cp $dbFilePath.x* $nodeDir");
@@ -62,7 +62,7 @@ sub initNode {
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    my $fastaFileName = $self->{props}->getProp("inputFilePath");
+    my $fastaFileName = $self->getProperty("inputFilePath");
 
     if (-e "$fastaFileName.gz") {
 	&runCmd("gunzip $fastaFileName.gz");
@@ -85,13 +85,13 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $blastBin = $self->{props}->getProp("blastBinDir");
-    my $lengthCutoff = $self->{props}->getProp("lengthCutoff");
-    my $pValCutoff = $self->{props}->getProp("pValCutoff");
-    my $percentCutoff = $self->{props}->getProp("percentCutoff");
-    my $endSlop = $self->{props}->getProp("endSlop");
-    my $maskRepeats = $self->{props}->getProp("maskRepeats") eq "y"? "--maskRepeats" : "";
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $blastBin = $self->getProperty("blastBinDir");
+    my $lengthCutoff = $self->getProperty("lengthCutoff");
+    my $pValCutoff = $self->getProperty("pValCutoff");
+    my $percentCutoff = $self->getProperty("percentCutoff");
+    my $endSlop = $self->getProperty("endSlop");
+    my $maskRepeats = $self->getProperty("maskRepeats") eq "y"? "--maskRepeats" : "";
+    my $dbFilePath = $self->getProperty("dbFilePath");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 

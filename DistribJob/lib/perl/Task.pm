@@ -16,6 +16,7 @@ sub new {
     bless $self, $class;
 
     $self->{props} = CBIL::Util::PropertySet->new("$inputDir/task.prop", $props);
+    print "Task Properties\n".$self->{props}->getAllProperties()."\n";
 
     print "Finding input set size\n";
     $self->{size} = $self->getInputSetSize($inputDir);
@@ -108,6 +109,11 @@ sub passSubTask {
 				   $self->{mainResultDir});
     &runCmd("/bin/rm -rf $subTaskDir");
     &log($self->{completeLog}, "$subTaskNum\n");
+}
+
+sub getProperty {
+  my($self,$prop) = @_;
+  return $self->{props}->getProp($prop);
 }
 
 sub _newSubTaskDir {

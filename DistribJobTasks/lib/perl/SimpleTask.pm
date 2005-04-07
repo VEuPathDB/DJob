@@ -16,7 +16,7 @@ my @properties =
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
-    my $debug = $self->{'props'}->getProp("debug");
+    my $debug = $self->getProperty("debug");
     $self->{'debug'} = 1 if $debug =~ /true/i;
     return $self;
 }
@@ -60,7 +60,7 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $cmd = $self->{props}->getProp("cmd");
+    my $cmd = $self->getProperty("cmd");
     my $nodeDir = $node->getDir();
 
     print "DEBUG: SimpleTask::runSubTask: command from prop is $cmd...\n" if $self->{'debug'};

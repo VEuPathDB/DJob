@@ -38,7 +38,7 @@ sub initNode {
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    my $fastaFileName = $self->{props}->getProp("inputFilePath");
+    my $fastaFileName = $self->getProperty("inputFilePath");
 
     if (-e "$fastaFileName.gz") {
 	&runCmd("gunzip $fastaFileName.gz");
@@ -61,10 +61,10 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $rmPath = $self->{props}->getProp("rmPath");
-    my $rmOptions = $self->{props}->getProp("rmOptions");
-    my $trimDangling = $self->{props}->getProp("trimDangling") eq "y"? "--trimDangling" : "";
-    my $dangleMax = $self->{props}->getProp("dangleMax");
+    my $rmPath = $self->getProperty("rmPath");
+    my $rmOptions = $self->getProperty("rmOptions");
+    my $trimDangling = $self->getProperty("trimDangling") eq "y"? "--trimDangling" : "";
+    my $dangleMax = $self->getProperty("dangleMax");
 
     my $options = $rmOptions eq "NONE"? "" : "--rmOptions $rmOptions";
     my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeExecDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";

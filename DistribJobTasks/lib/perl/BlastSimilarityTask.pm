@@ -13,7 +13,7 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["blastBinDir",   "",   "eg, /genomics/share/pkg/bio/ncbi-blast/latest"],
+ ["blastBinDir",   "",   "eg, /genomics/share/bin"],
  ["dbFilePath",      "",     "full path to database file"],
  ["inputFilePath",   "",     "full path to input file"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
@@ -24,7 +24,7 @@ my @properties =
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
  ["saveGoodBlastFiles",   "no",    "If yes then blast results that meet parse are saved"],
- ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=1 [$ENV{HOME}/blastFiles"],
+ ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=yes [$ENV{HOME}/blastFiles]"],
  ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
  );
 
@@ -38,9 +38,9 @@ sub initServer {
     my ($self, $inputDir) = @_;
 
     ##deal with saving blast files if desired
-    if($self->{props}->getProp("saveGoodBlastFiles") =~ /yes/i){
+    if($self->getProperty("saveGoodBlastFiles") =~ /yes/i){
       ##check to make certain directory exists and if doesn't, create it
-      my $fileDir = $self->{props}->getProp("blastFileDirPath");
+      my $fileDir = $self->getProperty("blastFileDirPath");
       print STDERR "Saving good blast files to $fileDir\n";
       if(!-d "$fileDir"){
         mkdir($fileDir) || die "directory '$fileDir' for storing blast files can not be created\n";
@@ -48,10 +48,10 @@ sub initServer {
     }
 
 
-    my $blastBin = $self->{props}->getProp("blastBinDir");
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
-    my $dbType = $self->{props}->getProp("dbType");
-    my $blastProgram = $self->{props}->getProp("blastProgram");
+    my $blastBin = $self->getProperty("blastBinDir");
+    my $dbFilePath = $self->getProperty("dbFilePath");
+    my $dbType = $self->getProperty("dbType");
+    my $blastProgram = $self->getProperty("blastProgram");
 
     if (-e "$dbFilePath.gz") {
 	&runCmd("gunzip $dbFilePath.gz");
@@ -90,8 +90,8 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    my $blastProgram = $self->{props}->getProp("blastProgram");
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $blastProgram = $self->getProperty("blastProgram");
+    my $dbFilePath = $self->getProperty("dbFilePath");
     my $nodeDir = $node->getDir();
 
     $node->runCmd("cp $dbFilePath.* $nodeDir");
@@ -103,7 +103,7 @@ sub initNode {
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    my $fastaFileName = $self->{props}->getProp("inputFilePath");
+    my $fastaFileName = $self->getProperty("inputFilePath");
 
     if (-e "$fastaFileName.gz") {
 	&runCmd("gunzip $fastaFileName.gz");
@@ -117,7 +117,7 @@ sub getInputSetSize {
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
 
-    my $blastParamsFile = $self->{props}->getProp("blastParamsFile");
+    my $blastParamsFile = $self->getProperty("blastParamsFile");
     &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
     $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
 
@@ -127,17 +127,17 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $blastBin = $self->{props}->getProp("blastBinDir");
-    my $lengthCutoff = $self->{props}->getProp("lengthCutoff");
-    my $pValCutoff = $self->{props}->getProp("pValCutoff");
-    my $percentCutoff = $self->{props}->getProp("percentCutoff");
-    my $blastProgram = $blastBin . "/" . $self->{props}->getProp("blastProgram");
-    my $regex = $self->{props}->getProp("regex");
-    my $blastParamsFile = $self->{props}->getProp("blastParamsFile");
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
-    my $saveGood = $self->{props}->getProp("saveGoodBlastFiles");
-    my $blastFilePath = $self->{props}->getProp("blastFileDirPath");
-    my $doNotExitOnBlastFailure = $self->{props}->getProp("doNotExitOnBlastFailure");
+    my $blastBin = $self->getProperty("blastBinDir");
+    my $lengthCutoff = $self->getProperty("lengthCutoff");
+    my $pValCutoff = $self->getProperty("pValCutoff");
+    my $percentCutoff = $self->getProperty("percentCutoff");
+    my $blastProgram = $blastBin . "/" . $self->getProperty("blastProgram");
+    my $regex = $self->getProperty("regex");
+    my $blastParamsFile = $self->getProperty("blastParamsFile");
+    my $dbFilePath = $self->getProperty("dbFilePath");
+    my $saveGood = $self->getProperty("saveGoodBlastFiles");
+    my $blastFilePath = $self->getProperty("blastFileDirPath");
+    my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 

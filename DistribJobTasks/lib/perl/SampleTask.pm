@@ -27,8 +27,8 @@ use strict;
 # If the default value is "" then the property is required.  
 #
 # The properties are made available to your task in a CBIL::Util::PropertySet 
-# object in $self{props}.  Access a property by calling the getProp() method:
-#   $self{props}->getProp('name_of_property');
+# object in $self->{props}.  Access a property by calling the getProperty() method:
+#   $self->getProperty('name_of_property');
 #
 my @properties = 
     (
@@ -186,7 +186,7 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $msg = $self->{props}->getProp("msg");
+    my $msg = $self->getProperty("msg");
 
     my $cmd = "samplecmd $nodeExecDir/inputset $msg";
 
