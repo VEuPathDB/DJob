@@ -132,6 +132,6 @@ sub cleanUp {
 }
 
 sub DESTROY {
-    &cleanup();
+    &cleanUp();
 }
 1;
