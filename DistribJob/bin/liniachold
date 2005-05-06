@@ -1,9 +1,0 @@
-#!@perl@
-
-##purpose is to just run to keep liniac node from being released
-
-use strict;
-
-while(1){
-        sleep 300;
-}
