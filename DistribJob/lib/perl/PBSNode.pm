@@ -55,6 +55,8 @@ sub _initNodeDir {
 	$self->runCmd("/bin/rm -rf $self->{nodeDir}");
     }
     $self->runCmd("mkdir -p $self->{nodeDir}");
+    $self->setState(2);
+
 }
 
 ## return the node number when using PBS
@@ -66,6 +68,7 @@ sub getNum {
       $self->{nodeNum} = $1;
     }else{
       print STDERR "Unable to determine the Node number\n";
+      $self->setState(6);
     }
   }
   return $self->{nodeNum};
@@ -129,6 +132,7 @@ sub cleanUp {
       $self->runCmd("killall sleep");
       waitpid($self->{cmdPid}, 0);
     }
+    $self->setState(5);
 }
 
 sub DESTROY {

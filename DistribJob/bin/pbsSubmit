@@ -13,7 +13,7 @@ chomp( my $cwd = qx(pwd) );
 
 my $nodes = join(' ', &getNodes());
 
-my $cmd = "distribjob $controllerPropFile $nodes";
+my $cmd = "distribjob --propfile $controllerPropFile $nodes";
 
 print "starting distribjob with:\n  $cmd\n";
 
