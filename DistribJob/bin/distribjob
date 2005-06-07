@@ -17,9 +17,13 @@ my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName);
             "fileName|f=s" => \$fileName,
             );
 
-usage() unless (-e "$propFile");
-
 help() if $help;
+
+unless (-e "$propFile"){
+    usage(); 
+    exit(0);
+}
+
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
@@ -57,10 +61,11 @@ where:
   --killslow     Gracefully kill the controller when all current node subtasks
                 are done.
 ";
-    exit(1);
 }
 
 sub help {
+
+    &usage();
 
     print "
 Distributed Job Controller
@@ -217,7 +222,7 @@ The Master Directory
    or failed.  
 
 ";
-    exit(1);
+    exit(0);
 }
 
 1;
