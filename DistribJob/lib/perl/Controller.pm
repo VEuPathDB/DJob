@@ -138,6 +138,9 @@ sub run {
 
     $self->reportFailures($masterDir, $propfile);
 
+    print "Cleaning up server...\n";
+    $task->cleanUpServer($inputDir,"$masterDir/mainresult"); ##allows user to clean up at end of run if desired
+
     print "Done\n";
 }
 

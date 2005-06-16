@@ -116,6 +116,11 @@ sub getProperty {
   return $self->{props}->getProp($prop);
 }
 
+sub cleanUpServer {
+  my($self, $inputDir, $mainResultDir) = @_;
+  return 1;
+}
+
 sub _newSubTaskDir {
     my ($self, $nodeNum, $nodeSlotNum) = @_;
 
