@@ -16,7 +16,7 @@ sub new {
     bless $self, $class;
 
     $self->{props} = CBIL::Util::PropertySet->new("$inputDir/task.prop", $props);
-    print "Task Properties\n".$self->{props}->getAllProperties()."\n";
+    print "Task Properties\n".$self->{props}->toString()."\n";
 
     print "Finding input set size\n";
     $self->{size} = $self->getInputSetSize($inputDir);

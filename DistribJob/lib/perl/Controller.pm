@@ -195,7 +195,7 @@ sub readPropFile {
 
     my $restart = $props->getProp('restart') eq "yes";
 
-    print "Controller Properties\n".$props->getAllProperties()."\n";
+    print "Controller Properties\n".$props->toString()."\n";
 	
     return ($props->getProp('inputdir'), $props->getProp('masterdir'), 
 	    $props->getProp('nodedir'), 
