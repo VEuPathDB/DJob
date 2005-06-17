@@ -12,7 +12,13 @@ sub new {
     $self->{task} = $task;
     $self->{subTaskResultDir} = "$subTaskDir/result";
     $self->{nodeSlot} = $nodeSlot;
+    $self->{startTime} = time;
     return $self;
+}
+
+sub setNodeSlot {
+  my($self,$ns) = @_;
+  $self->{nodeSlot} = $ns;
 }
 
 sub getNodeSlot {
@@ -40,6 +46,7 @@ sub complete {
 
     my $complete = $self->_isDone();
     if ($complete) {
+      $self->{task}->addSubtaskTime($self->getRunningTime());
 	if ($self->_isFailure()) {
 	    $self->{task}->failSubTask($self);
 	} else {
@@ -47,6 +54,11 @@ sub complete {
 	}
     }
     return $complete;
+}
+
+sub getRunningTime {
+  my $self = shift;
+  return time - $self->{startTime};
 }
 
 sub _isDone {

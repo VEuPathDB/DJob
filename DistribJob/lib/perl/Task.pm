@@ -50,7 +50,6 @@ sub nextSubTask {
     my ($self, $nodeSlot) = @_;
 
     my $nextSubTask;
-    my $node = $nodeSlot->getNode();
 
     if ($self->_subTaskAvailable()) {
 
@@ -59,27 +58,37 @@ sub nextSubTask {
 
 	$nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $serverSubTaskDir, $nodeSlot, $self);
 
-	my $nodeNum = $nodeSlot->getNodeNum();
-	my $slotNum = $nodeSlot->getNum();
-	my $nodeSlotDir = $nodeSlot->getDir();
+        $self->runNextSubtask($nextSubTask);
 
-	my $date = `date`;
-	chomp $date;
-	print "\n[$date] subTask $self->{subTaskNum} dispatching to node $nodeNum.$slotNum\n";
-
-	$node->runCmd("/bin/rm -rf $nodeSlotDir");
-	$node->runCmd("mkdir $nodeSlotDir");
-
-	$self->initSubTask($self->{start}, $self->{end}, $node, 
-			   $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
-        
-        my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
-        print "Task.pm command: $cmd\n";
-        $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
     }else{
 	$nodeSlot->cleanUp(); ##clean up node here as will release it if using SGE
     }
     return $nextSubTask;
+}
+
+sub runNextSubtask {
+  my($self,$nextSubTask) = @_;
+
+  my $nodeSlot = $nextSubTask->getNodeSlot();
+  my $node = $nodeSlot->getNode();
+  my $nodeNum = $nodeSlot->getNodeNum();
+  my $slotNum = $nodeSlot->getNum();
+  my $nodeSlotDir = $nodeSlot->getDir();
+  my $serverSubTaskDir = $nextSubTask->getDir();
+  
+  my $date = `date`;
+  chomp $date;
+  print "\n[$date] subTask $self->{subTaskNum} dispatching to node $nodeNum.$slotNum\n";
+  
+  $node->runCmd("/bin/rm -rf $nodeSlotDir");
+  $node->runCmd("mkdir $nodeSlotDir");
+  
+  $self->initSubTask($self->{start}, $self->{end}, $node, 
+                     $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
+  
+  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
+  print "Task.pm command: $cmd\n";
+  $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
 }
 
 sub failSubTask {
@@ -103,7 +112,7 @@ sub passSubTask {
 
     my $date = `date`;
     chomp $date;
-    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded\n";
+    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
 
     $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
 				   $self->{mainResultDir});
@@ -119,6 +128,17 @@ sub getProperty {
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir) = @_;
   return 1;
+}
+
+sub addSubtaskTime {
+  my($self,$time) = @_;
+  $self->{ctCompleteSubtasks}++;
+  $self->{totSubtaskTime} += $time;
+} 
+
+sub getSubtaskTime {
+  my $self = shift;
+  return $self->{ctCompleteSubtasks} ? $self->{totSubtaskTime} / $self->{ctCompleteSubtasks} : 0
 }
 
 sub _newSubTaskDir {

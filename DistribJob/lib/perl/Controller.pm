@@ -89,6 +89,8 @@ sub run {
     my $kill;
     $parInit = 1 unless $parInit;
     my $complete = 0;
+    my $ctLoops = 0;
+    my @redoSubtasks;
 
     do {
 	
@@ -120,13 +122,36 @@ sub run {
             $ctRunning++;
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
-		$nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
+                if(scalar(@redoSubtasks) > 0){
+                  my $st = shift @redoSubtasks;
+                  print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."\n";
+                  $st->setNodeSlot($nodeSlot);
+                  $task->runNextSubtask($st);
+                  $nodeSlot->assignNewTask($st);
+                }else{
+                  $nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
+                }
               }
               $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
+              ##check to see if the node is still functional 
+              if($ctLoops % 10 == 0 && $nodeSlot->isRunning()){
+                if($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()){
+                  if(!$node->runCmd("ls ".$nodeSlot->getDir(),1)){
+                    print "ERROR:  Node ".$node->getNum()." is no longer functional\n";
+                    $node->setState($FAILEDNODE);
+                    ##need to get all subtasks from this node and assign to another...
+                    foreach my $ns (@{$node->getSlots()}){
+                      push(@redoSubtasks,$ns->getTask());
+                    }
+                    last;
+                  }
+                }
+              }
             }
           }
         } 
         $running = !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
+        $ctLoops++;
         sleep(1);
 
       } while ($running && $kill != $KILLNOW);
@@ -140,6 +165,14 @@ sub run {
 
     print "Cleaning up server...\n";
     $task->cleanUpServer($inputDir,"$masterDir/mainresult"); ##allows user to clean up at end of run if desired
+
+    if(scalar(@redoSubtasks) > 0){
+      print "\nNodes running the following subtasks failed\n";
+      foreach my $subtask (@redoSubtasks){
+        print "subtask_".$subtask->getNum()."\n";
+      }
+      print "Set restart=yes in the controller.prop file and re run to run these failed subtasks.\n\n";
+    }
 
     print "Done\n";
 }

@@ -20,6 +20,11 @@ sub assignNewTask {
     $self->{task} = $task;
 }
 
+sub getTask {
+  my $self = shift;
+  return $self->{task};
+}
+
 sub taskComplete {
     my ($self) = @_;
 
