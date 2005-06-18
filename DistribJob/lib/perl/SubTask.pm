@@ -13,6 +13,8 @@ sub new {
     $self->{subTaskResultDir} = "$subTaskDir/result";
     $self->{nodeSlot} = $nodeSlot;
     $self->{startTime} = time;
+    $self->{start} = $task->{start};
+    $self->{end} = $task->{end};
     return $self;
 }
 
@@ -39,6 +41,16 @@ sub getResultDir {
 sub getNum {
     my ($self) = @_;
     return $self->{subTaskNum};
+}
+
+sub getStart {
+  my $self = shift;
+  return $self->{start};
+}
+
+sub getEnd {
+  my $self = shift;
+  return $self->{end};
 }
 
 sub complete {

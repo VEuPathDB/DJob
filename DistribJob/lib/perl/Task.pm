@@ -78,12 +78,12 @@ sub runNextSubtask {
   
   my $date = `date`;
   chomp $date;
-  print "\n[$date] subTask $self->{subTaskNum} dispatching to node $nodeNum.$slotNum\n";
+  print "\n[$date] subTask ".$nextSubTask->getNum()." dispatching to node $nodeNum.$slotNum\n";
   
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");
   
-  $self->initSubTask($self->{start}, $self->{end}, $node, 
+  $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
                      $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
   
   my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
