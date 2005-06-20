@@ -125,9 +125,10 @@ sub run {
                 if(scalar(@redoSubtasks) > 0){
                   my $st = shift @redoSubtasks;
                   print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."\n";
+                  $st->resetStartTime();
                   $st->setNodeSlot($nodeSlot);
-                  $task->runNextSubtask($st);
                   $nodeSlot->assignNewTask($st);
+                  $task->runNextSubtask($st);
                 }else{
                   $nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
                 }
@@ -169,6 +170,7 @@ sub run {
     if(scalar(@redoSubtasks) > 0){
       print "\nNodes running the following subtasks failed\n";
       foreach my $subtask (@redoSubtasks){
+        next unless defined $subtask;
         print "subtask_".$subtask->getNum()."\n";
       }
       print "Set restart=yes in the controller.prop file and re run to run these failed subtasks.\n\n";

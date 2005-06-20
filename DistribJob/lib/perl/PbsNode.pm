@@ -150,7 +150,7 @@ sub getPort {
                                     Proto => 'tcp',
                                    );
       unless($sock){
-        die "Could not create socket: $!\n" if $ct++ > 3;
+        die "Could not create socket: $!\n" if $ct++ > 5;
         sleep 3;
         $ct++;
         next;

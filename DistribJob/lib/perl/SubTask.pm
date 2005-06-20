@@ -73,6 +73,11 @@ sub getRunningTime {
   return time - $self->{startTime};
 }
 
+sub resetStartTime {
+  my $self = shift;
+  $self->{startTime} = time;
+}
+
 sub _isDone {
     my ($self) = @_;
     return (-e "$self->{subTaskResultDir}/done");
