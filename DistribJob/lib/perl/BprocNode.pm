@@ -73,7 +73,7 @@ sub _init {
   my $self = shift;
   my $ct = 0;
   while(1){
-    sleep $ct < 8 ? 15 : 120;
+    sleep $ct < 6 ? 15 : $ct < 12 ? 120 : 300;
     last if $self->runCmgetnodes();
     $ct++;
   }

@@ -74,7 +74,7 @@ sub _init {
   my $ct = 0;
   while (1) {
     last if $self->getNodeAddress();
-    sleep $ct < 6 ? 10 : 60;
+    sleep $ct < 6 ? 10 : $ct < 12 ? 60 : 180;
     $ct++;
   }
   if (!$self->checkNode()) {

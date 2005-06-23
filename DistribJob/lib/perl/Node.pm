@@ -162,6 +162,12 @@ sub _initTask {
   print "Task initialized on node ".$self->getNum()."\n";
 }
 
+sub DESTROY {
+  my($self) = @_;
+  kill(1, $self->{initPid}) unless waitpid($self->{initPid},1);
+  kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
+}
+
 ##want to only clean up if both slots are finished
 sub cleanUp {
     my ($self,$force, $state) = @_;  ##note that if $force is true then will not check if slots are finished
