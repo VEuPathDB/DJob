@@ -72,8 +72,10 @@ sub initialize {
 sub _init {
   my $self = shift;
   my $ct = 0;
+  my $sleep = int(rand(15));
+  $sleep += 15;
   while(1){
-    sleep $ct < 6 ? 15 : $ct < 12 ? 120 : 300;
+    sleep $ct < 4 ? $sleep : $ct < 12 ? 120 : 300;
     last if $self->runCmgetnodes();
     $ct++;
   }
