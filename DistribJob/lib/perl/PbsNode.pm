@@ -8,65 +8,36 @@ use strict;
 
 our @ISA = qw(DJob::DistribJob::Node);
 
+################################################################################
+##NOTE: sites should set the following variable according to how many slots / node
+##      their implementation for PBS has
+my $pbsSlotsPerNode = 2;  
+################################################################################
 
 my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
 
-sub new {
-  my ($class, $nodeNum, $nodeDir, $slotcount, $runTime, $fileName) = @_;
-  ##NOTE: need jobid in order to cancel job at end so create an undef one unless have jobid
-  my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount, $runTime, $fileName);
-  $self->{cwd} = getcwd();
-  return $self;
-}
-
-sub setJobid { my ($self,$jid) = @_; $self->{jobid} = $jid; }
-sub getJobid { my $self = shift; return $self->{jobid}; }
-    
-
-## if don't  have jobid then need to run qsub 
-sub initialize {
-  my($self) = @_;
-  if (!$self->getJobid()) {     ##need to run cmsubmit
-    my $qsubcmd = "qsub -V -j oe -l nodes=1:ppn=2".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "")." $ENV{GUS_HOME}/bin/nodeSocketServer.pl";
-    my $jid = `$qsubcmd`;
-    if ($jid =~ s/^(\d+)\..*/$1/) {
-      $self->setJobid($1);
-      ##need to write this jobid to the cancel file
-      open(C,">>$self->{fileName}");
-      print C "$self->{jobid} ";
-      close C;
-    } else {
-      die "Unable to  get jobid for this node\n";
+sub queueNode {
+  my $self = shift;
+  if (!$self->getJobid()) {     ##need to run qsub 
+    ##first create the script...
+    my $runFile = $self->{fileName};
+    $runFile =~ s/cancel/run/;
+    if(!-e "$runFile"){
+      open(R,">$runFile") || die "unable to create script file '$runFile'\n";
+      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/pbsNodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
+      close R;
+      system("chmod +x $runFile");
     }
+    my $qsubcmd = "qsub -V -j oe -l nodes=1:ppn=$pbsSlotsPerNode".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "")." $runFile";
+    my $jid = `$qsubcmd`;
+    chomp $jid;
+    $self->setJobid($jid);
+    open(C,">>$self->{fileName}");
+    print C "$self->{jobid} ";
+    close C;
   } 
-  if ($self->{state} == $QUEUED) {
-    if (waitpid($self->{initPid},1)) {
-      $self->setState($READYTOINITTASK);
-      $self->getNodeAddress() unless $self->{nodeNum};
-    } 
-    return;
-  }
   $self->setState($QUEUED);
-  if (!defined $self->{nodeNum}) {  
-    my $pid;
-  FORK: {
-      if ($pid = fork) {
-        $self->{initPid} = $pid;
-      } elsif (defined $pid) {  
-        $self->_init();
-        exit;
-      } elsif ($! =~ /No more process/) {
-        print STDERR "Forking failure: $!\n";
-        sleep 1;
-        redo FORK;
-      } else {
-        die "Unable to fork: $!\n";
-      }
-    } 
-  } else {
-    $self->setState($READYTOINITTASK);
-  }
 }
 
 sub _init {
@@ -74,7 +45,7 @@ sub _init {
   my $ct = 0;
   while (1) {
     last if $self->getNodeAddress();
-    sleep $ct < 6 ? 10 : $ct < 12 ? 60 : 180;
+    sleep $ct < 8 ? 15 : 120;
     $ct++;
   }
   if (!$self->checkNode()) {
@@ -91,11 +62,9 @@ sub getNodeAddress {
   if (!defined $self->{nodeNum}) {
     my $getCmd = "qstat -n $self->{jobid}";
     my @stat = `$getCmd`;
-#    print STDERR "getNodeAddress: @stat\n";
     return undef if $?;         ##command failed
-    if ($stat[-1] =~ /^\s*(node\d+)/) {
+    if ($stat[-1] =~ /^\s*(\w*\d+)/) {
       $self->{nodeNum} = $1;
-#      print STDERR "getNodeAddress: '$1'\n";
     }
   }
   return $self->{nodeNum};
@@ -110,10 +79,10 @@ sub _initNodeDir {
   }
 
   my $try = 0;
-  until ($self->_fileExists($self->{nodeDir})) {
+  do {
     die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
     $self->runCmd("mkdir -p $self->{nodeDir}");
-  }
+  } until ($self->_fileExists($self->{nodeDir})); 
   return 1;
 }
 
@@ -128,6 +97,7 @@ sub runCmd {
         print STDERR "Failed with status $1 running $cmd" ;
         print $sock "closeAndExit\n";  ##exits the script on the node..
         close $sock;
+        exit(1);
       }
       last;
     }
@@ -140,7 +110,7 @@ sub getPort {
   my $self = shift;
   if(!$self->{portCon}){
     ##note..need to try a couple of times here because the script may be running but the port is not ready on the nodes to receive connections...seems to take some time
-#    print STDERR "Creating new port connection  to $self->{nodeNum}\n";
+#    print STDERR "Creating new port connection\n";
     my $sock;
     my $ct = 0;
     until($sock){
@@ -150,9 +120,8 @@ sub getPort {
                                     Proto => 'tcp',
                                    );
       unless($sock){
-        die "Could not create socket: $!\n" if $ct > 5;
+        die "Could not create socket: $!\n" if $ct++ > 5;
         sleep 3;
-        $ct++;
         next;
       }
       $self->{portCon} = $sock;
@@ -163,7 +132,7 @@ sub getPort {
 
 sub closePort {
   my $self = shift;
-  close $self->{portCon} if $self->{portCon};
+  close $self->{portCon};
   undef $self->{portCon};
 }
 
@@ -231,8 +200,8 @@ sub cleanUp {
   }
 
   ##want to kill any child processes still running to quit cleanly
-  if ($self->getState() == $QUEUED && $self->{initPid}) {
-    kill(1, $self->{initPid}) unless waitpid($self->{initPid},1);
+  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
+    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
   print "Cleaning up node $self->{nodeNum}...\n";
@@ -240,11 +209,11 @@ sub cleanUp {
   if($self->{portCon}){
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit");
+    $self->closePort();
   }else{
     system("qdel $self->{jobid} > /dev/null 2>&1");
   }
   system("/bin/rm $ENV{HOME}/$self->{jobid}.*.OU > /dev/null 2>&1"); ##delete that nasty .stdout file
-#  system("/bin/rm $ENV{HOME}/$self->{jobid}.*.ER > /dev/null 2>&1"); ##delete that nasty .stdout file
   $self->setState($state ? $state : $COMPLETE); ##complete
 }
 

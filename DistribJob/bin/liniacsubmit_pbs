@@ -25,6 +25,8 @@ close F;
 system("$cancelFile > /dev/null 2>&1");
 
 unlink "$cancelFile";
+$cancelFile =~ s/cancel/run/;
+unlink "$cancelFile";
 
 sub parseArgs {
     my ($nodecount, $minutes, $controllerPropFile) = @ARGV;

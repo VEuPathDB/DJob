@@ -4,6 +4,8 @@ use strict;
 use CBIL::Util::PropertySet;
 use CBIL::Util::Utils;
 use DJob::DistribJob::Node ":states";
+use IO::Socket;
+use IO::Select;
 
 my $KILLNOW = 2;
 
@@ -45,17 +47,37 @@ sub new {
   }
 
   my $taskPath = $taskClass;
-  $taskPath =~ s/::/\//g;       # work around perl 'require' wierdness
+  $taskPath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$taskPath.pm";
 
   my $nodePath = $nodeClass;
-  $nodePath =~ s/::/\//g;       # work around perl 'require' wierdness
+  $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$nodePath.pm";
 
   my $task = $taskClass->new($inputDir, $subTaskSize, $restart, $masterDir);
 
   print "Initializing server...\n\n";
   $task->initServer($inputDir);
+
+  ##open socket to listen for active nodes...
+  my $localPort;
+  my $hostname = `hostname`;
+  chomp $hostname;
+
+  my $numTries = 0;
+  my $sock;
+  do {
+    die "Unable to create port on server\n" if $numTries++ > 5;
+    $localPort = int(rand(3000)) + 5000;
+    $sock = new IO::Socket::INET (
+                                     LocalHost => $hostname,
+                                     LocalPort => $localPort,
+                                     Proto => 'tcp',
+                                     Listen => 100,
+                                     Reuse => 1,
+                                    );
+  } until ( $sock );
+  my $sel = IO::Select->new($sock);
 
   my $amRunning = 0;
   my $runpid;
@@ -70,7 +92,7 @@ sub new {
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName);
+      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort);
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;
@@ -79,11 +101,11 @@ sub new {
     }
   }
   ##now start running....
-  $self->run($task, $inputDir, $masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit);
+  $self->run($task, $inputDir, $masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit, $sel, $sock);
 } 
 
 sub run {
-    my ($self, $task, $inputDir,$masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit) = @_;
+    my ($self, $task, $inputDir,$masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit, $sel, $sock) = @_;
 
     my $running = 1;
     my $kill;
@@ -101,16 +123,19 @@ sub run {
         my $ctRunning = 0;
         my $ctInitTask = 0;
 
+        ##now check to see if any new nodes are ready to run...
+        $self->checkForNewNodes($sel,$sock);
+
         foreach my $node (@nodes){
 
-          if($node->getState() < 3 && $complete){  ##no more tasks...clean up these  nodes...
+          if($node->getState() < $RUNNINGTASK && $complete){  ##no more tasks...clean up these  nodes...
             $node->cleanUp(1);
             next;
           }
           
-          if(!$node->getState()){  ##does not have connection to node..
-            print "Initializing node\n";
-            $node->initialize();
+          if(!$node->getState()){
+            print "Submitting node to scheduler ...\n";
+            $node->queueNode();
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
             next if($ctInitTask > $parInit);
             $ctInitTask++;
@@ -162,6 +187,8 @@ sub run {
 	$node->cleanUp(1);
     }
 
+    close($sock);
+
     $self->reportFailures($masterDir, $propfile);
 
     print "Cleaning up server...\n";
@@ -177,6 +204,23 @@ sub run {
     }
 
     print "Done\n";
+}
+
+sub checkForNewNodes {
+  my($self,$sel,$sock) = @_;
+  while($sel->can_read(0)) {
+    my $fh = $sock->accept();
+    my $jobid = <$fh>;
+    close($fh);
+    chomp $jobid;
+    foreach my $n (@nodes){
+      if($n->getJobid() eq $jobid){
+        $n->setState($READYTORUN);
+        $n->initialize();
+        last;
+      }
+    }
+  }
 }
 
 # return undef if failed

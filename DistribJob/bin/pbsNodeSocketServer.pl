@@ -17,7 +17,9 @@ chomp $host;
 print "node: $host\nserver: $serverHost $serverPort\n";
 
 ##now inform the server that this node is ready to run...
+##this next line is likely the only thing here that is pbs specific...
 my $jobid = $ENV{PBS_JOBID};
+
 print "jobid: $jobid\n";
 my $hostSock;
 my $ct = 0;
