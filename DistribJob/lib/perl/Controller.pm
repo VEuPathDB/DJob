@@ -211,7 +211,6 @@ sub getNodeMsgs {
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
     my $s = <$fh>;
-    print STDERR "getMsgs: $s\n";
     chomp $s;
     my ($jobid,$slot,$status) = split(" ",$s);
     close($fh);
