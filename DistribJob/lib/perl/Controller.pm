@@ -124,7 +124,7 @@ sub run {
         my $ctInitTask = 0;
 
         ##now check to see if any new nodes are ready to run...
-        $self->checkForNewNodes($sel,$sock);
+        $self->getNodeMsgs($sel,$sock);
 
         foreach my $node (@nodes){
 
@@ -206,18 +206,25 @@ sub run {
     print "Done\n";
 }
 
-sub checkForNewNodes {
+sub getNodeMsgs {
   my($self,$sel,$sock) = @_;
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
-    my $jobid = <$fh>;
+    my $s = <$fh>;
+    print STDERR "getMsgs: $s\n";
+    chomp $s;
+    my ($jobid,$slot,$status) = split(" ",$s);
     close($fh);
-    chomp $jobid;
-    foreach my $n (@nodes){
-      if($n->getJobid() eq $jobid){
-        $n->setState($READYTORUN);
-        $n->initialize();
-        last;
+    if($slot){ ##subtask has completed in this slot...setState
+      $self->{nodes}->{$jobid}->getSlot($slot)->getTask()->setState($status);
+    }else{ ##node is ready to run...
+      foreach my $n (@nodes){
+        if($n->getJobid() eq $jobid){
+          $n->setState($READYTORUN);
+          $n->initialize();
+          $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
+          last;
+        }
       }
     }
   }

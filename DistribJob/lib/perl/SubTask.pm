@@ -53,6 +53,17 @@ sub getEnd {
   return $self->{end};
 }
 
+## states are 'done' and 'failed'
+sub setState {
+  my($self,$state) = @_;
+  $self->{state} = $state;
+}
+
+sub getState {
+  my $self = shift;
+  return $self->{state};
+}
+
 sub complete {
     my ($self) = @_;
 
@@ -80,12 +91,12 @@ sub resetStartTime {
 
 sub _isDone {
     my ($self) = @_;
-    return (-e "$self->{subTaskResultDir}/done");
+    return $self->getState() ? 1 : 0;
 }
 
 sub _isFailure {
     my ($self) = @_;
-    return (-e "$self->{subTaskResultDir}/failed");
+    return ($self->getState() eq 'failed');
 }
 
 1;

@@ -2,8 +2,11 @@
 
 localdir=$1
 serverdir=$2
+jobid=$3
+serverHost=$4
+serverPort=$5
 
-shift 2
+shift 5
 
 cd $localdir
 
@@ -11,11 +14,11 @@ $* > subtask.output 2> subtask.stderr    ## stdout goes into subtask.output and 
 
 status=$?
 
-
 if [ $status != 0 ]; then
   touch $serverdir/failed
   cp -r $localdir $serverdir/slot
+  informControllerSubtaskComplete.pl $localdir $jobid $serverHost $serverPort "failed"
+else
+  informControllerSubtaskComplete.pl $localdir $jobid $serverHost $serverPort "done"
 fi
-
-touch $serverdir/done
 

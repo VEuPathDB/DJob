@@ -14,7 +14,7 @@ my $endMatchString = 'FooCmdEnd';
 my $host = `hostname`;
 chomp $host;
 
-print "node: $host\nserver: $serverHost $serverPort\n";
+#print "node: $host\nserver: $serverHost $serverPort\n";
 
 ##now inform the server that this node is ready to run...
 ##this next line is likely the only thing here that is pbs specific...
@@ -32,7 +32,6 @@ until($hostSock){
   unless($hostSock){
     die "Could not create socket: $!\n" if $ct++ > 3;
     sleep 3;
-    $ct++;
   }
 }
 print $hostSock "$jobid\n";
@@ -70,7 +69,13 @@ while(my $ns = $sock->accept()){
       &cleanUp;
       exit(0);
     }
-    print $write "$input"."echo \$?.$endMatchString\n";
+    if($input =~ /subtaskInvoker\s+(\S+)/){
+      chomp $input;
+      $input .= " > $1/subtask.output 2> $1/subtask.stderr\n";
+      print $write "$input"."echo \$?.$endMatchString\n";
+    }else{
+      print $write "$input"."echo \$?.$endMatchString\n";
+    }
     while(<$read>){
       print $ns $_;
       last if /^(\d+)\.$endMatchString/;

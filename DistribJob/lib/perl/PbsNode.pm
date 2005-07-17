@@ -139,7 +139,7 @@ sub closePort {
 sub execSubTask {
   my ($self, $nodeRunDir, $serverSubtaskDir, $cmd) = @_;
     
-  $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result $cmd &";
+  $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result $self->{jobid} $self->{serverHost} $self->{serverPort} $cmd &";
 
   return $self->runCmd($cmd);
 }

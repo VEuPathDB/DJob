@@ -91,12 +91,21 @@ sub getSlots {
     my ($self) = @_;
     unless ($self->{slots}) {
 	$self->{slots} = [];
-	for(my $i=0; $i<$self->{slotCount}; $i++) {
-	    push(@{$self->{slots}}, DJob::DistribJob::NodeSlot->new($self, $i+1));
+        $self->{slotHash};
+	for(my $i=1; $i <= $self->{slotCount}; $i++) {
+          my $slot = DJob::DistribJob::NodeSlot->new($self, $i);
+          push(@{$self->{slots}}, $slot);
+          $self->{slotHash}->{"slot_$i"} = $slot;
 	}
     }
 
     return $self->{slots};
+}
+
+sub getSlot {
+  my($self,$s) = @_;
+  $self->getSlots() unless $self->{slots};
+  return $self->{slotHash}->{$s};
 }
 
 sub getSlotCount {

@@ -84,7 +84,6 @@ select STDOUT;
   system("killBadBlast --blastProgram $program &");
 #}
 
-
 ### loop through seqs, processing one at a time
 print LOG "processing $seqFile\n";
 open(F, "$seqFile") || &error("couldn't open seqfile $seqFile");
