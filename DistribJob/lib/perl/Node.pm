@@ -87,6 +87,11 @@ sub getNum {
     return $self->{nodeNum};
 }
 
+sub setNum {
+  my($self,$num) = @_;
+  $self->{nodeNum} = $num;
+}
+
 sub getSlots {
     my ($self) = @_;
     unless ($self->{slots}) {

@@ -214,12 +214,13 @@ sub getNodeMsgs {
     chomp $s;
     my ($jobid,$slot,$status) = split(" ",$s);
     close($fh);
-    if($slot){ ##subtask has completed in this slot...setState
+    if($slot =~ /slot_/){ ##subtask has completed in this slot...setState
       $self->{nodes}->{$jobid}->getSlot($slot)->getTask()->setState($status);
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
+          $n->setNum($slot) if $slot;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
           last;
