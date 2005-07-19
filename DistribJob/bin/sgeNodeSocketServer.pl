@@ -11,7 +11,7 @@ my $serverPort = shift;
 
 my $endMatchString = 'FooCmdEnd';
 
-my $host = `hostname`;
+my $host = `hostname -s`;
 chomp $host;
 
 ##now inform the server that this node is ready to run...

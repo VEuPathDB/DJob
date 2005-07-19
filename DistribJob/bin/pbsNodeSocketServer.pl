@@ -11,7 +11,7 @@ my $serverPort = shift;
 
 my $endMatchString = 'FooCmdEnd';
 
-my $host = `hostname`;
+my $host = `hostname -s`;
 chomp $host;
 
 #print "node: $host\nserver: $serverHost $serverPort\n";

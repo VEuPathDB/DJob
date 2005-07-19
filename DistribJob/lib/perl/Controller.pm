@@ -61,7 +61,7 @@ sub new {
 
   ##open socket to listen for active nodes...
   my $localPort;
-  my $hostname = `hostname`;
+  my $hostname = `hostname -s`;
   chomp $hostname;
 
   my $numTries = 0;
