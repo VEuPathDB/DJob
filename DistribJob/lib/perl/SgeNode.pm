@@ -22,7 +22,13 @@ sub queueNode {
   if (!$self->getJobid()) {     ##need to run qsub 
     ##first create the script...
     my $runFile = $self->{fileName};
-    $runFile =~ s/cancel/run/;
+    if(!$runFile){
+      $runFile = "nodeScript.$$";
+    }elsif($self->{filename} =~ /cancel/){
+      $runFile =~ s/cancel/run/;
+    }else{
+      $runFile = "$runFile.run";
+    }
     if(!-e "$runFile"){
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
       print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/sgeNodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";

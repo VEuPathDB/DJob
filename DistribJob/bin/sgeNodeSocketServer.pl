@@ -13,6 +13,7 @@ my $endMatchString = 'FooCmdEnd';
 
 my $host = `hostname -s`;
 chomp $host;
+print "serverHost: $serverHost\nserverPort: $serverPort\nnode host: $host\n";
 
 ##now inform the server that this node is ready to run...
 ##this next line is likely the only thing here that is sge specific...
@@ -28,10 +29,11 @@ until($hostSock){
                                 Proto => 'tcp',
                                );
   unless($hostSock){
-    die "Could not create socket: $!\n" if $ct++ > 3;
-    sleep 3;
+    die "serverHost: Could not create socket: $!\n" if $ct++ > 3;
+    sleep 5;
   }
 }
+
 print $hostSock "$jobid $host\n";
 close($hostSock);
 

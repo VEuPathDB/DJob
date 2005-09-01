@@ -5,7 +5,7 @@ use lib "$ENV{GUS_HOME}/lib/perl";
 use DJob::DistribJob::Controller;
 use Getopt::Long;
 
-my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName);
+my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname);
 
 &GetOptions("help|h!" => \$help, 
             "kill|k!"=> \$kill,
@@ -15,6 +15,7 @@ my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName);
             "parallelInit|pi=i" => \$parInit,
             "propFile|p=s" => \$propFile,
             "fileName|f=s" => \$fileName,
+            "hostname|h=s" => \$hostname,
             );
 
 help() if $help;
@@ -27,7 +28,7 @@ unless (-e "$propFile"){
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
-DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName);
+DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname);
 
 sub usage {
 

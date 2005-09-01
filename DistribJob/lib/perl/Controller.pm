@@ -28,7 +28,7 @@ my @properties =
 my @nodes;
 
 sub new {
-  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName) = @_;
+  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname) = @_;
 
   my $self = {};
   bless $self;
@@ -61,14 +61,15 @@ sub new {
 
   ##open socket to listen for active nodes...
   my $localPort;
-  my $hostname = `hostname -s`;
+  $hostname = `hostname -s` unless $hostname;
   chomp $hostname;
-
+  
   my $numTries = 0;
   my $sock;
   do {
     die "Unable to create port on server\n" if $numTries++ > 5;
     $localPort = int(rand(3000)) + 5000;
+    print "Name of headnode: $hostname, port: $localPort\n\n";
     $sock = new IO::Socket::INET (
                                      LocalHost => $hostname,
                                      LocalPort => $localPort,
