@@ -11,14 +11,38 @@ my $serverPort = shift;
 
 my $endMatchString = 'FooCmdEnd';
 
-my $host = `hostname`;
+my $host = `hostname -s`;
 chomp $host;
 
-print "node: $host\nserver: $serverHost $serverPort\n";
+##get the jobid
+my $jobid;
+if($ENV{PBS_JOBID}){  ##pbs 
+  $jobid = $ENV{PBS_JOBID};
+}elsif($ENV{JOBID}){  ##sge
+  $jobid = $ENV{JOBID};
+}else{
+  $jobid = shift;  ##local node
+}
+die "ERROR:  nodeSocketServer.pl is unable to determine the JOBID on $host\n" unless $jobid;
+print STDERR "jobid: $jobid\n";
 
 ##now inform the server that this node is ready to run...
-my $jobid = $ENV{PBS_JOBID};
-print "jobid: $jobid\n";
+my $sock;
+my $localPort;
+my $numTries = 0;
+do {
+  die"Could not create socket on node: $!\n"  if $numTries++ > 5;
+  $localPort = int(rand(3000)) + 5000;
+  $sock = new IO::Socket::INET (
+                                LocalHost => $host,
+                                LocalPort => $localPort,
+                                Proto => 'tcp',
+                                Listen => 5,
+                                Reuse => 1,
+                               );
+  die "Could not create socket on node: $!\n" unless $sock;
+}until ( $sock );
+
 my $hostSock;
 my $ct = 0;
 until($hostSock){
@@ -28,22 +52,12 @@ until($hostSock){
                                 Proto => 'tcp',
                                );
   unless($hostSock){
-    die "Could not create socket: $!\n" if $ct++ > 3;
+    die "Could not connect to server socket: $!\n" if $ct++ > 3;
     sleep 3;
-    $ct++;
   }
 }
-print $hostSock "$jobid\n";
+print $hostSock "$jobid $host $localPort\n";
 close($hostSock);
-
-my $sock = new IO::Socket::INET (
-                                 LocalHost => $host,
-                                 LocalPort => '7070',
-                                 Proto => 'tcp',
-                                 Listen => 5,
-                                 Reuse => 1,
-                                );
-die "Could not create socket: $!\n" unless $sock;
 
 ##open the bash shell handles
 my ($read,$write);
@@ -68,7 +82,13 @@ while(my $ns = $sock->accept()){
       &cleanUp;
       exit(0);
     }
-    print $write "$input"."echo \$?.$endMatchString\n";
+    if($input =~ /subtaskInvoker\s+(\S+)/){
+      chomp $input;
+      $input .= " > $1/subtask.output 2> $1/subtask.stderr\n";
+      print $write "$input"."echo \$?.$endMatchString\n";
+    }else{
+      print $write "$input"."echo \$?.$endMatchString\n";
+    }
     while(<$read>){
       print $ns $_;
       last if /^(\d+)\.$endMatchString/;

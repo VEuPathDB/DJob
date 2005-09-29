@@ -5,6 +5,7 @@ use POSIX ":sys_wait_h";
 use strict;
 require Exporter;
 use Cwd;
+use IO::Socket;
 
 our @ISA = qw(Exporter);
 
@@ -63,17 +64,101 @@ sub initialize {
 # must be over ridden in node objects if specific initialization is necessary
 sub _init {
   my $self = shift;
-  ##put node specific code here
-
-  $self->_initNodeDir();
+  my $ct = 0;
+  while (1) {
+    last if $self->getNodeAddress();
+    sleep $ct < 8 ? 15 : 120;
+    $ct++;
+  }
+  if (!$self->checkNode()) {
+    print "Node $self->{nodeNum} is not responding to commands....skipping\n";
+    $self->cleanUp(1, $FAILEDNODE);  
+    return;
+  }
+  $self->_initNodeDir(); 
+  print "Node $self->{nodeNum} initialized\n";
 }
 
 sub _initNodeDir {
-    my($self) = @_;
-    if (-e $self->{nodeDir}) {
-	$self->runCmd("/bin/rm -r $self->{nodeDir}");
-    }
+  my ($self) = @_;
+
+  if ($self->_fileExists($self->{nodeDir})) {
+    $self->runCmd("/bin/rm -r $self->{nodeDir}");
+  }
+
+  my $try = 0;
+  do {
+    die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
     $self->runCmd("mkdir -p $self->{nodeDir}");
+  } until ($self->_fileExists($self->{nodeDir})); 
+  return 1;
+}
+
+my $endMatchString = 'FooCmdEnd';
+my $endCmdString = "echo \$?.$endMatchString";
+sub runCmd {
+  my ($self, $cmd, $ignoreErr) = @_;
+  my $sock = $self->getPort();
+  print $sock "$cmd\n";
+  my $res = "";
+  while(<$sock>){
+    if(/^(\d+)\.$endMatchString/){
+      if($1 && !$ignoreErr){
+        print STDERR "Failed with status $1 running $cmd" ;
+        print $sock "closeAndExit\n";  #exits the script on the node..
+        close $sock;
+        exit(1);
+      }
+      last;
+    }
+    $res .= $_;
+  }
+  return $res;
+}
+
+sub getPort {
+  my $self = shift;
+  if(!$self->{portCon}){
+    ##note..need to try a couple of times here because the script may be running but the port is not ready on the nodes to receive connections...seems to take some time
+#    print STDERR "Creating new port connection\n";
+    my $sock;
+    my $ct = 0;
+    until($sock){
+      $sock = new IO::Socket::INET (
+                                    PeerAddr => $self->getNodeAddress(),
+                                    PeerPort => $self->getLocalPort(),
+                                    Proto => 'tcp',
+                                   );
+      unless($sock){
+        die "Could not create socket: $!\n" if $ct++ > 5;
+        sleep 3;
+        next;
+      }
+      $self->{portCon} = $sock;
+    }
+  }
+  return $self->{portCon};
+}
+
+ sub closePort {
+  my $self = shift;
+  close $self->{portCon};
+  undef $self->{portCon};
+}
+sub execSubTask {
+  my ($self, $nodeRunDir, $serverSubtaskDir, $cmd) = @_;
+    
+  $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result $self->{jobid} $self->{serverHost} $self->{serverPort} $cmd &";
+
+  return $self->runCmd($cmd);
+}
+
+sub _fileExists {
+  my($self, $file) = @_;
+  for (my $a = 0; $a < 2; $a++) {
+    my $test = $self->runCmd("find $file 2> /dev/null", 1);
+    return 1 if $test =~ /$file/;
+  }
 }
 
 sub getDir {
@@ -90,6 +175,16 @@ sub getNum {
 sub setNum {
   my($self,$num) = @_;
   $self->{nodeNum} = $num;
+}
+
+sub setLocalPort {
+  my($self,$port) = @_;
+  $self->{localPort} = $port;
+}
+
+sub getLocalPort {
+  my $self = shift;
+  return $self->{localPort};
 }
 
 sub getSlots {
@@ -178,25 +273,37 @@ sub DESTROY {
   kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
 }
 
+sub checkNode {
+  my($self) = @_;
+  return 1;  ##implement if there are problems..
+}
+
+
 ##want to only clean up if both slots are finished
 sub cleanUp {
-    my ($self,$force, $state) = @_;  ##note that if $force is true then will not check if slots are finished
-    
-    return if $self->getState() >= $COMPLETE;  ##already cleaned up
-    
-    if(!$force){
-      foreach my $slot (@{$self->getSlots()}){
-        return unless $slot->isFinished();
-      }
-    }
+  my ($self,$force, $state) = @_;
 
-    ##want to kill any child processes still running to quit cleanly
-    if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
-      kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
+  return if $self->getState() >= $COMPLETE; ##already cleaned up
+    
+  if (!$force) {
+    foreach my $slot (@{$self->getSlots()}) {
+      return unless $slot->isFinished();
     }
+  }
 
-    $self->runCmd("/bin/rm -r $self->{nodeDir}");
-    $self->setState($state ? $state : $COMPLETE);  ##complete
+  ##want to kill any child processes still running to quit cleanly
+  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
+    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
+  }
+
+  print "Cleaning up node $self->{nodeNum}...\n";
+   
+  if($self->{portCon}){
+    $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+    $self->runCmd("closeAndExit");
+    $self->closePort();
+  }
+  $self->setState($state ? $state : $COMPLETE); ##complete
 }
 
 1;

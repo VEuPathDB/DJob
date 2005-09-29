@@ -84,7 +84,7 @@ sub new {
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
     foreach my $nodenum (@$nodenumlist) {
-      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime);
+      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort);
       if (!$node) {               ##failed to initialize so is null..
         print "  Unable to create node $nodenum....skipping\n";
         next;
@@ -222,6 +222,7 @@ sub getNodeMsgs {
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
+          $n->setLocalPort($status) if $status;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
           last;

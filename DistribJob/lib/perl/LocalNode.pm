@@ -1,37 +1,39 @@
 package DJob::DistribJob::LocalNode;
 
-use DJob::DistribJob::Node;
-use CBIL::Util::Utils;
-
-
-@ISA = qw(DJob::DistribJob::Node);
-
+use DJob::DistribJob::Node ":states";
+use Cwd;
 use strict;
 
+our @ISA = qw(DJob::DistribJob::Node);
+
+my $jobID = 1000;
+my $endMatchString = 'FooCmdEnd';
+my $endCmdString = "echo \$?.$endMatchString";
+
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotcount) = @_;
-    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount);
+    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort) = @_;
+    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort);
     $self->{nodeDir} = "$nodeDir/$nodeNum";
-    $self->_initNodeDir();  
     return $self;
 }
 
-
-sub runCmd {
-    my ($self, $cmd) = @_;
-    return &CBIL::Util::Utils::runCmd($cmd);
+sub queueNode {
+  my $self = shift;
+  if (!$self->getJobid()) {    ###...not queued 
+    $jobID++;
+    $self->setJobid($jobID);
+    system("$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort} $jobID &");
+  } 
+  $self->setState($QUEUED);
 }
-    
-sub execSubTask {
-    my ($self, $nodeRunDir, $serverSubtaskDir, $cmd) = @_;
-    
-    $cmd = "subtaskInvoker $nodeRunDir $serverSubtaskDir/result " . $cmd;
-    my $rc = system("$cmd &");
-    my $status = $rc >> 8;
-    die "Failed with status $status running '$cmd'\n" if $status;
+  
+
+sub getNodeAddress {
+  my $self = shift;
+  if (!defined $self->{nodeNum}) {
+    $self->{nodeNum} = 'localhost';
+  }
+  return $self->{nodeNum};
 }
 
 1;
-
-
-
