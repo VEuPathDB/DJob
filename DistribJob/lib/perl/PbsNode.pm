@@ -17,7 +17,13 @@ sub queueNode {
   if (!$self->getJobid()) {     ##need to run qsub 
     ##first create the script...
     my $runFile = $self->{fileName};
-    $runFile =~ s/cancel/run/;
+    if(!$runFile){
+      $runFile = "nodeScript.$$";
+    }elsif($self->{filename} =~ /cancel/){
+      $runFile =~ s/cancel/run/;
+    }else{
+      $runFile = "$runFile.run";
+    }
     if(!-e "$runFile"){
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
       print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
@@ -28,9 +34,11 @@ sub queueNode {
     my $jid = `$qsubcmd`;
     chomp $jid;
     $self->setJobid($jid);
-    open(C,">>$self->{fileName}");
-    print C "$self->{jobid} ";
-    close C;
+    if($self->{fileName}){
+      open(C,">>$self->{fileName}");
+      print C "$self->{jobid} ";
+      close C;
+    }
   } 
   $self->setState($QUEUED);
 }

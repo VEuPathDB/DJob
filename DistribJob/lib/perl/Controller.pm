@@ -69,7 +69,6 @@ sub new {
   do {
     die "Unable to create port on server\n" if $numTries++ > 5;
     $localPort = int(rand(3000)) + 5000;
-    print "Name of headnode: $hostname, port: $localPort\n\n";
     $sock = new IO::Socket::INET (
                                      LocalHost => $hostname,
                                      LocalPort => $localPort,
