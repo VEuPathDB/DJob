@@ -18,8 +18,8 @@ chomp $host;
 my $jobid;
 if($ENV{PBS_JOBID}){  ##pbs 
   $jobid = $ENV{PBS_JOBID};
-}elsif($ENV{JOBID}){  ##sge
-  $jobid = $ENV{JOBID};
+}elsif($ENV{JOB_ID}){  ##sge
+  $jobid = $ENV{JOB_ID};
 }else{
   $jobid = shift;  ##local node
 }
@@ -31,7 +31,7 @@ my $sock;
 my $localPort;
 my $numTries = 0;
 do {
-  die"Could not create socket on node: $!\n"  if $numTries++ > 5;
+  die "ERROR: nodeSocketServer.pl serverHost=$serverHost, serverPort=$serverPort\nCould not create socket on node: $!\n"  if $numTries++ > 5;
   $localPort = int(rand(3000)) + 5000;
   $sock = new IO::Socket::INET (
                                 LocalHost => $host,
@@ -40,7 +40,6 @@ do {
                                 Listen => 5,
                                 Reuse => 1,
                                );
-  die "Could not create socket on node: $!\n" unless $sock;
 }until ( $sock );
 
 my $hostSock;
@@ -52,7 +51,7 @@ until($hostSock){
                                 Proto => 'tcp',
                                );
   unless($hostSock){
-    die "Could not connect to server socket: $!\n" if $ct++ > 3;
+    die "ERROR: nodeSocketServer.pl serverHost=$serverHost, serverPort=$serverPort\nCould not connect to server socket: $!\n" if $ct++ > 3;
     sleep 3;
   }
 }

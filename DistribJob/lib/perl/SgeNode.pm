@@ -18,6 +18,7 @@ sub queueNode {
     }else{
       $runFile = "$runFile.run";
     }
+    $self->{script} = $runFile;
     if(!-e "$runFile"){
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
       print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
