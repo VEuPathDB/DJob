@@ -57,8 +57,12 @@ sub initialize {
     $self->queueNode();
   }
   return unless ($self->getState() == $READYTORUN); 
-  $self->_init();
-  $self->setState($READYTOINITTASK);
+  if($self->_init()){
+    print "Node $self->{nodeNum} initialized\n";
+    $self->setState($READYTOINITTASK);
+  }else{
+    print STDERR  "\nERROR: unable to initialize node $self->{nodeNum} ... marking FAILEDNODE\n";
+  }
 }
 
 # must be over ridden in node objects if specific initialization is necessary
@@ -75,21 +79,24 @@ sub _init {
     $self->cleanUp(1, $FAILEDNODE);  
     return;
   }
-  $self->_initNodeDir(); 
-  print "Node $self->{nodeNum} initialized\n";
+  return $self->_initNodeDir(); 
 }
 
 sub _initNodeDir {
   my ($self) = @_;
 
   if ($self->_fileExists($self->{nodeDir})) {
-    $self->runCmd("/bin/rm -r $self->{nodeDir}");
+    $self->runCmd("/bin/rm -r $self->{nodeDir}",1);
   }
 
   my $try = 0;
   do {
-    die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
-    $self->runCmd("mkdir -p $self->{nodeDir}");
+    if($try++ > 3){
+      $self->cleanUp(1, $FAILEDNODE);  
+      return 0;
+    }
+#    die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
+    $self->runCmd("mkdir -p $self->{nodeDir}",1);
   } until ($self->_fileExists($self->{nodeDir})); 
   return 1;
 }
@@ -104,7 +111,8 @@ sub runCmd {
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       if($1 && !$ignoreErr){
-        print STDERR "Failed with status $1 running $cmd" ;
+        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd'" ;
+#        sleep 100;  ##uncomment if need to test problems on the nodes
         print $sock "closeAndExit\n";  #exits the script on the node..
         close $sock;
         exit(1);

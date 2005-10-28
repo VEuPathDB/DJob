@@ -136,6 +136,8 @@ sub run {
           if(!$node->getState()){
             print "Submitting node to scheduler ...\n";
             $node->queueNode();
+          }elsif($node->getState() == $FAILEDNODE){
+            next;
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
             next if($ctInitTask > $parInit);
             $ctInitTask++;

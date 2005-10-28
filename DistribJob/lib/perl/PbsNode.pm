@@ -19,7 +19,7 @@ sub queueNode {
     my $runFile = $self->{fileName};
     if(!$runFile){
       $runFile = "nodeScript.$$";
-    }elsif($self->{filename} =~ /cancel/){
+    }elsif($runFile =~ /cancel/){
       $runFile =~ s/cancel/run/;
     }else{
       $runFile = "$runFile.run";
@@ -30,7 +30,7 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -j oe -l nodes=1:ppn=$pbsSlotsPerNode".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "")." $runFile";
+    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$pbsSlotsPerNode".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "")." $runFile";
     my $jid = `$qsubcmd`;
     chomp $jid;
     $self->setJobid($jid);
