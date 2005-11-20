@@ -173,9 +173,16 @@ sub checkOutput {
     my ($accession, $program, $status, @blastn_out) = @_;
 
     my ($validOutput, $noHits);
-    
-    if ($status == 16 && `grep "no valid contexts" blast.stderr`) {    
+
+    if (($status == 16 || $status == 23) && 
+        `grep "no valid contexts" blast.stderr`) {    
 	print LOG "\>$accession blast failed on low complexity seq\n";
+	$validOutput = 1;
+	$noHits = 1;
+    } elsif ($status == 0 && 
+         (my $res = `grep -A1 -E 'nonnegok|novalidctxok|shortqueryok' blast.stderr` )) {  
+    # WUBLAST 2.0 error made non-FATAL by cmdline param
+	print LOG "\>$accession blast failed with: $res \n";
 	$validOutput = 1;
 	$noHits = 1;
     } else {
