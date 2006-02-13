@@ -253,6 +253,7 @@ sub getJobid { my $self = shift; return $self->{jobid}; }
 sub initializeTask {
   my($self,$task,$inputDir) = @_;
   $self->setState($INITIALIZINGTASK);
+  $self->{task} = $task;
   my $pid;
  FORK: {
     if($pid = fork){
@@ -268,6 +269,12 @@ sub initializeTask {
       die "Unable to fork: $!\n";
     }
   } 
+}
+
+##returns stored task object for use later...
+sub getTask {
+  my $self = shift;
+  return $self->{task};
 }
 
 sub _initTask {
@@ -305,8 +312,10 @@ sub cleanUp {
   }
 
   print "Cleaning up node $self->{nodeNum}...\n";
-   
+
   if($self->{portCon}){
+    ##now call the task->cleanUpNode method to enable  users to stop processes running on node
+    $self->getTask()->cleanUpNode();
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit");
     $self->closePort();

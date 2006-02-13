@@ -214,6 +214,13 @@ sub integrateSubTaskResults {
     $node->runCmd("cat $nodeExecDir/answer >> $mainResultDir/answer");
 }
 
+# cleanUpNode is an optional method that is called when the node has completed
+# to allow the user to stop processes that they may have started on the node.
+# the files and directory structure on the nodes are already cleaned up.
+sub cleanUpNode {
+  my($self) = @_;
+}
+
 # cleanUpServer is an optional method that is called by the controller after
 # all nodes have completed.  This allows users to run some additional analysis
 # on the server that may clean up or further analyze the combined  results of

@@ -135,6 +135,11 @@ sub cleanUpServer {
   return 1;
 }
 
+sub cleanUpNode {
+  my($self) = @_;
+  return 1;
+}
+
 sub addSubtaskTime {
   my($self,$time) = @_;
   $self->{ctCompleteSubtasks}++;
