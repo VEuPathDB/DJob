@@ -7,13 +7,16 @@ use strict;
 our @ISA = qw(DJob::DistribJob::Node);
 
 my $jobID = 1000;
+my $localNodeNum = 10;
 my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
 
 sub new {
     my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort) = @_;
     my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort);
-    $self->{nodeDir} = "$nodeDir/$nodeNum";
+    $localNodeNum++;
+    $self->{nodeDir} = "$nodeDir/node$localNodeNum";
+    print STDERR "$localNodeNum: NodeDir = ".$self->getDir()."\n";
     return $self;
 }
 

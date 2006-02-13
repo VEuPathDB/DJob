@@ -16,7 +16,8 @@ my @properties =
  ["dbFilePath",      "",     "full path to database file"],
  ["dbType",          "genomic",     "database type (rna|genomic)"],
  ["inputFilePath",   "",     "full path to input file"],
- ["alignmentAlg",    "blat",    "algorithm for comparing to genome (blast|blat)"],
+ ["alignmentAlg",    "blat",    "algorithm for comparing to genome (blast|blat|gfclient)"],
+ ["maskByLowerCase", "no", "ignore sequence that has been masked and is now lower case when picking oligos (no|yes)"],
  ["length",   "70",    "length of oligos"],
  );
 
@@ -73,16 +74,17 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub runSubTask { 
-    my ($self, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $binPath = '/genomics/share/pkg/bio/ArrayOligoSelector/ArrayOligoSelector3.3';
+    my $binPath = '/genomics/share/pkg/bio/ArrayOligoSelector/latest';
     my $script = $self->{props}->getProp("dbType") =~ /^r/i ? 'Pick70_script1' : 'Pick70_script1_contig';
     my $dbFile = $node->getDir() . "/" . basename($self->{props}->getProp("dbFilePath"));
     my $alignAlg = $self->{props}->getProp("alignmentAlg");
     my $length = $self->{props}->getProp("length");
+    my $mask = $self->getProperty("maskByLowerCase");
 
-    my $cmd = "bash $binPath/$script $nodeExecDir/seqsubset.fsa $dbFile $length $alignAlg";
+    my $cmd = "bash $binPath/$script $nodeExecDir/seqsubset.fsa $dbFile $length $mask".($script =~ /contig/ ? " $alignAlg" : "");
     print STDERR "command:\n$cmd\n\n";
 
     return $cmd;
