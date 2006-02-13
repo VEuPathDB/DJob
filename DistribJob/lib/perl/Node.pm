@@ -315,7 +315,7 @@ sub cleanUp {
 
   if($self->{portCon}){
     ##now call the task->cleanUpNode method to enable  users to stop processes running on node
-    $self->getTask()->cleanUpNode();
+    $self->getTask()->cleanUpNode($self);
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit");
     $self->closePort();

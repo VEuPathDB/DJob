@@ -136,7 +136,7 @@ sub cleanUpServer {
 }
 
 sub cleanUpNode {
-  my($self) = @_;
+  my($self,$node) = @_;
   return 1;
 }
 

@@ -218,7 +218,7 @@ sub integrateSubTaskResults {
 # to allow the user to stop processes that they may have started on the node.
 # the files and directory structure on the nodes are already cleaned up.
 sub cleanUpNode {
-  my($self) = @_;
+  my($self,$node) = @_;
 }
 
 # cleanUpServer is an optional method that is called by the controller after
