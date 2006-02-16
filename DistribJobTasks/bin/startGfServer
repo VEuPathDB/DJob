@@ -15,11 +15,18 @@ my($port,$path,$dir);
 ($path && $port && $dir) ||
 	die "Usage:startGfServer --nodePort --binPath <gfServer/gfClient path> --targetDir";  
 
+chdir("$dir");
 
-system("${path}/gfServer -canStop start localhost $port $targetDir/*.nib &");
+system("${path}/gfServer -canStop start localhost $port *.nib &");
 
-while(system("gfServer status localhost $port")){
-	sleep(10);
-}
 
-return;
+system("${path}/gfServer status localhost $port");
+
+while($?){
+    sleep 5;
+    system("${path}/gfServer status localhost $port");
+} 
+
+
+
+
