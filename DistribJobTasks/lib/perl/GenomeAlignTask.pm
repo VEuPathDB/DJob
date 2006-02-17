@@ -14,7 +14,7 @@ use strict;
 my @properties = 
 (
  ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
- ["targetListPath",      "",     "full path to directory containing *.nib files"],
+ ["targetDirPath",      "",     "full path to directory containing *.nib files"],
  ["queryPath",   "",     "full path to input file"],
  ["nodePort", "", "port used on port for gfServer and gfClient"]
  );
@@ -34,14 +34,14 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    my $targetListPath = $self->getProperty("targetListPath");
+    my $targetDirPath = $self->getProperty("targetDirPath");
     my $nodeDir = $node->getDir();
 
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
     my $port = $self->getProperty("nodePort");
 
-    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetListPath");
+    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath");
 
 }
 
@@ -72,7 +72,7 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
-    my $targetPath = $self->getProperty("targetListPath"); #path of the dir with the .nib files
+    my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
     my $paramsPath = $inputDir . '/params.prop';
 
     my $port = $self->getProperty("nodePort");
