@@ -22,7 +22,7 @@ my @properties =
  ["subtasksize",  "",  "Number of input elements to include in each subtask"],
  ["taskclass",    "",  "Subclass of DJob::DistribJob::Task that manages the task"],
  ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
- ["restart",      "",  "yes/no: restart a task"],
+ ["restart",      "",  "yes/no: restart a task"]
  );
 
 my @nodes;
