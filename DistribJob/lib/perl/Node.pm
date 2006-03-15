@@ -111,11 +111,12 @@ sub runCmd {
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       if($1 && !$ignoreErr){
-        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd'" ;
+        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n" ;
 #        sleep 100;  ##uncomment if need to test problems on the nodes
         print $sock "closeAndExit\n";  #exits the script on the node..
         close $sock;
-        exit(1);
+        $self->cleanUp(1, $FAILEDNODE);  
+#        exit(1);
       }
       last;
     }
