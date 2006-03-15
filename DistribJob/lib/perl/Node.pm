@@ -284,6 +284,17 @@ sub _initTask {
   print "Task initialized on node ".$self->getNum()."\n";
 }
 
+sub failedSoGetSubtasks {
+  my $self = shift;
+  return if $self->{retrievedFailedSubtasks};
+  my @st;
+  foreach my $ns (@{$self->getSlots()}){
+    push(@st,$ns->getTask()) if $ns->getTask();
+  }
+  $self->{retrievedFailedSubtasks} = 1;
+  return @st;
+}
+
 sub DESTROY {
   my($self) = @_;
   kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
