@@ -137,6 +137,7 @@ sub run {
             print "Submitting node to scheduler ...\n";
             $node->queueNode();
           }elsif($node->getState() == $FAILEDNODE){
+            push(@redoSubtasks,$node->failedSoGetSubtasks());
             next;
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
             next if($ctInitTask > $parInit);
@@ -168,9 +169,7 @@ sub run {
                     print "ERROR:  Node ".$node->getNum()." is no longer functional\n";
                     $node->setState($FAILEDNODE);
                     ##need to get all subtasks from this node and assign to another...
-                    foreach my $ns (@{$node->getSlots()}){
-                      push(@redoSubtasks,$ns->getTask());
-                    }
+                    push(@redoSubtasks,$node->failedSoGetSubtasks());
                     last;
                   }
                 }
