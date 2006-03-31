@@ -5,17 +5,20 @@ use lib "$ENV{GUS_HOME}/lib/perl";
 use DJob::DistribJob::Controller;
 use Getopt::Long;
 
-my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname);
+my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname, $queue);
+my $procsPerNode = 2;
 
 &GetOptions("help|h!" => \$help, 
             "kill|k!"=> \$kill,
             "killslow|ks!" => \$killslow,
             "numNodes|n=i" => \$numNodes,
             "runTime|t=i" => \$runTime,
+            "procsPerNode|ppn=i" => \$procsPerNode,
             "parallelInit|pi=i" => \$parInit,
             "propFile|p=s" => \$propFile,
             "fileName|f=s" => \$fileName,
             "hostname|h=s" => \$hostname,
+            "queue|q=s" => \$queue,
             );
 
 help() if $help;
@@ -28,39 +31,43 @@ unless (-e "$propFile"){
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
-DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname);
+DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $queue);
 
 sub usage {
 
     print "
 Usage:
   distribjob --help
-  distribjob --propFile propfile --numNodes <number of nodes> --runTime <minutes for expected run> --parallelInit <number of nodes to initialize task on at a time>
+  distribjob --propFile propfile --numNodes <number of nodes> --runTime <minutes for expected run> --parallelInit <number of nodes to initialize task on at a time> --procsPerNode <number of processers per node [2]> --queue <queue name>
   distribjob --propFile propfile node1 node2...
   distribjob --propFile propfile -kill
   distribjob --propFile propfile -killslow
 
 where:
 
-  --help         Print full help.
+  --help|h            Print full help.
 
-  --propFile    A file containing configuration properties for the distributed
-                job controller.  (See The Controller Properties File in full 
-                help).
+  --propFile|p        A file containing configuration properties for the distributed
+                      job controller.  (See The Controller Properties File in full 
+                      help).
 
-  node1 ...	List of nodes to run on.
+  --numNodes|n        Number of nodes to run on ... only valid if there is no list of nodes
 
-  --numNodes    Number of nodes to run on ... only valid if there is no list of nodes
+  --parallelInit|pi   Number of ndoes to initialize the task on at a time
 
-  --parallelInit  Number of ndoes to initialize the task on at a time
+  --procsPerNode|ppn  Number of processors to request / node [default is  2]
 
-  --fileName    file name to be passed to the controller that nodes can utilize
+  --queue|q           Name  of queue to use if not using the default queue
 
-  --kill         Gracefully kill the controller and node subtasks as soon as 
-                possible.
+  --fileName|f        file name to be passed to the controller that nodes can utilize
+
+  --kill|k            Gracefully kill the controller and node subtasks as soon as 
+                      possible.
   
-  --killslow     Gracefully kill the controller when all current node subtasks
-                are done.
+  --killslow|ks       Gracefully kill the controller when all current node subtasks
+                      are done.
+
+  node1 ...	      List of nodes to run on.
 ";
 }
 

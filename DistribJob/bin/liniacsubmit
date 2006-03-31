@@ -1,6 +1,16 @@
 #!@perl@
 
 use strict;
+use Getopt::Long;
+
+my($queue,$procsPerNode,$help);
+
+&GetOptions("help|h!" => \$help, 
+            "procsPerNode|ppn=i" => \$procsPerNode,
+            "queue|q=s" => \$queue,
+            );
+
+&usage() if $help;
 
 my ($nodecount, $minutes, $controllerPropFile) = &parseArgs(@ARGV);
 
@@ -15,7 +25,7 @@ system("chmod +x $cancelFile");
 
 print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
 
-my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit 4 --fileName $cancelFile";
+my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit 4 --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($queue ? " --q $queue" : "");
 
 system($cmd);
 
@@ -29,7 +39,7 @@ $cancelFile =~ s/cancel/run/;
 unlink "$cancelFile";
 
 sub parseArgs {
-    my ($nodecount, $minutes, $controllerPropFile) = @ARGV;
+    my ($nodecount, $minutes, $controllerPropFile,$ppn) = @ARGV;
 
     &usage unless ($nodecount && $minutes && $controllerPropFile);
 
@@ -40,11 +50,11 @@ sub parseArgs {
     die "controller properties file $controllerPropFile does not exist"
 	unless -e $controllerPropFile;
 
-    return ($nodecount, $minutes, $controllerPropFile);
+    return ($nodecount, $minutes, $controllerPropFile, $ppn);
 }
 
 sub usage {
 
-    print "usage: liniacsubmit nodecount minutes controllerPropFileFullPath\n";
+    print "usage: liniacsubmit nodecount minutes controllerPropFileFullPath --procsPerNode|ppn <num of procs / node [2]> --queue|q queue\n";
     exit(1);
 }

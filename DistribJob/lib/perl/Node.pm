@@ -23,8 +23,11 @@ our $RUNNINGTASK = 5;
 our $COMPLETE = 6;
 our $FAILEDNODE = 7;
 
+my $endMatchString = 'FooCmdEnd';
+my $endCmdString = "echo \$?.$endMatchString";
+
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort) = @_;
+    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $queue) = @_;
 
     my $self = {};
     bless($self, $class);
@@ -36,6 +39,8 @@ sub new {
     $self->{serverHost} = $serverHost;
     $self->{serverPort} = $serverPort;
     $self->{cwd} = getcwd();
+    $self->{procsPerNode} = $procsPerNode;
+    $self->{queue} = $queue if $queue;
 
     $self->setState($NOCONNECTION);
 
@@ -101,8 +106,6 @@ sub _initNodeDir {
   return 1;
 }
 
-my $endMatchString = 'FooCmdEnd';
-my $endCmdString = "echo \$?.$endMatchString";
 sub runCmd {
   my ($self, $cmd, $ignoreErr) = @_;
   my $sock = $self->getPort();

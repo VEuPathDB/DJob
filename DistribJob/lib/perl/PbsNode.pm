@@ -9,7 +9,9 @@ our @ISA = qw(DJob::DistribJob::Node);
 ################################################################################
 ##NOTE: sites should set the following variable according to how many slots / node
 ##      their implementation for PBS has
-my $pbsSlotsPerNode = 2;  
+##  NOTE:  THIS HAS BEEN DISCONTINUED...THE NODE CONSTRUCTOR  NOW TAKES AN ARGUMENT (AS DOES DISTRIBJOB)
+##     AND SETS THE PROCSPERNODE.  THE DEFAULT IS 2
+## my $pbsSlotsPerNode = 2; 
 ################################################################################
 
 sub queueNode {
@@ -30,9 +32,15 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$pbsSlotsPerNode".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "")." $runFile";
+    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
+##    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
+    if($jid =~ /^(\d+)/){ 
+      $self->{nodeDir} = "$self->{nodeDir}.$1";
+    }else{ 
+      $self->{nodeDir} = "$self->{nodeDir}.$jid";
+    }
     $self->setJobid($jid);
     if($self->{fileName}){
       open(C,">>$self->{fileName}");

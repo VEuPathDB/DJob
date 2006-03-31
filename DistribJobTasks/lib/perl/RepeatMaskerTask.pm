@@ -66,8 +66,9 @@ sub makeSubTaskCommand {
     my $trimDangling = $self->getProperty("trimDangling") eq "y"? "--trimDangling" : "";
     my $dangleMax = $self->getProperty("dangleMax");
 
-    my $options = $rmOptions eq "NONE"? "" : "--rmOptions $rmOptions";
-    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeExecDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";
+    my $options = $rmOptions eq "NONE"? "" : "--rmOptions '$rmOptions'";
+#    my $cmd = "repeatMasker --rmPath $rmPath $options --seqFile $nodeExecDir/seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax";
+    my $cmd = "$rmPath/RepeatMasker $rmOptions seqsubset.fsa";
 
     return $cmd;
 }
@@ -75,7 +76,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/blocked.seq >> $mainResultDir/blocked.seq");
-    $node->runCmd("cat $nodeExecDir/blocked.err >> $mainResultDir/blocked.err");
+    $node->runCmd("cat $nodeExecDir/seqsubset.fsa.masked >> $mainResultDir/blocked.seq");
+    $node->runCmd("cat $nodeExecDir/subtask.stderr >> $mainResultDir/blocked.err");
 }
 1;
