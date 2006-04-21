@@ -82,14 +82,19 @@ sub cleanUp {
   }
   
   print "Cleaning up node $self->{nodeNum}...\n";
+
+  $self->getTask()->cleanUpNode($self);
+
   
-  if($self->{portCon}){
+  if($self->getPort()){
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit");
     $self->closePort();
   }else{
     system("qdel $self->{jobid} > /dev/null 2>&1");
   }
+
+  $self->setState($state ? $state : $COMPLETE); ##complete
   
   ##delete those pesky OU files that don't do anything
   my $jid = $self->{jobid};
@@ -98,7 +103,6 @@ sub cleanUp {
   }
   my $delCmd = "/bin/rm $ENV{HOME}/$jid.*OU > /dev/null 2>&1";
   system($delCmd); 
-  $self->setState($state ? $state : $COMPLETE); ##complete
 }
 
 1;

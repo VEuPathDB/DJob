@@ -163,13 +163,13 @@ sub run {
               }
               $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
               ##check to see if the node is still functional 
-              if($ctLoops % 10 == 0 && $nodeSlot->isRunning()){
+              if($ctLoops % 20 == 0 && $nodeSlot->isRunning()){
                 if($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()){
                   if(!$node->runCmd("ls ".$nodeSlot->getDir(),1)){
                     print "ERROR:  Node ".$node->getNum()." is no longer functional\n";
-                    $node->setState($FAILEDNODE);
                     ##need to get all subtasks from this node and assign to another...
                     push(@redoSubtasks,$node->failedSoGetSubtasks());
+                    $node->cleanUp(1,$FAILEDNODE);
                     last;
                   }
                 }

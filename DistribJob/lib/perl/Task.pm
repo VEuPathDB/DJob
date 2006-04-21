@@ -75,10 +75,11 @@ sub runNextSubtask {
   my $slotNum = $nodeSlot->getNum();
   my $nodeSlotDir = $nodeSlot->getDir();
   my $serverSubTaskDir = $nextSubTask->getDir();
+  my $subtaskNumber = $nextSubTask->getNum();
   
   my $date = `date`;
   chomp $date;
-  print "\n[$date] subTask ".$nextSubTask->getNum()." dispatching to node $nodeNum.$slotNum\n";
+  print "\n[$date] subTask $subtaskNumber dispatching to node $nodeNum.$slotNum\n";
   
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");
@@ -92,7 +93,7 @@ sub runNextSubtask {
 #  $cmd =~ s/\s\'/ \'\\\'/g;
 #  $cmd =~ s/\'\s/\\\'\' /g;
 #  $cmd =~ s/\"/\"\\\"/g;
-  print "Task.pm command: $cmd\n";
+  print "Task.pm command: $cmd\n" if $subtaskNumber == 1;
   $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
 }
 

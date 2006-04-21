@@ -108,18 +108,20 @@ sub _initNodeDir {
 
 sub runCmd {
   my ($self, $cmd, $ignoreErr) = @_;
+  return if $self->getState() >= $COMPLETE;
   my $sock = $self->getPort();
+  if(!$sock){
+    $self->cleanUp(1, $FAILEDNODE);
+    return undef;
+  }
   print $sock "$cmd\n";
   my $res = "";
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       if($1 && !$ignoreErr){
-        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n" ;
+        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n";
 #        sleep 100;  ##uncomment if need to test problems on the nodes
-        print $sock "closeAndExit\n";  #exits the script on the node..
-        close $sock;
         $self->cleanUp(1, $FAILEDNODE);  
-#        exit(1);
       }
       last;
     }
@@ -142,14 +144,22 @@ sub getPort {
                                     Proto => 'tcp',
                                    );
       unless($sock){
-        die "Could not create socket: $!\n" if $ct++ > 5;
-        sleep 3;
+        if($ct++ > 5){
+          print STDERR "Could not create socket: $!\nInactivating node".$self->getNum()."\n" ;
+          $self->cleanUp(1,$FAILEDNODE);
+          last;
+        }
+        sleep 2;
         next;
       }
       $self->{portCon} = $sock;
     }
   }
-  return $self->{portCon};
+  if($self->{portCon} && $self->{portCon}->connected()){
+    return $self->{portCon};
+  }else{
+    return undef;
+  }
 }
 
  sub closePort {
@@ -328,11 +338,12 @@ sub cleanUp {
 
   print "Cleaning up node $self->{nodeNum}...\n";
 
-  if($self->{portCon}){
+  $self->getTask()->cleanUpNode($self);
+
+  if($self->getPort()){
     ##now call the task->cleanUpNode method to enable  users to stop processes running on node
-    $self->getTask()->cleanUpNode($self);
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
-    $self->runCmd("closeAndExit");
+    $self->runCmd("closeAndExit",1);
     $self->closePort();
   }
   $self->setState($state ? $state : $COMPLETE); ##complete
