@@ -1,4 +1,4 @@
-package HMMpfamTask;
+package DJob::DistribJobTasks::HMMpfamTask;
 
 use DJob::DistribJob::Task;
 use CBIL::Bio::FastaFile;
