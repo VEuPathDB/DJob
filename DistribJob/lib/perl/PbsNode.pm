@@ -83,7 +83,8 @@ sub cleanUp {
   
   print "Cleaning up node $self->{nodeNum}...\n";
 
-  $self->getTask()->cleanUpNode($self);
+  my $task = $self->getTask();
+  $task->cleanUpNode($self) if $task;
 
   
   if($self->getPort()){
