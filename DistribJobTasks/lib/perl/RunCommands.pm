@@ -1,0 +1,89 @@
+package DJob::DistribJobTasks::RunCommands;
+
+## simple task to take in a file where each line is a command that is to be run
+## Can specify list of files that need to be copied to the node initially
+## and the name of an output file that the command produces.  If no output file
+## is specified then the assumption is that output will go to stdout.
+
+## Brian Brunk (Penn Bioinformatics Core)
+
+use DJob::DistribJob::Task;
+use CBIL::Util::Utils;
+
+@ISA = (DJob::DistribJob::Task);
+
+use strict;
+
+# [name, default (or null if reqd), comment]
+my @properties = 
+(
+ ["inputFile",    "",     "full path to the input file with commands one / line"],
+ ["copyToNode",   "none",   "comma delimitted list of files to copy to nodes"],
+ ["outputFile",   "none",   "eg, myRun.out"],
+ ["debug",  "false", ""],
+ );
+my @commands;
+
+sub new {
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+    my $debug = $self->getProperty("debug");
+    $self->{'debug'} = 1 if $debug =~ /true/i;
+    return $self;
+}
+
+# called once
+sub initServer {
+    my ($self, $inputDir) = @_;
+    # do nothing
+}
+
+sub initNode {
+    my ($self, $node, $inputDir) = @_;
+    return 1 if $self->getProperty('copyToNode') eq 'none';
+    my @files = split(", *",$self->getProperty('copyToNode'));
+    my $nodeDir = $node->getDir();
+    foreach my $file (@files){
+      $node->runCmd("cp $file $nodeDir/");
+    }
+}
+
+sub getInputSetSize {
+    my ($self, $inputDir) = @_;
+    my $ct = 0;
+    open(F, $self->{props}->getProp("inputFile"));
+    while(<F>){
+      next if /^\s*\#/;
+      $ct++;
+      push(@commands,$_);
+    }
+    $self->{commands} =  \@commands;
+
+    return scalar(@{$self->{commands}});
+}
+
+sub initSubTask {
+    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+    open(O,">$subTaskDir/run.sh");
+    my $num = $start + 1;
+    my @cmds = @commands[$start..$end - 1];
+    print O "echo $num\n@cmds\n";
+    close O; 
+    $node->runCmd("cp $subTaskDir/run.sh $nodeSlotDir/");
+}
+
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
+
+    my $cmd = "/bin/sh run.sh";
+
+    return $cmd;
+}
+
+sub integrateSubTaskResults {
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+
+    my $out = $self->getProperty('outputFile') eq 'none' ? "runCommand.out" : $self->getProperty('outputFile'); 
+    my $cmd = "cat $nodeExecDir/".($out eq 'runCommand.out' ? "subtask.output" : $out)." >> $mainResultDir/$out";
+    $node->runCmd($cmd); 
+}
+1;
