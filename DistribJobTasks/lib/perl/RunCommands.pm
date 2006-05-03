@@ -66,7 +66,7 @@ sub initSubTask {
     open(O,">$subTaskDir/run.sh");
     my $num = $start + 1;
     my @cmds = @commands[$start..$end - 1];
-    print O "echo $num\n@cmds\n";
+    print O "@cmds\n";
     close O; 
     $node->runCmd("cp $subTaskDir/run.sh $nodeSlotDir/");
 }
