@@ -14,7 +14,8 @@ use strict;
 my @properties = 
 (
  ["tRNAscanDir",   "",   "path to directory that contains the tRNAscan script"],
- ["inputFilePath",   "",     "full path to input file"]
+ ["inputFilePath",   "",     "full path to input file"],
+ ["trainingOption", "", "training set used, eg. -G (general) or -C (covariance only)"]
  );
 
 sub new {
@@ -61,7 +62,9 @@ sub makeSubTaskCommand {
 
     my $tRNAscanDir = $self->{props}->getProp("tRNAscanDir");
 
-    my $cmd =  "$tRNAscanDir/tRNAscan-SE -C $nodeExecDir/seqsubset.fsa";
+    my $trainingOption = $self->{props}->getProp("trainingOption"); 
+
+    my $cmd =  "$tRNAscanDir/tRNAscan-SE -$trainingOption $nodeExecDir/seqsubset.fsa";
 
     return $cmd;
 }
