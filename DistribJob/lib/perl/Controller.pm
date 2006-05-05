@@ -122,16 +122,18 @@ sub run {
 
         my $ctRunning = 0;
         my $ctInitTask = 0;
-
-        ##now check to see if any new nodes are ready to run...
-        $self->getNodeMsgs($sel,$sock);
+        my $ctFinished = 0;
 
         foreach my $node (@nodes){
+
+          $self->getNodeMsgs($sel,$sock);
 
           if($node->getState() < $RUNNINGTASK && $complete){  ##no more tasks...clean up these  nodes...
             $node->cleanUp(1);
             next;
           }
+          
+          $ctFinished++ if $node->getState() > $RUNNINGTASK;
           
           if(!$node->getState()){
             print "Submitting node to scheduler ...\n";
@@ -177,7 +179,11 @@ sub run {
             }
           }
         } 
-        $running = !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
+        $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
+        if($running && $ctFinished == scalar(@nodes)){  ##if running and no nodes not finished then stop
+          $running = 0;
+          print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nSet restart=yes in the controller.prop file and rerun to run the remaining subtasks.\n\n";
+        }
         $ctLoops++;
         sleep(1);
 
