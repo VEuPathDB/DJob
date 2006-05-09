@@ -88,7 +88,7 @@ sub cleanUp {
   $task->cleanUpNode($self) if $task;
 
   
-  if($self->getPort()){
+  if($self->{nodeNum} && $self->getPort()){
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit");
     $self->closePort();

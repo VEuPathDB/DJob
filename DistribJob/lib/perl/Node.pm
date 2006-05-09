@@ -338,11 +338,11 @@ sub cleanUp {
 
   print "Cleaning up node $self->{nodeNum}...\n";
 
+  ##now call the task->cleanUpNode method to enable  users to stop processes running on node
   my $task = $self->getTask();
   $task->cleanUpNode($self) if $task;
 
-  if($self->getPort()){
-    ##now call the task->cleanUpNode method to enable  users to stop processes running on node
+  if($self->{nodeNum} && $self->getPort()){
     $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
     $self->runCmd("closeAndExit",1);
     $self->closePort();
