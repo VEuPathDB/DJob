@@ -1,4 +1,4 @@
-package DJob::DistribJobTasks::tRNAscanTask;
+   package DJob::DistribJobTasks::tRNAscanTask;
 
 use DJob::DistribJob::Task;
 use CBIL::Bio::FastaFile;
@@ -73,6 +73,6 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/subtask.output >> $mainResultDir/hmmpfam.out");
+    $node->runCmd("cat $nodeExecDir/subtask.output >> $mainResultDir/trnascan.out");
 }
 1;
