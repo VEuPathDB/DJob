@@ -1,0 +1,90 @@
+package DJob::DistribJobTasks::SampleTask;
+
+use CBIL::Util::Utils;
+use CBIL::Bio::FastaFile;
+
+use DJob::DistribJob::Task;
+
+@ISA = (DJob::DistribJob::Task);
+
+use strict;
+
+my @properties = (["psipredDir", "", "full path to the psipred dir",
+                   "dbFilePath", "", "subject file path",
+                   "inputFilePath", "", "query file path",
+                  ]);
+
+sub new {
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+    return $self;
+}
+
+sub initServer {
+    my ($self, $inputDir) = @_;
+
+    return(1);
+}
+
+sub initNode {
+    my ($self, $node, $inputDir) = @_;
+
+    my $dbFilePath = $self->{props}->getProp("dbFilePath");
+    my $nodeDir = $node->getDir();
+    my $dbFile = basename($dbFilePath);
+
+    $node->runCmd("cp $dbFilePath $nodeDir/$dbFile");
+}
+
+sub getInputSetSize {
+    my ($self, $inputDir) = @_;
+
+    my $fastaFileName = $self->getProperty("inputFilePath");
+
+    if (-e "$fastaFileName.gz") {
+      &runCmd("gunzip $fastaFileName.gz");
+    }
+
+    print "Creating index for $fastaFileName (may take a while)\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    return $self->{fastaFile}->getCount();
+}
+
+
+sub initSubTask {
+    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+
+    $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
+
+    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+}
+
+
+sub makeSubTaskCommand { 
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;
+
+    my $runpsipred = $self->{props}->getProp("psipredDir") . "/runpsipred";
+    my $nrFilt = $self->{props}->getProp("dbFilePath");
+
+    my $cmd = "$runpsipred $nodeExecDir/seqsubset.fsa $nrFilt ";
+    print STDERR "command:\n$cmd\n\n";
+
+    return $cmd;
+}
+
+
+sub integrateSubTaskResults {
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+
+    open(FILE, "$nodeExecDir/seqsubset.fsa") || die "Cannot open file $nodeExecDir/seqsubset.fsa for reading: $!";
+
+    my $line = <FILE>;
+    chomp($fn);
+
+    my $fn = $line =~ /\>([a-zA-Z0-9_\.]+)/;
+    close(FILE);
+
+    $node->runCmd("mv $nodeExecDir/seqsubset.ss2 $mainResultDir/$fn");
+}
+
+
+1;
