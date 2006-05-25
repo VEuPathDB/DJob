@@ -1,7 +1,9 @@
-package DJob::DistribJobTasks::SampleTask;
+package DJob::DistribJobTasks::PsipredTask;
 
 use CBIL::Util::Utils;
 use CBIL::Bio::FastaFile;
+
+use File::Basename;
 
 use DJob::DistribJob::Task;
 
@@ -9,10 +11,10 @@ use DJob::DistribJob::Task;
 
 use strict;
 
-my @properties = (["psipredDir", "", "full path to the psipred dir",
-                   "dbFilePath", "", "subject file path",
-                   "inputFilePath", "", "query file path",
-                  ]);
+my @properties = (["psipredDir", "", "full path to the psipred dir"],
+                  [ "dbFilePath", "", "subject file path"],
+                  [ "inputFilePath", "", "query file path"],
+		  );
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
@@ -30,9 +32,10 @@ sub initNode {
 
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
     my $nodeDir = $node->getDir();
-    my $dbFile = basename($dbFilePath);
 
-    $node->runCmd("cp $dbFilePath $nodeDir/$dbFile");
+    my $nrfilt = $dbFilePath . "*";
+
+    $node->runCmd("cp $nrfilt $nodeDir/");
 }
 
 sub getInputSetSize {
@@ -55,7 +58,16 @@ sub initSubTask {
 
     $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
 
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    open(FILE, "$subTaskDir/seqsubset.fsa") || die "Cannot open file $subTaskDir/seqsubset.fsa for reading: $!";
+
+    my $line = <FILE>;
+    close(FILE);
+
+    chomp($line);
+    my ($newName) = $line =~ /\>([a-zA-Z0-9_\.]+) /;
+    $newName = $newName . ".fsa";
+
+    $node->runCmd("cp -r $subTaskDir/seqsubset.fsa $nodeSlotDir/$newName");
 }
 
 
@@ -65,7 +77,9 @@ sub makeSubTaskCommand {
     my $runpsipred = $self->{props}->getProp("psipredDir") . "/runpsipred";
     my $nrFilt = $self->{props}->getProp("dbFilePath");
 
-    my $cmd = "$runpsipred $nodeExecDir/seqsubset.fsa $nrFilt ";
+    my $dbFile = $node->getDir() . "/" . basename($nrFilt);
+
+    my $cmd = "$runpsipred $nodeExecDir/*.fsa $dbFile ";
     print STDERR "command:\n$cmd\n\n";
 
     return $cmd;
@@ -75,15 +89,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    open(FILE, "$nodeExecDir/seqsubset.fsa") || die "Cannot open file $nodeExecDir/seqsubset.fsa for reading: $!";
-
-    my $line = <FILE>;
-    chomp($fn);
-
-    my $fn = $line =~ /\>([a-zA-Z0-9_\.]+)/;
-    close(FILE);
-
-    $node->runCmd("mv $nodeExecDir/seqsubset.ss2 $mainResultDir/$fn");
+    $node->runCmd("mv $nodeExecDir/*.ss2 $mainResultDir/");
 }
 
 
