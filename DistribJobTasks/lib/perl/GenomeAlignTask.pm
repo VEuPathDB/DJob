@@ -72,14 +72,14 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
+
     my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
-    my $paramsPath = $inputDir . '/params.prop';
 
     my $port = $self->getProperty("nodePort");
 
     my $nodeDir = $node->getDir();
 
-    my $cmd = "${gaBinPath}/gfClient -nohead localhost $port $targetPath seqsubset.fsa out.psl";
+    my $cmd = "${gaBinPath}/gfClient -nohead -t=dna -q=dna -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
 }
