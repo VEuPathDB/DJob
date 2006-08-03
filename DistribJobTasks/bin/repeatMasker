@@ -11,10 +11,11 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
+print STDERR "Incoming cmdline: repeatMasker @ARGV\n";
+
 my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling,
   $dangleLength,$dangleMax);
-&GetOptions('rmOptions=s' => \$rmOptions,
-            'rmPath=s' => \$rmPath,
+&GetOptions('rmPath=s' => \$rmPath,
             'seqFile=s' => \$inFile,
             'errorFile=s' => \$errFile,
             'outFile=s' => \$outFile,
@@ -25,10 +26,12 @@ my($rmOptions,$inFile,$outFile,$errFile,$mod,$modValue,$rmPath,$trimDangling,
 
 ##usage etc
 if (!$inFile || !$outFile ) {
-	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --rmOptions '<RepeatMasker options>' --mod <number of logical parts to split file into> --modValue <mod value for this run>  --trimDangling <boolean: trim bases from end if dangling off of masked seq> --dangleMax <this number or less of bases will be trimmed>  \n\n";
+	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --mod <number of logical parts to split file into> --modValue <mod value for this run>  --trimDangling <boolean: trim bases from end if dangling off of masked seq> --dangleMax <this number or less of bases will be trimmed> -- <RepeatMasker options as they appear on the command line>\n\n";
 	system("$rmPath/RepeatMasker");
 	exit 1;
 }
+
+$rmOptions = join(" ",@ARGV);
 
 my $tmpFile = "tmpBlock.$$";
 
@@ -121,6 +124,7 @@ sub processSet {
 	##run RepeatMasker##
 	unlink "$tmpFile.masked";
 	my $cmd = "$rmPath/$RepMaskCmd >& rm.stdout";
+        print STDERR "Command:  $cmd\n";
 	my $status = system($cmd) >> 8;
 	die "repeatmasker returned status $status running $cmd" if $status;
 	die "repeatmasker ($cmd) did not create $tmpFile.masked" unless -e "$tmpFile.masked";

@@ -4,10 +4,12 @@ use strict;
 use Getopt::Long;
 
 my($queue,$procsPerNode,$help);
+my $pInit = 4;
 
 &GetOptions("help|h!" => \$help, 
             "procsPerNode|ppn=i" => \$procsPerNode,
             "queue|q=s" => \$queue,
+            "pInit|pi=i" => \$pInit,
             );
 
 &usage() if $help;
@@ -25,7 +27,7 @@ system("chmod +x $cancelFile");
 
 print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
 
-my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit 4 --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($queue ? " --q $queue" : "");
+my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit $pInit --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($queue ? " --q $queue" : "");
 
 system($cmd);
 

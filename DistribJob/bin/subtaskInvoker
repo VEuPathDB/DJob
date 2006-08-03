@@ -10,7 +10,7 @@ shift 5
 
 cd $localdir
 
-$* > subtask.output 2> subtask.stderr    ## stdout goes into subtask.output and stderr into subtask.stderr
+$@ > subtask.output 2> subtask.stderr    ## stdout goes into subtask.output and stderr into subtask.stderr
 
 status=$?
 
