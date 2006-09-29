@@ -163,7 +163,7 @@ sub makeSubTaskCommand {
 	(!$crc || $crc =~ /false/i) and push @cmd_params, "-nocrc";
 	
 	my $cmd = "$ENV{IPRSCAN_HOME}/bin/iprscan -cli " . join (" ", @cmd_params);
-	print "Returning command: $cmd\n";
+	# print "Returning command: $cmd\n";
 	return $cmd;
 }
 
