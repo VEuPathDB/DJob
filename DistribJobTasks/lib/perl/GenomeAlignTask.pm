@@ -79,7 +79,9 @@ sub makeSubTaskCommand {
 
     my $nodeDir = $node->getDir();
 
-    my $cmd = "${gaBinPath}/gfClient -nohead -t=dna -q=dna -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
+    my $maxIntron = $self->getProperty("maxIntron");
+
+    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=dna -q=dna -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
 }
