@@ -20,6 +20,8 @@ if($ENV{PBS_JOBID}){  ##pbs
   $jobid = $ENV{PBS_JOBID};
 }elsif($ENV{JOB_ID}){  ##sge
   $jobid = $ENV{JOB_ID};
+}elsif($ENV{LSB_JOBID}){ ##LSF
+  $jobid = $ENV{LSB_JOBID};
 }else{
   $jobid = shift;  ##local node
 }
