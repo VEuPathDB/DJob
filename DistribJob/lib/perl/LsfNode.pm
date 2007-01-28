@@ -1,6 +1,7 @@
 package DJob::DistribJob::LsfNode;
 
 use DJob::DistribJob::Node ":states";
+use File::Basename;
 use Cwd;
 use strict;
 use constant DEBUG => 0;
@@ -10,35 +11,58 @@ our @ISA = qw(DJob::DistribJob::Node);
 sub queueNode {
   my $self = shift;
   if (!$self->getJobid()) {     ##need to run bsub 
+    my $localtmpdir;
     ##first create the script...
     my $runFile = $self->{fileName};
     if(!$runFile){
-      $runFile = "nodeScript.$$";
+      $localtmpdir = "$ENV{HOME}/djob_tmp_$$";
+      mkdir $localtmpdir unless -e $localtmpdir;
+      $runFile = "$localtmpdir/djob_nodeScript.$$";
     }elsif($runFile =~ /cancel/){
+      $localtmpdir = dirname($runFile);
       $runFile =~ s/cancel/run/;
     }else{
       $runFile = "$runFile.run";
     }
     if(!-e "$runFile"){
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
-      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
+      print R <<"EOF";
+#!/bin/sh
+function cleanup {
+  find $self->{nodeDir}* -user \$LOGNAME -maxdepth 0 -print0 2>/dev/null | xargs -0r rm -rv  >&2
+}
+trap cleanup SIGINT SIGTERM EXIT
+$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}
+EOF
       close R;
       system("chmod +x $runFile");
     }
-    my $bsubcmd = "bsub -J DJob_$$ -eo $ENV{HOME}/djob.%J.err $ENV{HOME}/$runFile";
+    my $bsubcmd = qq^
+        bsub \\
+        -J DJob_$$ \\
+        -o $localtmpdir/djob.%J.out \\
+        -e $localtmpdir/djob.%J.err \\
+        @{[($self->{queue} ? " -q $self->{queue}" : "")]} \\
+        @{[($self->{runTime} ? " -W $self->{runTime}" : "")]} \\
+        $runFile
+    ^;
     DEBUG && warn "DEBUG: bsubcmd: \n$bsubcmd\n\n";
     chomp(my $jid = `$bsubcmd`);
     ($jid) = $jid =~ /^Job <(\d+)>/;
     DEBUG && warn "DEBUG: jobid $jid";    
+
     if($jid =~ /^\d+$/) { 
       $self->{nodeDir} = "$self->{nodeDir}.$jid";
     } # else ??
+
     $self->setJobid($jid);
+    # inject jobids into cancelFile
     if($self->{fileName}){
       open(C,">>$self->{fileName}");
       print C "$self->{jobid} ";
       close C;
     }
+    
   } 
   $self->setState($QUEUED);
 }
