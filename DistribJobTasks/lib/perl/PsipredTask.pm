@@ -14,6 +14,7 @@ use strict;
 my @properties = (["psipredDir", "", "full path to the psipred dir"],
                   [ "dbFilePath", "", "subject file path"],
                   [ "inputFilePath", "", "query file path"],
+		  [ "ncbiBinDir", "", "fullpath to the ncbi bin dir"],
 		  );
 
 sub new {
@@ -23,6 +24,15 @@ sub new {
 
 sub initServer {
     my ($self, $inputDir) = @_;
+
+    my $ncbiBinDir = $self->getProperty("ncbiBinDir");
+    my $dbFilePath = $self->getProperty("dbFilePath");
+
+    my @ls = `ls -rt $dbFilePath.p*`;
+    unless (scalar(@ls) > 0) {
+	print "Formatting database (this may take a while)\n";
+	&runCmd("$ncbiBinDir/formatdb -i $dbFilePath -p T");
+    }
 
     return(1);
 }
