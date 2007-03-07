@@ -120,8 +120,14 @@ sub passSubTask {
     chomp $date;
     print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
 
-    $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
-				   $self->{mainResultDir});
+    my $integRes = $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
+                                                  $self->{mainResultDir});
+    ##default is for $integRes to be null if command succeeded ... if returns 1 then want to fail subtask
+    if($integRes == 1){
+      $self->failSubTask($subTask);
+      return;
+    }
+
     &runCmd("/bin/rm -rf $subTaskDir");
     &log($self->{completeLog}, "$subTaskNum\n");
 }

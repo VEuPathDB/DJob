@@ -152,6 +152,7 @@ sub run {
             $ctRunning++;
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
+                last if $node->getState() == $FAILEDNODE;  ##taskComplete can fail if results can't be integrated so need to stop processing if that happens.
                 if(scalar(@redoSubtasks) > 0){
                   my $st = shift @redoSubtasks;
                   print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."\n";
@@ -180,7 +181,7 @@ sub run {
           }
         } 
         $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
-        if($running && $ctFinished == scalar(@nodes)){  ##if running and no nodes not finished then stop
+        if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
           $running = 0;
           print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nSet restart=yes in the controller.prop file and rerun to run the remaining subtasks.\n\n";
         }

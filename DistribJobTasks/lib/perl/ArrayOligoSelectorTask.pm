@@ -85,7 +85,7 @@ sub makeSubTaskCommand {
     my $mask = $self->getProperty("maskByLowerCase");
 
     my $cmd = "bash $binPath/$script $nodeExecDir/seqsubset.fsa $dbFile $length $mask".($script =~ /contig/ ? " $alignAlg" : "");
-    print STDERR "command:\n$cmd\n\n";
+#    print STDERR "command:\n$cmd\n\n";
 
     return $cmd;
 

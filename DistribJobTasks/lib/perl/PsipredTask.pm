@@ -75,6 +75,7 @@ sub initSubTask {
 
     chomp($line);
     my ($newName) = $line =~ /\>([a-zA-Z0-9_\.]+) /;
+    $self->{basename}->{$node->getNum()}->{$nodeSlotDir} = $newName; #store the specific base filename 
     $newName = $newName . ".fsa";
 
     $node->runCmd("cp -r $subTaskDir/seqsubset.fsa $nodeSlotDir/$newName");
@@ -88,8 +89,9 @@ sub makeSubTaskCommand {
     my $nrFilt = $self->{props}->getProp("dbFilePath");
 
     my $dbFile = $node->getDir() . "/" . basename($nrFilt);
+    my $inputFile = $self->{basename}->{$node->getNum()}->{$nodeExecDir} . ".fsa";
 
-    my $cmd = "$runpsipred $nodeExecDir/*.fsa $dbFile ";
+    my $cmd = "$runpsipred $nodeExecDir/$inputFile $dbFile ";
     print STDERR "command:\n$cmd\n\n";
 
     return $cmd;
@@ -99,7 +101,10 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("mv $nodeExecDir/*.ss2 $mainResultDir/");
+    my $outputFile = $self->{basename}->{$node->getNum()}->{$nodeExecDir} . ".ss2";
+
+    ##if move fails want to return 1 so that the task will fail the subtask 
+    return 1 unless $node->runCmd("mv $nodeExecDir/$outputFile $mainResultDir/",1);
 }
 
 
