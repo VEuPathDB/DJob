@@ -104,7 +104,9 @@ sub integrateSubTaskResults {
     my $outputFile = $self->{basename}->{$node->getNum()}->{$nodeExecDir} . ".ss2";
 
     ##if move fails want to return 1 so that the task will fail the subtask 
-    return 1 unless $node->runCmd("mv $nodeExecDir/$outputFile $mainResultDir/",1);
+    ##check to see that outputfile exists using ls
+    return 1 unless $node->runCmd("ls $nodeExecDir/$outputFile",1);
+    $node->runCmd("mv $nodeExecDir/$outputFile $mainResultDir/");
 }
 
 
