@@ -20,7 +20,7 @@ $| = 1;
 my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
     $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
     $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,
-    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor, $zFactor);
+    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor);
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -29,7 +29,6 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
             "outputType=s" => \$outputType,
             "blastProgram=s" => \$program,
             "blastVendor=s" => \$blastVendor,
-            "zFactor=i" => \$zFactor,
             "database=s" => \$database,
             "seqFile=s" => \$seqFile,
             "dataFile=s" => \$dataFile,
@@ -56,7 +55,6 @@ $regex = $regex ? $regex : '(\S+)';
 
 ##having problems passing in blastParams so get from blastParamsFile...
 my $blastParams = &parseBlastParams($blastParamsFile);
-$blastParams = ($blastVendor eq 'ncbi' ? "-z $zFactor " : "Z=$zFactor ")."$blastParams" if $zFactor;
 
 ##deal  with saving files...
 if($doNotParse){

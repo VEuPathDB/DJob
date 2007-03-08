@@ -14,7 +14,6 @@ use strict;
 my @properties = 
 (
  ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
- ["zFactor",   "None",   "Factor (integer) to add to blast to set effective db size using -z zFactor"],
  ["blastBinDir",   "",   "eg, /genomics/share/bin"],
  ["dbFilePath",      "",     "full path to database file"],
  ["inputFilePath",   "",     "full path to input file"],
@@ -147,11 +146,10 @@ sub makeSubTaskCommand {
     my $saveGood = $self->getProperty("saveGoodBlastFiles");
     my $blastFilePath = $self->getProperty("blastFileDirPath");
     my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
-    my $zFactor = $self->getProperty("zFactor");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "").($zFactor ne 'None' ? " --zFactor $zFactor" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
 
     return $cmd;
 }
