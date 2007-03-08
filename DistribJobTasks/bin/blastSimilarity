@@ -20,7 +20,7 @@ $| = 1;
 my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
     $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
     $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,
-    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure);
+    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor, $zFactor);
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -28,6 +28,8 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
             "percentCutoff=i" => \$percentCutoff,
             "outputType=s" => \$outputType,
             "blastProgram=s" => \$program,
+            "blastVendor=s" => \$blastVendor,
+            "zFactor=i" => \$zFactor,
             "database=s" => \$database,
             "seqFile=s" => \$seqFile,
             "dataFile=s" => \$dataFile,
@@ -54,6 +56,7 @@ $regex = $regex ? $regex : '(\S+)';
 
 ##having problems passing in blastParams so get from blastParamsFile...
 my $blastParams = &parseBlastParams($blastParamsFile);
+$blastParams = ($blastVendor eq 'ncbi' ? "-z $zFactor " : "Z=$zFactor ")."$blastParams" if $zFactor;
 
 ##deal  with saving files...
 if($doNotParse){
@@ -92,9 +95,12 @@ my $tmpid = "";
 my $seq;
 my $cmd;
 if($program =~ /rpsblast/){
-    $cmd = "$program -d $database -i $tempfile $blastParams 2> blast.stderr";
+  $cmd = "$program -d $database -i $tempfile $blastParams 2> blast.stderr";
+}elsif($blastVendor eq 'ncbi'){
+  my $pgm = basename($program);
+  $cmd = "$blastBinDir/blastall -p $pgm -d $database -i $tempfile $blastParams 2> blast.stderr";
 }else{
-    $cmd= "$program $database $tempfile $blastParams 2> blast.stderr";
+  $cmd= "$program $database $tempfile $blastParams 2> blast.stderr";
 }
 print LOG "$cmd\n\n"; 
  
@@ -191,7 +197,7 @@ sub checkOutput {
 		$validOutput = 1;
 		$noHits = 0;
 		last;
-	    } elsif ($program =~ /rpsblast/ && $line =~ /^No\shits/) {
+	    } elsif (($program =~ /rpsblast/ || $blastVendor eq 'ncbi') && $line =~ /No\shits/) {
 		$validOutput = 1;
 		$noHits = 1;
 		last;

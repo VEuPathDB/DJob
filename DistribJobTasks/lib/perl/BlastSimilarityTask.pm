@@ -13,13 +13,15 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
+ ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
+ ["zFactor",   "None",   "Factor (integer) to add to blast to set effective db size using -z zFactor"],
  ["blastBinDir",   "",   "eg, /genomics/share/bin"],
  ["dbFilePath",      "",     "full path to database file"],
  ["inputFilePath",   "",     "full path to input file"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
- ["pValCutoff",      "1e-5",  ""],
- ["lengthCutoff",    "10",    ""],
- ["percentCutoff",   "20",    ""],
+ ["pValCutoff",      "1e-5",  "[1e-5]"],
+ ["lengthCutoff",    "10",    "[10]"],
+ ["percentCutoff",   "20",    "[20]"],
  ["blastProgram",    "",     "rpsblast if cdd | any wu-blast"],
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
@@ -52,39 +54,45 @@ sub initServer {
     my $dbFilePath = $self->getProperty("dbFilePath");
     my $dbType = $self->getProperty("dbType");
     my $blastProgram = $self->getProperty("blastProgram");
+    my $blastVendor = $self->getProperty("blastVendor");
 
     if (-e "$dbFilePath.gz") {
 	&runCmd("gunzip $dbFilePath.gz");
     }
 
     die "blastBinDir $blastBin doesn't exist" unless -e $blastBin;
+    die "dbFilePath $dbFilePath doesn't exist" unless -e "$dbFilePath";
 
     # run if we don't have indexed files or they are older than seq file
     if ($blastProgram eq 'rpsblast') {  
-	die "dbFilePath $dbFilePath doesn't exist" unless -e "$dbFilePath";
-	my $cwd = &getcwd();
-	chdir(dirname($dbFilePath));
-	my @ls = `ls -rt $dbFilePath.mn $dbFilePath.rps`;
-	map { chomp } @ls;
-	if (scalar(@ls) != 2 || $ls[0] ne "$dbFilePath.mn") {
-	    &runCmd("$blastBin/copymat -r T -P $dbFilePath");
-	}
-
-	@ls = `ls -rt $dbFilePath $dbFilePath.p*`;
-	map { chomp } @ls;
-	if (scalar(@ls) != 6 || $ls[0] ne $dbFilePath) {
-	    &runCmd("$blastBin/formatdb -o T -i $dbFilePath");
-	}
-	chdir $cwd;
-
-    } else {
-	die "dbFilePath $dbFilePath doesn't exist" unless -e $dbFilePath;
-	my @ls = `ls -rt $dbFilePath $dbFilePath.x$dbType*`;
-	map { chomp } @ls;
-	if (scalar(@ls) != 4 || $ls[0] ne $dbFilePath) {
-	    &runCmd("$blastBin/xdformat -$dbType $dbFilePath");
-	}
-    }
+      my $cwd = &getcwd();
+      chdir(dirname($dbFilePath));
+      my @ls = `ls -rt $dbFilePath.mn $dbFilePath.rps`;
+      map { chomp } @ls;
+      if (scalar(@ls) != 2 || $ls[0] ne "$dbFilePath.mn") {
+        &runCmd("$blastBin/copymat -r T -P $dbFilePath");
+      }
+      
+      @ls = `ls -rt $dbFilePath $dbFilePath.p*`;
+      map { chomp } @ls;
+      if (scalar(@ls) != 6 || $ls[0] ne $dbFilePath) {
+        &runCmd("$blastBin/formatdb -o T -i $dbFilePath");
+      }
+      chdir $cwd;
+      
+   } elsif($blastVendor eq "ncbi"){  ##need to format as per ncbi formatdb ...
+     my @ls = `ls -rt $dbFilePath $dbFilePath.$dbType*`;
+     map { chomp } @ls;
+     if (scalar(@ls) < 4 || $ls[0] ne $dbFilePath) {
+       &runCmd("$blastBin/formatdb -i $dbFilePath -p ".($dbType eq 'p' ? 'T' : 'F'));
+     }
+   } else {
+     my @ls = `ls -rt $dbFilePath $dbFilePath.x$dbType*`;
+     map { chomp } @ls;
+     if (scalar(@ls) != 4 || $ls[0] ne $dbFilePath) {
+       &runCmd("$blastBin/xdformat -$dbType $dbFilePath");
+     }
+   } 
 }
 
 sub initNode {
@@ -128,6 +136,7 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $blastBin = $self->getProperty("blastBinDir");
+    my $blastVendor = $self->getProperty("blastVendor");
     my $lengthCutoff = $self->getProperty("lengthCutoff");
     my $pValCutoff = $self->getProperty("pValCutoff");
     my $percentCutoff = $self->getProperty("percentCutoff");
@@ -138,10 +147,11 @@ sub makeSubTaskCommand {
     my $saveGood = $self->getProperty("saveGoodBlastFiles");
     my $blastFilePath = $self->getProperty("blastFileDirPath");
     my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
+    my $zFactor = $self->getProperty("zFactor");
 
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " -doNotExitOnBlastFailure" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "").($zFactor ne 'None' ? " --zFactor $zFactor" : "");
 
     return $cmd;
 }
