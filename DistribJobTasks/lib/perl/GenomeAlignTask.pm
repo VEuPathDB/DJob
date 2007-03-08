@@ -14,10 +14,8 @@ use strict;
 my @properties = 
 (
  ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
- ["targetDirPath",      "",     "full path to directory containing *.nib files"],
+ ["targetListPath",      "",     "full path to file list target files"],
  ["queryPath",   "",     "full path to input file"],
- ["nodePort", "", "port used on port for gfServer and gfClient"],
- ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
  );
 
 sub new {
@@ -28,28 +26,22 @@ sub new {
 # called once 
 sub initServer {
     my ($self, $inputDir) = @_;
-    my $gaBinPath = $self->getProperty("gaBinPath");
+    my $gaBinPath = $self->{props}->getProp("gaBinPath");
     die "gaBinPath $gaBinPath doesn't exist" unless -e $gaBinPath;
 }
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    my $targetDirPath = $self->getProperty("targetDirPath");
-    my $nodeDir = $node->getDir();
-
-    my $gaBinPath = $self->getProperty("gaBinPath"); 
-   
-    my $port = $self->getProperty("nodePort");
-
-    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath");
-
+    # my $targetListPath = $self->{props}->getProp("targetListPath");
+    # my $nodeDir = $node->getDir();
+    # $node->runCmd("cp $targetListPath* $nodeDir");
 }
 
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    my $fastaFileName = $self->getProperty("queryPath");
+    my $fastaFileName = $self->{props}->getProp("queryPath");
 
     if (-e "$fastaFileName.gz") {
 	&runCmd("gunzip $fastaFileName.gz");
@@ -69,37 +61,41 @@ sub initSubTask {
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
-sub makeSubTaskCommand {
-    my ($self, $node, $inputDir, $nodeExecDir) = @_;
+sub makeSubTaskCommand { 
+  my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
+  my $gaBinPath = $self->{props}->getProp("gaBinPath");
+  my $targetListPath = $self->{props}->getProp("targetListPath");
+  my $paramsPath = $inputDir . '/params.prop';
 
-    my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
+  my $cmd =  "blatSearch --blatBinPath $gaBinPath --targetListPath $targetListPath --seqPath $nodeExecDir/seqsubset.fsa --paramsPath $paramsPath";
 
-    my $port = $self->getProperty("nodePort");
-
-    my $nodeDir = $node->getDir();
-
-    my $maxIntron = $self->getProperty("maxIntron");
-
-    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=dna -q=dna -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
-
-    return $cmd;
+  return $cmd;
 }
+
 
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+  my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/out.psl >> $mainResultDir/out.psl");
+  my @files = split /\n/, $node->runCmd("ls -1 $nodeExecDir");
+
+  # expect output file name to be like blat-chr5.psl
+  my @seqs = grep(/\-.+\./i, @files);
+  foreach my $seq (@seqs) {
+    chomp $seq;
+    my $outdir = "$mainResultDir/per-seq";
+    my $outfile = "$outdir/$seq";
+    $node->runCmd("mkdir -p $outdir") unless -d $outdir;
+
+    # workaround to odd bpsh problem:
+    # cat >> $file fails if $file does not exist,
+    # even if we "touch $file" first.
+    if (-e $outfile) {
+	$node->runCmd("cat $nodeExecDir/$seq >> $outfile");
+    } else {
+	$node->runCmd("cp $nodeExecDir/$seq $outfile");
+    }
+
+ }
 }
-
-sub cleanUpNode {
-    my ($self,$node) = @_;
-
-    my $port = $self->getProperty('nodePort');
-
-    $node->runCmd($self->getProperty('gaBinPath')."/gfServer stop localhost $port");
-}
-
-
 1;
