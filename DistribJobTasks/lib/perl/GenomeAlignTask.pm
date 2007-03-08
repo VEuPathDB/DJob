@@ -16,7 +16,8 @@ my @properties =
  ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
  ["targetDirPath",      "",     "full path to directory containing *.nib files"],
  ["queryPath",   "",     "full path to input file"],
- ["nodePort", "", "port used on port for gfServer and gfClient"]
+ ["nodePort", "", "port used on port for gfServer and gfClient"],
+ ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
  );
 
 sub new {
