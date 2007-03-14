@@ -1,4 +1,4 @@
-package DJob::DistribJobTasks::GenomeAlignTask;
+package DJob::DistribJobTasks::GenomeAlignWithGfClientTask;
 
 use DJob::DistribJob::Task;
 use CBIL::Bio::FastaFile;
