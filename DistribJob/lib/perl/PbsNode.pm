@@ -37,11 +37,14 @@ sub queueNode {
 ##    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
-    if($jid =~ /^(\d+)/){ 
-      $self->{nodeDir} = "$self->{nodeDir}.$1";
-    }else{ 
-      $self->{nodeDir} = "$self->{nodeDir}.$jid";
-    }
+##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that PBS will clean up.
+## $TMPDIR = /tmp/$jid
+    $self->{nodeDir} = "/tmp/$jid";
+#    if($jid =~ /^(\d+)/){ 
+#      $self->{nodeDir} = "$self->{nodeDir}.$1";
+#    }else{ 
+#      $self->{nodeDir} = "$self->{nodeDir}.$jid";
+#    }
     $self->setJobid($jid);
     if($self->{fileName}){
       open(C,">>$self->{fileName}");

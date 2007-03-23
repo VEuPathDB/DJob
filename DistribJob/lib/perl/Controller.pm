@@ -229,6 +229,7 @@ sub getNodeMsgs {
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
+          print STDERR "NOTE: nodedir for node $slot set to ".$n->getDir()."\n";
           $n->setLocalPort($status) if $status;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
