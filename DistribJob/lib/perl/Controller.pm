@@ -26,6 +26,7 @@ my @properties =
  );
 
 my @nodes;
+my @redoSubtasks;  ##make global variable so can add to it in the getNodeMsgs method
 
 sub new {
   my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $queue) = @_;
@@ -112,7 +113,6 @@ sub run {
     $parInit = 1 unless $parInit;
     my $complete = 0;
     my $ctLoops = 0;
-    my @redoSubtasks;
 
     do {
 	
@@ -223,7 +223,17 @@ sub getNodeMsgs {
     my ($jobid,$slot,$status) = split(" ",$s);
     close($fh);
     if($slot =~ /slot_/){ ##subtask has completed in this slot...setState
-      $self->{nodes}->{$jobid}->getSlot($slot)->getTask()->setState($status);
+      ## having problems with cluster nodes missing perl modules ....
+      ## if status is failed and the subtask time is very short then could inactivate this node?
+      my $subtask =  $self->{nodes}->{$jobid}->getSlot($slot)->getTask();
+      if($subtask->getRunningTime() < 10 && $status eq 'failed'){
+        my $node =  $self->{nodes}->{$jobid};
+        print "ERROR:  Node ".$node->getNum()." can not run task ... inactivating.\n";
+        ##need to get all subtasks from this node and assign to another...
+        push(@redoSubtasks,$node->failedSoGetSubtasks());
+        $node->cleanUp(1,$FAILEDNODE);
+      }
+      $subtask->setState($status);
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
         if($n->getJobid() eq $jobid){
