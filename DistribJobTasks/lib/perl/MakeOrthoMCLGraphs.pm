@@ -35,6 +35,14 @@ sub new {
 ##if able, check to see if the bpo.idx file exists and create if not .... for now create ahead of time
 sub initServer {
     my ($self, $inputDir) = @_;
+    my $bpoFile = $self->getProperty('bpoFile');
+    my $fn = basename($bpoFile);
+    my $idxFile = $fn;
+    $idxFile =~ s/\./_/g;
+    $idxFile = "$idsFile.idx";
+    my $dir = dirname($bpoFile);
+    die "you must index the bpoFile before running this task\n" unless (-e $dir/$idxFile);
+    $self->{bpoIdxFile} = "$dir/$idxFile");
 }
 
 ## copy the bpo and bpo.idx files to the nodes
@@ -42,6 +50,9 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
     my $nodeDir = $node->getDir();
+    my $bpoFile = $self->getProperty('bpoFile');
+    $node->runCmd("cp $bpoFile $nodeDir");
+    $node->runCmd("cp $self->{bpoIdxFile} $nodeDir");
 }
 
 # note that this is called before initServer so need to create file here ...
@@ -55,7 +66,7 @@ sub getInputSetSize {
     mkdir("$taskDir");
   }
   my $genomeFile = $self->getProperty('genomesFile');
-  my $numGenomes = `wc $genomeFile`;
+  my $numGenomes = `wc -l $genomeFile`;
   chomp $numGenomes;
   die "you must provide at least two genomes in the genome file\n" unless $numGenomes >= 2;
   if(-e "$inputDir/subtask.list" && `wc -l $inputDir/subtask.list` == ($numGenomes * ($numGenomes - 1))/2){
@@ -65,14 +76,14 @@ sub getInputSetSize {
     open(F,"$genomeFile");
     my @gg = <F>;
     close F;
-    open(O,">$inputDir/subtask.list");
+    open(O,">$inputDir/subtask.list") || die "unable to open $inputDir/subtask.list for writing\n";
     for(my $a=0;$a < scalar(@gg) - 1;$a++){
       my($one) = ($gg[$a] =~ /^(\w+)/);
       for(my $b = $a+1;$b < scalar(@gg);$b++){
         my($two) = ($gg[$b] =~ /^(\w+)/);
         my $fn = "$one"."_"."$two.gg";
         print O "$fn\n";
-        open(G,">$taskDir/$fn") || die "unable to open '$taskDir/$fn\n";
+        open(G,">$taskDir/$fn") || die "unable to open '$taskDir/$fn for writing\n";
         print G "$gg[$a]$gg[$b]";
         close G;
       }
