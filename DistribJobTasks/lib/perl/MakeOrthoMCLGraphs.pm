@@ -15,18 +15,15 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["orthomclDir",    "",     "directory containing the orthoMCL executables"],
+ ["orthomclExe",    "",     "directory containing the orthoMCL executables"],
  ["genomesFile",    "",     "full path to the genomes file"],
  ["bpoFile",   "",   "full path to the genomes file"],
- ["workingDir",   "",   "directory where in_paralog files and output files are found/written"],
- ["configFile",  "", "orthoMCL config file"],
+ ["dataDir",   "",   "directory where in_paralog files and output files are found/written"],
  );
 my @commands;
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
-    my $debug = $self->getProperty("debug");
-    $self->{'debug'} = 1 if $debug =~ /true/i;
     ##check to make certain the subtasksize = 1
     die "the subtasksize MUST = 1\n" unless $self->{subTaskSize} == 1;
     return $self;
@@ -39,10 +36,10 @@ sub initServer {
     my $fn = basename($bpoFile);
     my $idxFile = $fn;
     $idxFile =~ s/\./_/g;
-    $idxFile = "$idsFile.idx";
+    $idxFile = "$idxFile.idx";
     my $dir = dirname($bpoFile);
-    die "you must index the bpoFile before running this task\n" unless (-e $dir/$idxFile);
-    $self->{bpoIdxFile} = "$dir/$idxFile");
+    die "you must index the bpoFile before running this task\n" unless (-e "$dir/$idxFile");
+    $self->{bpoIdxFile} = "$dir/$idxFile";
 }
 
 ## copy the bpo and bpo.idx files to the nodes
@@ -105,6 +102,7 @@ sub getInputSetSize {
 sub initSubTask {
   my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
   my $file = $commands[$start];
+  system("echo $file > $subTaskDir/subtask.file"); ##so have record on server
   $node->runCmd("cp $inputDir/taskFiles/$file $nodeSlotDir/subtask.gg");
   ##also need to create config file and copy to the node
   open(F,">$subTaskDir/orthomcl.conf");
@@ -116,8 +114,8 @@ sub initSubTask {
 sub makeSubTaskCommand { 
   my ($self, $node, $inputDir, $nodeExecDir) = @_;
   
-  my $oDir = $self->getProperty('orthomclDir');
-  my $cmd = "$oDir/orthomcl.pl $nodeExecDir/orthomcl.conf";
+  my $orthomcl = $self->getProperty('orthomclExe');
+  my $cmd = "$orthomcl $nodeExecDir/orthomcl.conf";
   return $cmd;
 }
 
@@ -130,7 +128,7 @@ sub integrateSubTaskResults {
 sub getConfigString {
   my($self,$slotDir,$nodeDir) = @_;
   my $bpoFile = basename($self->getProperty('bpoFile'));
-  my $workingDir = $self->getProperty('workingDir');
+  my $dataDir = $self->getProperty('dataDir');
   return "
 #DIR is your working dir, bpo and gg files should be put within this dir
 DIR=$slotDir
@@ -152,7 +150,7 @@ MCL=/home/praveenc/orthomcl_engine_new/mcl-02-063/shmcl/mcl
 INFLATION=1.5
 
 # here is where the in_paralog files and results are stored ....
-FORMER_RUN_SUBDIR=$workingDir
+FORMER_RUN_SUBDIR=$dataDir
 ";
 
 }
