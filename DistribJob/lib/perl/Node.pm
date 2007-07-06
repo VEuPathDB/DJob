@@ -336,16 +336,19 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  print "Cleaning up node $self->{nodeNum}...\n";
+  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
 
-  ##now call the task->cleanUpNode method to enable  users to stop processes running on node
-  my $task = $self->getTask();
-  $task->cleanUpNode($self) if $task;
-
-  if($self->{nodeNum} && $self->getPort()){
-    $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
-    $self->runCmd("closeAndExit",1);
-    $self->closePort();
+    print "Cleaning up node $self->{nodeNum}...\n";
+    
+    ##now call the task->cleanUpNode method to enable  users to stop processes running on node
+    my $task = $self->getTask();
+    $task->cleanUpNode($self) if $task;
+    
+    if($self->{nodeNum} && $self->getPort()){
+      $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+      $self->runCmd("closeAndExit",1);
+      $self->closePort();
+    }
   }
   $self->setState($state ? $state : $COMPLETE); ##complete
 }

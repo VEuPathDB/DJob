@@ -84,20 +84,23 @@ sub cleanUp {
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
-  
-  print "Cleaning up node $self->{nodeNum}...\n";
 
-  my $task = $self->getTask();
-  $task->cleanUpNode($self) if $task;
-
+  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
   
-  if($self->{nodeNum} && $self->getPort()){
-    $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
-    $self->runCmd("closeAndExit",1);
-    $self->closePort();
-    system("qdel $self->{jobid} > /dev/null 2>&1");
-  }else{
-    system("qdel $self->{jobid} > /dev/null 2>&1");
+    print "Cleaning up node $self->{nodeNum}...\n";
+    
+    my $task = $self->getTask();
+    $task->cleanUpNode($self) if $task;
+    
+    
+    if($self->{nodeNum} && $self->getPort()){
+      $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+      $self->runCmd("closeAndExit",1);
+      $self->closePort();
+      system("qdel $self->{jobid} > /dev/null 2>&1");
+    }else{
+      system("qdel $self->{jobid} > /dev/null 2>&1");
+    }
   }
 
   $self->setState($state ? $state : $COMPLETE); ##complete
