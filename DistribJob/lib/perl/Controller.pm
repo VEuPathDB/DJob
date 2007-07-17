@@ -223,16 +223,16 @@ sub getNodeMsgs {
     my ($jobid,$slot,$status) = split(" ",$s);
     close($fh);
     if($slot =~ /slot_/){ ##subtask has completed in this slot...setState
+      my $subtask =  $self->{nodes}->{$jobid}->getSlot($slot)->getTask();
       ## having problems with cluster nodes missing perl modules ....
       ## if status is failed and the subtask time is very short then could inactivate this node?
-      my $subtask =  $self->{nodes}->{$jobid}->getSlot($slot)->getTask();
-      if($subtask->getRunningTime() < 10 && $status eq 'failed'){
-        my $node =  $self->{nodes}->{$jobid};
-        print "ERROR:  Node ".$node->getNum()." can not run task ... inactivating.\n";
-        ##need to get all subtasks from this node and assign to another...
-        push(@redoSubtasks,$node->failedSoGetSubtasks());
-        $node->cleanUp(1,$FAILEDNODE);
-      }
+#      if($subtask->getRunningTime() < 10 && $status eq 'failed'){
+#        my $node =  $self->{nodes}->{$jobid};
+#        print "ERROR:  Node ".$node->getNum()." can not run task ... inactivating.\n";
+#        ##need to get all subtasks from this node and assign to another...
+#        push(@redoSubtasks,$node->failedSoGetSubtasks());
+#        $node->cleanUp(1,$FAILEDNODE);
+#      }
       $subtask->setState($status);
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
