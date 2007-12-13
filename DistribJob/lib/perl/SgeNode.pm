@@ -3,6 +3,7 @@ package DJob::DistribJob::SgeNode;
 use DJob::DistribJob::Node ":states";
 use Cwd;
 use strict;
+use File::Basename;
 
 our @ISA = qw(DJob::DistribJob::Node);
 
@@ -33,9 +34,11 @@ sub queueNode {
       $self->setJobid($jid);
 ##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that PBS will clean up.
       $self->{nodeDir} = "/tmp/$jid";
-      open(C,">>$self->{fileName}");
-      print C "$self->{jobid} ";
-      close C;
+      if($self->{fileName}){
+        open(C,">>$self->{fileName}");
+        print C "$self->{jobid} ";
+        close C;
+      }
     }else{
       die "unable to determine jobid from $tjid\n";
     }
@@ -94,12 +97,13 @@ sub cleanUp {
 
   $self->setState($state ? $state : $COMPLETE); ##complete
   
-  ##delete those pesky OU files that don't do anything
+  ##delete those pesky files that don't do anything
   my $jid = $self->{jobid};
   if($self->{jobid} =~ /^(\d+)/){
     $jid = $1;
   }
-  my $delCmd = "/bin/rm nodeScript.*.?$jid > /dev/null 2>&1";
+  my $errBase = basename($self->{script});
+  my $delCmd = "/bin/rm $errBase.?$jid > /dev/null 2>&1";
   system($delCmd); 
 }
 

@@ -212,6 +212,9 @@ sub run {
     }
 
     print "Done\n";
+    ##delete the script file ...
+    my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
+    system($delScript);
 }
 
 sub getNodeMsgs {
@@ -220,7 +223,7 @@ sub getNodeMsgs {
     my $fh = $sock->accept();
     my $s = <$fh>;
     chomp $s;
-    my ($jobid,$slot,$status) = split(" ",$s);
+    my ($jobid,$slot,$status,$tmpDir) = split(" ",$s);
     close($fh);
     if($slot =~ /slot_/){ ##subtask has completed in this slot...setState
       my $subtask =  $self->{nodes}->{$jobid}->getSlot($slot)->getTask();
@@ -239,6 +242,7 @@ sub getNodeMsgs {
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
+          $n->setDir($tmpDir) if $tmpDir;
           print STDERR "NOTE: nodedir for node $slot set to ".$n->getDir()."\n";
           $n->setLocalPort($status) if $status;
           $n->initialize();

@@ -28,6 +28,9 @@ if($ENV{PBS_JOBID}){  ##pbs
 die "ERROR:  nodeSocketServer.pl is unable to determine the JOBID on $host\n" unless $jobid;
 print STDERR "jobid: $jobid\n";
 
+##want to  return the tmp working directory ...
+my $tmpDir = $ENV{TMPDIR};
+
 ##now inform the server that this node is ready to run...
 my $sock;
 my $localPort;
@@ -57,7 +60,7 @@ until($hostSock){
     sleep 3;
   }
 }
-print $hostSock "$jobid $host $localPort\n";
+print $hostSock "$jobid $host $localPort $tmpDir\n";
 close($hostSock);
 
 ##open the bash shell handles

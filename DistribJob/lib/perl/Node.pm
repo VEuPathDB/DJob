@@ -188,6 +188,11 @@ sub getDir {
     return $self->{nodeDir};
 }
 
+sub setDir {
+  my($self,$dir) = @_;
+  $self->{nodeDir} = $dir if $dir;  ## don't overwrite if null
+}
+
 sub getNum {
     my ($self) = @_;
     $self->initialize() unless defined $self->{nodeNum};
