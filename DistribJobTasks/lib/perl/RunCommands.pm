@@ -82,8 +82,8 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    my $out = $self->getProperty('outputFile') eq 'none' ? "runCommand.out" : $self->getProperty('outputFile'); 
-    my $cmd = "cat $nodeExecDir/".($out eq 'runCommand.out' ? "subtask.output" : $out)." >> $mainResultDir/$out";
+    my $out = $self->getProperty('outputFile') eq 'none' ? "subtask.output" : $self->getProperty('outputFile'); 
+    my $cmd = "cat $nodeExecDir/$out >> $mainResultDir/$out";
     $node->runCmd($cmd); 
 }
 1;
