@@ -42,7 +42,7 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
             "doNotExitOnBlastFailure!" => \$doNotExitOnBlastFailure,
 	    "blastBinDir=s" => \$blastBinDir,
             );
-die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure!\n" unless ( $program && $database && $seqFile );
+die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure!\n" unless ( $program && $database && $seqFile && $blastParamsFile);
 
 ###set the defaullts...
 $pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
@@ -92,13 +92,14 @@ my $tempfile = "seqTmp";
 my $tmpid = "";
 my $seq;
 my $cmd;
+
 if($program =~ /rpsblast/){
   $cmd = "$program -d $database -i $tempfile $blastParams 2> blast.stderr";
 }elsif($blastVendor eq 'ncbi'){
   my $pgm = basename($program);
   $cmd = "$blastBinDir/blastall -p $pgm -d $database -i $tempfile $blastParams 2> blast.stderr";
 }else{
-  $cmd= "$program $database $tempfile $blastParams 2> blast.stderr";
+  $cmd= "$blastBinDir/$program $database $tempfile $blastParams 2> blast.stderr";
 }
 print LOG "$cmd\n\n"; 
  
