@@ -139,7 +139,7 @@ sub makeSubTaskCommand {
     my $lengthCutoff = $self->getProperty("lengthCutoff");
     my $pValCutoff = $self->getProperty("pValCutoff");
     my $percentCutoff = $self->getProperty("percentCutoff");
-    my $blastProgram = $blastBin . "/" . $self->getProperty("blastProgram");
+    my $blastProgram = $self->getProperty("blastProgram");
     my $regex = $self->getProperty("regex");
     my $blastParamsFile = $self->getProperty("blastParamsFile");
     my $dbFilePath = $self->getProperty("dbFilePath");
