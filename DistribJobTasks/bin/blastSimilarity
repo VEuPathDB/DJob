@@ -102,6 +102,11 @@ if($program =~ /rpsblast/){
   $cmd= "$blastBinDir/$program $database $tempfile $blastParams 2> blast.stderr";
 }
 print LOG "$cmd\n\n"; 
+
+print LOG "Parser parameters and fields:\n";
+print LOG "Cutoff parameters:\n\tP value: $pValCutoff\n\tLength: $lengthCutoff\n\tPercent Identity: $percentCutoff\n\tPercent Length Cutoff: $percentLengthCutoff\n\n";
+print LOG "## Sum: subject_Identifier:score:pvalue:minSubjectStart:maxSubjectEnd:minQueryStart:maxQueryEnd:numberOfMatches:totalMatchLength:numberIdentical:numberPositive:isReversed:readingFrame:non-redundant query match length:non-redundant subject match length:percent match\n";
+print LOG "##  HSP: subject_Identifier:numberIdentical:numberPositive:matchLength:score:PValue:subjectStart:subjectEnd:queryStart:queryEnd:isReversed:readingFrame\n\n";
  
 while(<F>){
   if(/^\>(\S+)/){  ##check to see that this is the accession!!
