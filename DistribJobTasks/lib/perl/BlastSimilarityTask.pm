@@ -116,7 +116,6 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
     $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
