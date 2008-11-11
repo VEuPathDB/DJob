@@ -85,7 +85,7 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $runpsipred = $self->{props}->getProp("psipredDir") . "/runpsipred";
+    my $runpsipred = $self->{props}->getProp("psipredDir") . "/runpsipred_single";
     my $nrFilt = $self->{props}->getProp("dbFilePath");
 
     my $dbFile = $node->getDir() . "/" . basename($nrFilt);
