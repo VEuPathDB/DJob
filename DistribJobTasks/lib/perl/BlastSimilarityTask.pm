@@ -89,6 +89,10 @@ sub initServer {
      my @ls = `ls -rt $dbFilePath $dbFilePath.x$dbType*`;
      map { chomp } @ls;
      if (scalar(@ls) != 4 || $ls[0] ne $dbFilePath) {
+       &runCmd("cat $dbFilePath | perl -pe 'unless (/^>/){s/J/X/g;}' > ${dbFilePath}.replaceJ");
+       &runCmd("rm -fr $dbFilePath");
+       &runCmd("cat ${dbFilePath}.replaceJ | perl -pe 'unless (/^>/){s/O/X/g;}' > $dbFilePath");
+       &runCmd("rm -fr ${dbFilePath}.replaceJ");
        &runCmd("$blastBin/xdformat -$dbType $dbFilePath");
      }
    } 
