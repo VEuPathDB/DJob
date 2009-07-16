@@ -300,7 +300,7 @@ sub printSSFile {
 
     my ($mant, $exp);
     if ($s->getPValue() =~ /e/) {
-      my $pValue = '1' . $s->getPValue() if ($s->getPValue() =~ /^e/);
+      my $pValue = $s->getPValue() =~ /^e/ ?  '1' . $s->getPValue()  : $s->getPValue() ;
       ($mant, $exp) = split(/e/, $pValue);
     } else {
 	$mant = int($s->getPValue());
