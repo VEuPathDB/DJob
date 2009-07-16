@@ -150,12 +150,11 @@ sub makeSubTaskCommand {
     my $saveGood = $self->getProperty("saveGoodBlastFiles");
     my $blastFilePath = $self->getProperty("blastFileDirPath");
     my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
-    my $printSimSeqsFile = $self->getProperty("$printSimSeqsFile") if $self->getProperty("$printSimSeqsFile");
     my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
     my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
 
-    $cmd .= " --printSimSeqsFile" if $printSimSeqsFile;
+    $cmd .= " --printSimSeqsFile" if $self->getProperty("printSimSeqsFile");
 
     return $cmd;
 }
