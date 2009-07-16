@@ -20,7 +20,7 @@ $| = 1;
 my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
     $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
     $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,
-    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor);
+    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor, $printSimSeqsFile);
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -41,8 +41,9 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
             "doNotParse!" => \$doNotParse,
             "doNotExitOnBlastFailure!" => \$doNotExitOnBlastFailure,
 	    "blastBinDir=s" => \$blastBinDir,
+	    "printSimSeqsFile!" => \$printSimSeqsFile
             );
-die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure!\n" unless ( $program && $database && $seqFile && $blastParamsFile);
+die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure! --$printSimSeqsFile!\n" unless ( $program && $database && $seqFile && $blastParamsFile);
 
 ###set the defaullts...
 $pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
@@ -258,6 +259,11 @@ sub analyzeBlast{
   $blast->parseBlast($lengthCutoff,$percentCutoff,$pValCutoff,$regex,\@blastn_out,$remMaskedRes,($program =~ /rpsblast/ ? 1 : undef)); ##parse with less stringent params
   ##to aid in detection of repeats...
 
+  if ($printSimSeqsFile){
+    &printSSFile($accession, $blast);
+    return;
+  }
+
   print OUT "\>$accession (".$blast->getSubjectCount()." subjects)\n";
   print STDERR "\>$accession (".$blast->getSubjectCount()." subjects)\n" if $debug;
   foreach my $s ($blast->getSubjects()){
@@ -284,4 +290,33 @@ sub breakSequence{
   }
   return $formSeq;
 }
+
+sub printSSFile {
+  my ($accession, $blast) = @_;
+
+  my ($qAcc, $qTaxAbrev) = split (/\|/, $accession);
+
+  foreach my $s ($blast->getSubjects()){
+
+    my ($mant, $exp);
+    if ($s->getPValue() =~ /e/) {
+      $s->getPValue() = '1' . $s->getPValue();
+      ($mant, $exp) = split(/e/, $s->getPValue());
+    } else {
+	$mant = int($s->getPValue());
+	$exp = 0;
+    }
+
+    my ($sAcc, $sTaxAbrev) = split (/\|/, $s->getID());
+
+    my $perIdent = sprintf("%.0f", (($s->getTotalIdentities()/$s->getTotalMatchLength())*100));
+    my $perMatch = sprintf("%.0f", (int(($s->getLength() < $s->getQueryLength() ? $s->getNonoverlappingSubjectMatchLength() / $s->getLength() : $s->getNonoverlappingQueryMatchLength() / $s->getQueryLength()) * 10000) / 100 ));
+
+    print OUT "$qAcc $sAcc $qTaxAbrev $sTaxAbrev $mant $exp $perIdent $perMatch\n";
+  }
+}
+
+
+
+
 
