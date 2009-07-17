@@ -294,7 +294,8 @@ sub breakSequence{
 sub printSSFile {
   my ($accession, $blast) = @_;
 
-  my ($qTaxAbrev,$qAcc) = split (/\|/, $accession);
+  my @q = split (/\|/, $accession);
+  my $qTaxAbbrev = shift(@q);
 
   foreach my $s ($blast->getSubjects()){
 
@@ -307,12 +308,15 @@ sub printSSFile {
 	$exp = 0;
     }
 
-    my ($sTaxAbrev,$sAcc) = split (/\|/, $s->getID());
+    my @s = split (/\|/, $s->getID());
+    my $sTaxAbbrev = shift(@s);
+    my $s_accession = $s->getID();
 
     my $perIdent = sprintf("%.0f", (($s->getTotalIdentities()/$s->getTotalMatchLength())*100));
     my $perMatch = sprintf("%.0f", (int(($s->getLength() < $s->getQueryLength() ? $s->getNonoverlappingSubjectMatchLength() / $s->getLength() : $s->getNonoverlappingQueryMatchLength() / $s->getQueryLength()) * 10000) / 100 ));
 
-    print OUT "$qAcc $sAcc $qTaxAbrev $sTaxAbrev $mant $exp $perIdent $perMatch\n";
+    # accessions must include taxon abbrev prefix
+    print OUT "$accession $s_accession $qTaxAbbrev $sTaxAbbrev $mant $exp $perIdent $perMatch\n";
   }
 }
 
