@@ -48,27 +48,32 @@ sub getInputSetSize {
 
   my $inputFileDir = $self->getProperty("inputFileDir");
 
-  $self->{fileList} = CBIL::Bio::FileDir->new($inputFileDir);
+  opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
 
-  return $self->{fileList}->getCount();
+  while (defined (my $file = readdir (DIR))) {
+    next if ($file eq "." || $file eq "..");
+    push(@fileArr,$file);
+  }
+
+  my $count = @fileArr;
+
+  $self->{fileArray} = @fileArr;
+
+  return $count;
 }
 
 
 sub initSubTask {
-    my ($self, $start, $stop, $node, $inputDir, $serverSubTaskDir,
-	$nodeSubTaskDir) = @_;
+    my ($self, $start, $stop, $node, $inputDir, $serverSubTaskDir,$nodeExecDir) = @_;
 
 
-    my $files = $self->{fileList}->getFiles($start, $stop);
+    my @files = @{$self->{fileArray}}[$start..$stop];
 
-    foreach my $file (@{$files}) {
+    foreach my $file (@files) {
       $node->runCmd("cp $file $serverSubTaskDir");
-      $node->runCmd("cp -r $serverSubTaskDir/* $nodeSubTaskDir");
-      $node->runCmd("chdir $nodeSubTaskDir");
-      $node->runCmd("tar -zxf $file");
-      $node->runCmd("rm -f $file");
-    }
 
+    }
+    $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 
 }
 
@@ -78,7 +83,7 @@ sub makeSubTaskCommand {
 
     my $muscleDir = $self->getProperty("muscleBinDir");
 
-    my $cmd = \$self->runMuscle($nodeExecDir,$muscleDir);
+    my $cmd = "runMuscle --muscleDir $muscleDir --inputFileDir $nodeExecDir";
 
     return $cmd;
 
