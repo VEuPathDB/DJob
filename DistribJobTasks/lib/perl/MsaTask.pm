@@ -2,7 +2,7 @@ package DJob::DistribJobTasks::MsaTask;
 
 use CBIL::Util::Utils;
 use DJob::DistribJob::Task;
-use CBIL::Bio::FileDir;
+
 
 @ISA = (DJob::DistribJob::Task);
 
@@ -12,8 +12,7 @@ use strict;
 my @properties = 
     (
      ["muscleBinDir", "", "full path to muscle program"],
-     ["inputFileDir", "", "directory containing tarballs of files, each file contains sequences in fasta format, to be aligned"],
-     ["tarFileList", "", "file containin list with format: >/fullPath/tarBall"]
+     ["inputFileDir", "", "directory containing tarballs of files, each file contains sequences in fasta format, to be aligned"]
      );
 
 
@@ -47,6 +46,8 @@ sub getInputSetSize {
   my ($self, $inputDir) = @_;
 
   my $inputFileDir = $self->getProperty("inputFileDir");
+
+  my @fileArr;
 
   opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
 
