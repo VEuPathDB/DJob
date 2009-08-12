@@ -90,29 +90,6 @@ sub makeSubTaskCommand {
 
 }
 
-sub runMuscle {
-  my ($self, $nodeExecDir,$muscleDir) = @_;
-
-  opendir(DIR, $nodeExecDir) || die "Can't open directory 'nodeExecDir'";
-
-  my @tarBall;
-
-  while (defined (my $file = readdir (DIR))) {
-    next if ($file eq "." || $file eq "..");
-    system("$muscleDir/muscle -in $nodeExecDir/$file -out $nodeExecDir/${file}.msa -clw -log $nodeExecDir/${file}.log");
-
-    push(@tarBall,$nodeExecDir/${file}.msa); 
-  }
-
-  my $list = join (' ',@tarBall);
-
-  chdir $nodeExecDir;
-
-#how can I get the subtask number?
-
-  `tar -zcf $outDir/tarrBall_${tarNum}.tar.gz $list`;
-}
-
 
 # cleanUpNode is an optional method that is called when the node has completed
 # to allow the user to stop processes that they may have started on the node.
