@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+
+use lib "$ENV{GUS_HOME}/lib/perl";
+use Getopt::Long;
+use File::Basename;
+use strict;
+
+$| = 1;
+
+my ($muscleDir,$inputFileDir);
+&GetOptions("muscleDir=s" => \$muscleDir, 
+            "inputFileDir=s" => \$inputFileDir);
+
+
+opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
+
+chdir $inputFileDir;
+
+my $outTar;
+
+while (defined (my $file = readdir (DIR))) {
+    if ($file =~ /tarrBall/) {
+	system("tar zxf $inputFileDir/$file");
+	$outTar = "$file";
+	$outTar =~ s/\.tar\.gz//;
+    }
+}
+
+closedir(DIR);
+
+
+opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
+
+my @tarBall;
+
+while (defined (my $file = readdir (DIR))) {
+    if ($file =~ /OG\d+/){
+	system("$muscleDir/muscle -in $inputFileDir/$file -out $inputFileDir/${file}.msa -clw -log $inputFileDir/${file}.log");
+	push(@tarBall,"${file}.msa");
+    }
+
+}
+
+closedir(DIR);
+
+
+my $list = join (' ',@tarBall);
+
+chdir $inputFileDir;
+
+system("tar zcf ${outTar}_out.tar.gz $list"); 
+
+
+
+
+
