@@ -56,7 +56,7 @@ sub getInputSetSize {
     push(@fileArr,$file);
   }
 
-  my $count = @fileArr;
+  my $count = scalar(@fileArr);
 
   $self->{fileArray} = @fileArr;
 
@@ -90,6 +90,11 @@ sub makeSubTaskCommand {
 
 }
 
+sub integrateSubTaskResults {
+    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+    $node->runCmd("cp $nodeExecDir/*_out.tar.gz $mainResultDir/");
+
+}
 
 # cleanUpNode is an optional method that is called when the node has completed
 # to allow the user to stop processes that they may have started on the node.
