@@ -294,8 +294,8 @@ sub breakSequence{
 sub printSSFile {
   my ($accession, $blast) = @_;
 
-  my @q = split (/\|/, $accession);
-  my $qTaxAbbrev = shift(@q);
+  my @q = split (/\|/, $accession); 
+  my $qTaxAbbrev = shift(@q); # taxon is before the first pipe.  beware accession might also have pipes
 
   foreach my $s ($blast->getSubjectsByPValue()){
 
