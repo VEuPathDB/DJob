@@ -174,7 +174,7 @@ sub processEntry {
   }
   
   if ($noHits) {
-      print OUT "\>$accession (0 subjects)\n";
+      print OUT "\>$accession (0 subjects)\n" unless $printSimSeqsFile;
   } else {
       &analyzeBlast($accession,@blastn_out);
   }
