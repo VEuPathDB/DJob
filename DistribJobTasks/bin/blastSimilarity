@@ -297,7 +297,7 @@ sub printSSFile {
   my @q = split (/\|/, $accession); 
   my $qTaxAbbrev = shift(@q); # taxon is before the first pipe.  beware accession might also have pipes
 
-  foreach my $s ($blast->getSubjectsByPValue()){
+  foreach my $s ($blast->sortSubjectsByPValue()){
 
     my $s_accession = $s->getID();
     next if $s_accession eq $accession;
