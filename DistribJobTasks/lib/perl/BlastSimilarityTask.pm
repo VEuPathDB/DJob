@@ -27,7 +27,7 @@ my @properties =
  ["saveGoodBlastFiles",   "no",    "If yes then blast results that meet parse are saved"],
  ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=yes [$ENV{HOME}/blastFiles]"],
  ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
- ["printSimSeqsFile", "", "print output in format for sqlldr for similarsequences"]
+ ["printSimSeqsFile", "no", "print output in format for sqlldr for similarsequences"]
  );
 
 sub new {
@@ -154,7 +154,8 @@ sub makeSubTaskCommand {
 
     my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
 
-    $cmd .= " --printSimSeqsFile" if $self->getProperty("printSimSeqsFile");
+    my $printSimSeqsFile = $self->getProperty("printSimSeqsFile");
+    $cmd .= " --printSimSeqsFile" if $printSimSeqsFile eq 'yes';
 
     return $cmd;
 }
