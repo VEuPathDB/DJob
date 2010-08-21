@@ -17,6 +17,11 @@ sub new {
     $self->{props} = CBIL::Util::PropertySet->new("$inputDir/task.prop", $props);
     print "Task Properties\n".$self->{props}->toString()."\n";
 
+    $self->{subTaskSize} = $subTaskSize;
+    $self->{start} = -$self->{subTaskSize};
+    $self->{end} = 0;
+    $self->{subTaskNum} = 0;
+
     if($sizeAfterInitServer){
       print "Will find input set size after initializing server\n";
     }else{
@@ -31,10 +36,6 @@ sub new {
       $c += 1 if $self->{size} % $self->{subTaskSize};
       print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
     }
-    $self->{subTaskSize} = $subTaskSize;
-    $self->{start} = -$self->{subTaskSize};
-    $self->{end} = 0;
-    $self->{subTaskNum} = 0;
 
     $self->{inputDir} = $inputDir;
     $self->{masterDir} = $masterDir;
