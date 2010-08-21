@@ -9,8 +9,7 @@ my $haveReadJobscript = 0;
 $| = 1;
 
 sub new {
-    my ($class, $inputDir, $subTaskSize, $restart, $masterDir,
-	$props) = @_;
+    my ($class, $inputDir, $subTaskSize, $restart, $masterDir, $props, $sizeAfterInitServer) = @_;
 
     my $self = {};
     bless $self, $class;
@@ -18,17 +17,21 @@ sub new {
     $self->{props} = CBIL::Util::PropertySet->new("$inputDir/task.prop", $props);
     print "Task Properties\n".$self->{props}->toString()."\n";
 
-    print "Finding input set size\n";
-    $self->{size} = $self->getInputSetSize($inputDir);
-    if ($self->{size} == 0) {
+    if($sizeAfterInitServer){
+      print "Will find input set size after initializing server\n";
+    }else{
+      print "Finding input set size\n";
+      $self->{size} = $self->getInputSetSize($inputDir);
+      if ($self->{size} == 0) {
 	print "Error: Input set size is 0\n";
 	exit 1;
+      }
+      print "Input set size is $self->{size}\n";
+      my $c = int($self->{size} / $self->{subTaskSize});
+      $c += 1 if $self->{size} % $self->{subTaskSize};
+      print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
     }
-    print "Input set size is $self->{size}\n";
     $self->{subTaskSize} = $subTaskSize;
-    my $c = int($self->{size} / $self->{subTaskSize});
-    $c += 1 if $self->{size} % $self->{subTaskSize};
-    print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
     $self->{start} = -$self->{subTaskSize};
     $self->{end} = 0;
     $self->{subTaskNum} = 0;
