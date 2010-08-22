@@ -14,11 +14,11 @@ use strict;
 my @properties = 
 (
  ["readFilePath",   "",     "full path to read file"],
- ["pairedReadFilePath",   "",     "full path to paired read file (optional)"],
+ ["pairedReadFilePath",   "none",     "full path to paired read file (optional)"],
  ["genomeFastaFile",   "",     "genome file in fasta format"],
- ["genomeBowtieIndex",   "",     "genome bowtie index file"],
- ["transcriptFastaFile",   "",     "transcript file in fasta format"],
- ["transcriptBowtieIndex",   "",     "transcript bowtie index files"],
+ ["genomeBowtieIndex",   "none",     "genome bowtie index file"],
+ ["transcriptFastaFile",   "none",     "transcript file in fasta format"],
+ ["transcriptBowtieIndex",   "none",     "transcript bowtie index files"],
  ["geneAnnotationFile",   "",     "geneAnnotationFile in Gregs format (ucsc format)"],
  ["bowtieBinDir",   "",     "bowtie bin directory"],
  ["blatExec",   "",     "blat executable, must be full path unless defined in your path"],
@@ -27,8 +27,8 @@ my @properties =
  ["limitNU",   "30",     "Limits the number of ambiguous mappers to a max of [30]"],
  ["numInsertions",   "1",     "number of instertions to allow when parsing BLAT [1] (note, if paired end data the number of insertions is constrained to 0 or 1"],
  ["minBlatIdentity",   "93",     "run BLAT with minimum identity of [93]"],
- ["createSAMfile",   "0",     "create SAM file if 1 ([0] | 1)"],
- ["countMismatches",   "0",     "report in the last column the number of mismatches, ignoring insertions ([0] | 1)"]
+ ["createSAMFile",   "false",     "create SAM file if 1 ([0] | 1)"],
+ ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([0] | 1)"]
  );
 
 ## note passing in additional param that skips computing the size in constructor
@@ -60,8 +60,8 @@ sub initServer {
   
   
   die "readFilePath $readFilePath does not exist" unless -e "$readFilePath";
-  die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath && !(-e "$pairedReadFilePath");
-  die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath && $pairedReadFilePath eq $readFilePath;
+  die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath != 'none' && !(-e "$pairedReadFilePath");
+  die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath != 'none' && $pairedReadFilePath eq $readFilePath;
   die "genomeFastaFile $genomeFastaFile does not exist" unless -e "$genomeFastaFile";
   die "--transcriptFastaFile or --transcriptBowtieIndex must be provided" unless -e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt";
   die "bowtieBinDir $bowtieBinDir does not exist" unless -e "$bowtieBinDir";
@@ -74,16 +74,18 @@ sub initServer {
   my @ls = `ls -rt $readFilePath $self->{reads_fa}`;
   map { chomp } @ls;
   if (scalar(@ls) != 2 || $ls[0] ne $readFilePath) { 
-    if($pairedReadFilePath){  ## doing paired reads
+    if(-e $pairedReadFilePath){  ## doing paired reads
+      print "parsing paired end reads files to fasta and qual files\n";
       &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath $pairedReadFilePath > $self->{reads_fa}");
       &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath $pairedReadFilePath > $self->{quals_fa}");
     }else{
+      print "parsing single end reads file to fasta and qual files\n";
       &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath > $self->{reads_fa}");
       &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath > $self->{quals_fa}");
     }
   }
 
-  $self->{pairedEnd} = $pairedReadFilePath ? "paired" : "single";
+  $self->{pairedEnd} = (-e "$pairedReadFilePath") ? "paired" : "single";
 
   ##now check to see if have valid quals file
   my $X = `head -2 $self->{quals_fa} | tail -1`;
@@ -111,7 +113,7 @@ sub initServer {
 
   ## make bowtie transcript index if need be .. could check to see if it exists first
   if(-e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt"){
-    if(-e "$transcriptGenomeIndex.1.ebwt"){
+    if(-e "$transcriptBowtieIndex.1.ebwt"){
       $self->{bowtie_transcript} = $transcriptBowtieIndex;
     }else{
       $self->{bowtie_transcript} = "$inputDir/bowtie_transcript";
@@ -185,7 +187,7 @@ sub makeSubTaskCommand {
   my $createSAMFile = $self->getProperty("createSAMFile");
   my $countMismatches = $self->getProperty("countMismatches");
 
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile qualsSubset.fa --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $self->{bowtie_genome}".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $self->{bowtie_transcript}" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile $createSAMFile --countMismatches $countMismatches";
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile qualsSubset.fa --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $self->{bowtie_genome}".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $self->{bowtie_transcript}" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
 
     return $cmd;
 }
@@ -193,33 +195,39 @@ sub makeSubTaskCommand {
 ## bring back alignment and sam files and append subtasknum.  then at end concatenate.
 sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-  $node->runCmd("mv $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
-  $node->runCmd("mv $nodeExecDir/RUM_NU $mainResultDir/RUM_NU.$subTaskNum");
-  $node->runCmd("mv $nodeExecDir/RUM_sam $mainResultDir/RUM_sam.$subTaskNum") if $self->getProperty("createSAMFile");
+  $node->runCmd("cp $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
+  $node->runCmd("cp $nodeExecDir/RUM_NU $mainResultDir/RUM_NU.$subTaskNum");
+  $node->runCmd("cp $nodeExecDir/RUM_sam $mainResultDir/RUM_sam.$subTaskNum") if $self->getProperty("createSAMFile") =~ /true/i;
 }
 
 ## concatenate files here so are in order
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir) = @_;
-  print "Concatenating RUM_Unique files\n";
+  my $currDir = `pwd`;
+  chomp $currDir;
+  chdir("$mainResultDir") || die "$!";
+  print STDERR "Concatenating RUM_Unique files\n";
   foreach my $f ($self->sortResultFiles('RUM_Unique.*')){
+    print STDERR "  Addng $f\n";
     &runCmd("cat $f >> RUM_Unique.all");
-    &runCmd("rm $f");
+    unlink($f);
   }
 
-  print "Concatenating RUM_NU files\n";
+  print STDERR "Concatenating RUM_NU files\n";
   foreach my $f ($self->sortResultFiles('RUM_NU.*')){
     &runCmd("cat $f >> RUM_NU.all");
-    &runCmd("rm $f");
+    unlink($f);
   }
 
-  if($self->getProperty("createSAMFile"){
-    print "Concatenating RUM_sam files\n";
+  if($self->getProperty("createSAMFile") =~ /true/i){
+    print STDERR "Concatenating RUM_sam files\n";
     foreach my $f ($self->sortResultFiles('RUM_sam.*')){
       &runCmd("cat $f >> RUM_sam.all");
-      &runCmd("rm $f");
+      unlink($f);
     }
   }
+  chdir("$currDir") || die "$!";
+  
 
   return 1;
 }
@@ -229,7 +237,7 @@ sub sortResultFiles {
   my @files = `ls $fn`;
   my @tmp;
   foreach my $f (@files){
-    chomp;
+    chomp $f;
     if($f =~ /\.(\d+)$/){
       push(@tmp,[$f,$1]);
     }else{
@@ -238,7 +246,7 @@ sub sortResultFiles {
   }
   my @sort;
   foreach my $a (sort{$a->[1] <=> $b->[1]}@tmp){
-    push @sort($a->[0]);
+    push(@sort,$a->[0]);
   }
   return @sort;
 }

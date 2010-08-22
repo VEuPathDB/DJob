@@ -6,10 +6,8 @@ BEGIN {
 }
 
 use lib "$ENV{GUS_HOME}/lib/perl";
-use CBIL::Bio::Blast::BlastAnal;
 use strict;
 use Getopt::Long;
-use File::Basename;
 
 open(LOG,">runRumOnNode.log");
 
@@ -21,7 +19,7 @@ $| = 1;
 
 my ($genomeBowtieIndex,$readsFile,$genomeFastaFile,$transcriptBowtieIndex,
 $geneAnnotationFile,$qualFile,$bowtieExec,$blatExec,$mdustExec,$perlScriptsDir,$fastBlat,
-$limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pairedEnd,$createSAMFile);
+$limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pairedEnd,$createSAMFile,$numInsertions);
 
 &GetOptions("readsFile=s" => \$readsFile, ##??just one fasta file as input??
             "qualFile=s" => \$qualFile, 
@@ -29,12 +27,12 @@ $limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pai
             "genomeBowtieIndex=s" => \$genomeBowtieIndex, 
             "transcriptBowtieIndex=s" => \$transcriptBowtieIndex, 
             "geneAnnotationFile=s" => \$geneAnnotationFile, 
-            "bowtieExec=s" => \$bowtieBinDir, 
+            "bowtieExec=s" => \$bowtieExec, 
             "blatExec=s" => \$blatExec, 
             "mdustExec=s" => \$mdustExec, 
             "perlScriptsDir=s" => \$perlScriptsDir, 
             "limitNU=i" => \$limitNU, 
-            "pairedEnd=i" => \$pairedEnd,
+            "pairedEnd=s" => \$pairedEnd,
             "minBlatIdentity=i" => \$minBlatIdentity, 
             "numInsertions=i" => \$numInsertions, 
             "createSAMFile=i" => \$createSAMFile, 
@@ -44,7 +42,7 @@ $limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pai
 
 print LOG "starting: ".`date`; 
 
-system("$bowtieExec -a --best --strata -f $genomeBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > genomeBowtie.out")
+system("$bowtieExec -a --best --strata -f $genomeBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > genomeBowtie.out");
 ## check for error and return proper error code if failed
 &handleError($?,"ERROR running genome bowtie");
 print LOG "finished first bowtie run: ".`date`;
@@ -94,15 +92,15 @@ system("perl $perlScriptsDir/merge_Bowtie_and_Blat.pl bowtieUnique blatUnique bo
 &handleError($?,"ERROR merging Bowtie and Blat");
 print LOG "finished merging Bowtie and Blat: ".`date`;
 
-system("perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile".($countMismatches ? " -countmismatches" : ""));
+system("perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile -faok".($countMismatches ? " -countmismatches" : ""));
 &handleError($?,"ERROR cleaning up final results");
 print LOG "finished cleaning up final results: ".`date`;
 
-system("perl $perlScriptsDir/sort_RUM.pl RUM_Unique_temp2 RUM_Unique");
-&handleError($?,"ERROR with first sort_RUM.pl run");
-system("perl $perlScriptsDir/limit_NU.pl RUM_NU_temp2 $limitNU > RUM_NU_temp3");
+system("perl $perlScriptsDir/sort_RUM_small_file.pl merge_Unique_temp2 RUM_Unique");
+&handleError($?,"ERROR with first sort_RUM_small_file.pl run");
+system("perl $perlScriptsDir/limit_NU.pl merge_NU_temp2 $limitNU > RUM_NU_temp3");
 &handleError($?,"ERROR with limit_NU.pl script");
-system("perl $perlScriptsDir/sort_RUM.pl RUM_NU_temp3 RUM_NU");
+system("perl $perlScriptsDir/sort_RUM_small_file.pl RUM_NU_temp3 RUM_NU");
 &handleError($?,"ERROR with second sort_RUM.pl run");
 print LOG "finished sorting final results: ".`date`;
 
