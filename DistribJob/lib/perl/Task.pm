@@ -91,7 +91,7 @@ sub runNextSubtask {
   $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
                      $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
   
-  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir);
+  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir});
   ##note: with perl subtaskInvoker there seems to be a problem with quotes
 #  $cmd =~ s/\'/\\\'/g;
 #  $cmd =~ s/\s\'/ \'\\\'/g;

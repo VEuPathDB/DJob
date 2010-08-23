@@ -14,7 +14,7 @@ $| = 1;
 
 my ($genomeBowtieIndex,$readsFile,$genomeFastaFile,$transcriptBowtieIndex,
 $geneAnnotationFile,$qualFile,$bowtieExec,$blatExec,$mdustExec,$perlScriptsDir,$fastBlat,
-$limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pairedEnd,$createSAMFile,$numInsertions);
+$limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pairedEnd,$createSAMFile,$numInsertions,$subtaskNumber,$mainResultDir);
 
 &GetOptions("readsFile=s" => \$readsFile, ##??just one fasta file as input??
             "qualFile=s" => \$qualFile, 
@@ -31,6 +31,8 @@ $limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pai
             "minBlatIdentity=i" => \$minBlatIdentity, 
             "numInsertions=i" => \$numInsertions, 
             "createSAMFile=i" => \$createSAMFile, 
+            "mainResultDir=s" => \$mainResultDir, 
+            "subtaskNumber=s" => \$subtaskNumber, 
             "countMismatches=i" => \$countMismatches 
             );
 
@@ -91,16 +93,17 @@ system("perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp
 &handleError($?,"ERROR cleaning up final results");
 print LOG "finished cleaning up final results: ".`date`;
 
-system("perl $perlScriptsDir/sort_RUM_small_file.pl merge_Unique_temp2 RUM_Unique");
+system("perl $perlScriptsDir/sort_RUM_small_file.pl merge_Unique_temp2 $mainResultDir/RUM_Unique.$subtaskNumber");
+##Note am writing these final results directly back to the server ...
 &handleError($?,"ERROR with first sort_RUM_small_file.pl run");
 system("perl $perlScriptsDir/limit_NU.pl merge_NU_temp2 $limitNU > RUM_NU_temp3");
 &handleError($?,"ERROR with limit_NU.pl script");
-system("perl $perlScriptsDir/sort_RUM_small_file.pl RUM_NU_temp3 RUM_NU");
+system("perl $perlScriptsDir/sort_RUM_small_file.pl RUM_NU_temp3 $mainResultDir/RUM_NU.$subtaskNumber");
 &handleError($?,"ERROR with second sort_RUM.pl run");
 print LOG "finished sorting final results: ".`date`;
 
 if($createSAMFile){
-  system("perl $perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile RUM_sam");
+  system("perl $perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile $mainResultDir/RUM_sam.$subtaskNumber");
   &handleError($?,"ERROR creating SAM file");
   print LOG "finished creating SAM file: ".`date`;
 }

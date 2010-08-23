@@ -180,16 +180,16 @@ sub initSubTask {
 }
 
 sub makeSubTaskCommand { 
-  my ($self, $node, $inputDir, $nodeExecDir) = @_;
+  my ($self, $node, $inputDir, $nodeExecDir,$subtaskNumber,$mainResultDir) = @_;
     
   if($self->{subtaskCmd}){
     return $self->{subtaskCmd};
   }else{
-    my $genomeFastaFile = $node->getDir() . "/" . basename($self->getProperty("genomeFastaFile"));
+    my $genomeFastaFile = "../" . basename($self->getProperty("genomeFastaFile"));
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    my $genomeBowtieIndex =  $node->getDir() . "/" . basename($self->{bowtie_genome_name});
-    my $transcriptBowtieIndex = $node->getDir() . "/" . basename($self->{bowtie_transcript_name});
+    my $genomeBowtieIndex =  "../" . basename($self->{bowtie_genome_name});
+    my $transcriptBowtieIndex = "../" . basename($self->{bowtie_transcript_name});
     my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
     my $blatExec = $self->getProperty("blatExec");
     my $mdustExec = $self->getProperty("mdustExec");
@@ -199,7 +199,7 @@ sub makeSubTaskCommand {
     my $createSAMFile = $self->getProperty("createSAMFile");
     my $countMismatches = $self->getProperty("countMismatches");
     
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --subtaskNumber $subtaskNumber --mainResultDir $mainResultDir";
     $self->{subtaskCmd} = $cmd;
     return $cmd;
   }
@@ -208,9 +208,9 @@ sub makeSubTaskCommand {
 ## bring back alignment and sam files and append subtasknum.  then at end concatenate.
 sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-  $node->runCmd("cp $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
-  $node->runCmd("cp $nodeExecDir/RUM_NU $mainResultDir/RUM_NU.$subTaskNum");
-  $node->runCmd("cp $nodeExecDir/RUM_sam $mainResultDir/RUM_sam.$subTaskNum") if $self->getProperty("createSAMFile") =~ /true/i;
+#  $node->runCmd("cp $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
+#  $node->runCmd("cp $nodeExecDir/RUM_NU $mainResultDir/RUM_NU.$subTaskNum");
+#  $node->runCmd("cp $nodeExecDir/RUM_sam $mainResultDir/RUM_sam.$subTaskNum") if $self->getProperty("createSAMFile") =~ /true/i;
 }
 
 ## concatenate files here so are in order
