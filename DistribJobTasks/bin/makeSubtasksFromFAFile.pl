@@ -1,10 +1,5 @@
 #!@perl@
 
-
-BEGIN {
-  unshift(@INC,"/genomics/share/lib/perl");
-}
-
 use lib "$ENV{GUS_HOME}/lib/perl";
 use strict;
 use Getopt::Long;
@@ -21,7 +16,7 @@ my ($fileName,$stdin,$directory,$subtaskSize);
             "$directory=s" => \$directory  ##directory for output
             );
 
-die "invalid directory '$directory" unless -d "$directory";
+die "invalid directory '$directory'" unless -d "$directory";
 die "you must specify either --stdin or --fileName <inputfile>" unless ($stdin || -e $fileName);
 die "you must specify --subtaskSize <size>" unless $subtaskSize;
 
