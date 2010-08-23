@@ -110,12 +110,16 @@ sub initServer {
   ## obviously don't need to do this if pass in bowtie index.
   if(-e "$genomeBowtieIndex.1.ebwt"){
     $self->{bowtie_genome} = $genomeBowtieIndex;
+    $self->{bowtie_genome_name} = basename($genomeBowtieIndex);
   }else{
-    $self->{bowtie_genome} = "$inputDir/bowtie_genome";
+    my $gdir = dirname($genomeFastaFile);
+    $self->{bowtie_genome_name} = basename($genomeFastaFile);
+    $self->{bowtie_genome} = "$gdir/$self->{bowtie_genome_name}";
     my @lsg = `ls -rt $genomeFastaFile $self->{bowtie_genome}.1.ebwt`;
     map { chomp } @lsg;
     if (scalar(@lsg) != 2 || $lsg[0] ne $genomeFastaFile) { 
-      &runCmd("$bowtieBinDir/bowtie_build $genomeFastaFile $self->{bowtie_genome}");
+      print "Building bowtie index for genome\n";
+      &runCmd("$bowtieBinDir/bowtie-build $genomeFastaFile $self->{bowtie_genome}");
     }
   }
 
@@ -123,12 +127,16 @@ sub initServer {
   if(-e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt"){
     if(-e "$transcriptBowtieIndex.1.ebwt"){
       $self->{bowtie_transcript} = $transcriptBowtieIndex;
+      $self->{bowtie_transcript_name} = basename($transcriptBowtieIndex);
     }else{
-      $self->{bowtie_transcript} = "$inputDir/bowtie_transcript";
+      my $tdir = dirname($transcriptFastaFile);
+      $self->{bowtie_transcript_name} = basename($transcriptFastaFile);
+      $self->{bowtie_transcript} = "$tdir/$self->{bowtie_transcript_name}";
       my @lst = `ls -rt $transcriptFastaFile $self->{bowtie_transcript}.1.ebwt`;
       map { chomp } @lst;
       if (scalar(@lst) != 2 || $lst[0] ne $transcriptFastaFile) { 
-        &runCmd("$bowtieBinDir/bowtie_build $transcriptFastaFile $self->{bowtie_transcript}");
+        print "Building bowtie index for transcriptome\n";
+        &runCmd("$bowtieBinDir/bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
       }
     }
   }
@@ -147,11 +155,13 @@ sub initServer {
 }
 
 sub initNode {
-    my ($self, $node, $inputDir) = @_;
-
-    ## could leave indices on server .. if so do nothing
-    ## otherwise should copy all indices to nodeDir
-
+  my ($self, $node, $inputDir) = @_;
+  
+  my $genomeFastaFile = $self->getProperty("genomeFastaFile");
+  my $nodeDir = $node->getDir();
+  $node->runCmd("cp $genomeFastaFile $nodeDir");
+  $node->runCmd("cp $self->{bowtie_genome}.* $nodeDir");
+  $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir");
 }
 
 sub getInputSetSize {
@@ -175,12 +185,11 @@ sub makeSubTaskCommand {
   if($self->{subtaskCmd}){
     return $self->{subtaskCmd};
   }else{
-    my $genomeFastaFile = $self->getProperty("genomeFastaFile");
-    my $transcriptFastaFile = $self->getProperty("transcriptFastaFile");
+    my $genomeFastaFile = $node->getDir() . "/" . basename($self->getProperty("genomeFastaFile"));
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    my $genomeBowtieIndex = $self->getProperty("genomeBowtieIndex");
-    my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
+    my $genomeBowtieIndex =  $node->getDir() . "/" . basename($self->{bowtie_genome_name});
+    my $transcriptBowtieIndex = $node->getDir() . "/" . basename($self->{bowtie_transcript_name});
     my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
     my $blatExec = $self->getProperty("blatExec");
     my $mdustExec = $self->getProperty("mdustExec");
@@ -190,7 +199,7 @@ sub makeSubTaskCommand {
     my $createSAMFile = $self->getProperty("createSAMFile");
     my $countMismatches = $self->getProperty("countMismatches");
     
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $self->{bowtie_genome}".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $self->{bowtie_transcript}" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
     $self->{subtaskCmd} = $cmd;
     return $cmd;
   }
@@ -212,7 +221,7 @@ sub cleanUpServer {
   chdir("$mainResultDir") || die "$!";
   print STDERR "Concatenating RUM_Unique files\n";
   foreach my $f ($self->sortResultFiles('RUM_Unique.*')){
-    print STDERR "  Addng $f\n";
+#    print STDERR "  Addng $f\n";
     &runCmd("cat $f >> RUM_Unique.all");
     unlink($f);
   }
@@ -241,7 +250,9 @@ sub sortResultFiles {
   my @files = `ls $fn`;
   my @tmp;
   foreach my $f (@files){
+    next if $f  =~ /all$/;
     chomp $f;
+    next if $f  =~ /all$/;
     if($f =~ /\.(\d+)$/){
       push(@tmp,[$f,$1]);
     }else{
