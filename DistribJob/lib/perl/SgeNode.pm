@@ -26,7 +26,8 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} $runFile";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{slotCount} $runFile";
+#    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;
     if($tjid =~ /job\s(\d+)/){
