@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::RUMTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+#use CBIL::Bio::FastaFile;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -57,44 +57,52 @@ sub initServer {
   my $perlScriptsDir = $self->getProperty("perlScriptsDir");
   my $genomeBowtieIndex = $self->getProperty("genomeBowtieIndex");
   my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
+  my $createSAMFile = $self->getProperty("createSAMFile");
   
   
   die "readFilePath $readFilePath does not exist" unless -e "$readFilePath";
   die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath != 'none' && !(-e "$pairedReadFilePath");
   die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath != 'none' && $pairedReadFilePath eq $readFilePath;
   die "genomeFastaFile $genomeFastaFile does not exist" unless -e "$genomeFastaFile";
-  die "--transcriptFastaFile or --transcriptBowtieIndex must be provided" unless -e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt";
+#  die "--transcriptFastaFile or --transcriptBowtieIndex must be provided" unless -e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt";
   die "bowtieBinDir $bowtieBinDir does not exist" unless -e "$bowtieBinDir";
   die "perlScriptsDir $perlScriptsDir does not exist" unless -e "$perlScriptsDir";
+
+  ##if aren't creating SAM file then don't need to create qual file or indices
+  if($createSAMFile =~ /true/i){
+    $self->{quals} = 1;
+  }else{
+    $self->{quals} = 0;
+  }
   
-  ##make fasta file and qual file
-  $self->{"reads_fa"} = "$inputDir/reads.fa";
-  $self->{"quals_fa"} = "$inputDir/quals.fa";
-  ## NOTE: may have already done this if restarting so check to see if have files and they are newer than input
-  my @ls = `ls -rt $readFilePath $self->{reads_fa}`;
-  map { chomp } @ls;
-  if (scalar(@ls) != 2 || $ls[0] ne $readFilePath) { 
-    if(-e $pairedReadFilePath){  ## doing paired reads
-      print "parsing paired end reads files to fasta and qual files\n";
-      &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath $pairedReadFilePath > $self->{reads_fa}");
-      &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath $pairedReadFilePath > $self->{quals_fa}");
-    }else{
-      print "parsing single end reads file to fasta and qual files\n";
-      &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath > $self->{reads_fa}");
-      &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath > $self->{quals_fa}");
-    }
+  ##make fasta file and qual files .. note that will chunk them up here as well.
+  if(!(-d "$inputDir/subtasks")){
+    mkdir("$inputDir/subtasks");
+  }
+  if(!(-e "$inputDir/subtasks/sequenceCount")){ ##file will exist if have already done this
+    print "parsing reads file(s) to fasta and qual files\n";
+    &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFile.pl --stdin --outStem reads --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}");
+    &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFile.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
   }
 
   $self->{pairedEnd} = (-e "$pairedReadFilePath") ? "paired" : "single";
 
+  ##set the count .. inputSetSize
+  $self->{inputSetSize} = `cat $inputDir/subtasks/sequenceCount`;
+  chomp $self->{inputSetSize};
+
   ##now check to see if have valid quals file
-  my $X = `head -2 $self->{quals_fa} | tail -1`;
-  if($X =~ /Sorry, can't figure/) {
-    $self->{quals_fa} = 'none';
-  }    
+  if($self->{quals}){
+    my $X = `head -2 $inputDir/subtasks/quals.1 | tail -1`;
+    if($X =~ /Sorry, can't figure/) {
+      $self->{quals} = 0;
+    }else{
+      $self->{quals} = 1;
+    }
+  }
 
   ##get read length
-  my $read = `head -2 $self->{reads_fa} | tail -1`;
+  my $read = `head -2 $inputDir/subtasks/reads.1  | tail -1`;
   chomp $read;
   $self->{readLength} = length($read);
 
@@ -125,13 +133,6 @@ sub initServer {
     }
   }
 
-  ##create indices needed to write subsets to work on
-  $self->{readsIndex} = CBIL::Bio::FastaFile->new($self->{reads_fa});
-  $self->{qualsIndex} = CBIL::Bio::FastaFile->new($self->{quals_fa}) if $self->{quals};
-  if($self->{quals} && $self->{readsIndex}->getCount() != $self->{qualsIndex}->getCount()){
-    die "ERROR: different number of quals from reads\n";
-  }
-
   ##get and report size ....
    print "Finding input set size\n";
   $self->{size} = $self->getInputSetSize($inputDir);
@@ -156,40 +157,43 @@ sub initNode {
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    return $self->{readsIndex}->getCount();
+    return $self->{inputSetSize};
 }
 
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
 
-    $self->{readsIndex}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqSubset.fa");
-    ##also need to write the quals if using  these
-    $self->{qualsIndex}->writeSeqsToFile($start, $end, "$serverSubTaskDir/qualsSubset.fa") if $self->{quals};
+    my $subtaskNum = int($start / $self->{subTaskSize}) + 1;
+    $node->runCmd("cp $inputDir/subtasks/reads.$subtaskNum $nodeExecDir/seqSubset.fa");
+    $node->runCmd("cp $inputDir/subtasks/quals.$subtaskNum $nodeExecDir/qualsSubset.fa") if $self->{quals};
 
-    $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 }
 
 sub makeSubTaskCommand { 
   my ($self, $node, $inputDir, $nodeExecDir) = @_;
     
-  my $genomeFastaFile = $self->getProperty("genomeFastaFile");
-  my $transcriptFastaFile = $self->getProperty("transcriptFastaFile");
-  my $bowtieBinDir = $self->getProperty("bowtieBinDir");
-  my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-  my $genomeBowtieIndex = $self->getProperty("genomeBowtieIndex");
-  my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
-  my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
-  my $blatExec = $self->getProperty("blatExec");
-  my $mdustExec = $self->getProperty("mdustExec");
-  my $limitNU = $self->getProperty("limitNU");
-  my $minBlatIdentity = $self->getProperty("minBlatIdentity");
-  my $numInsertions = $self->getProperty("numInsertions");
-  my $createSAMFile = $self->getProperty("createSAMFile");
-  my $countMismatches = $self->getProperty("countMismatches");
-
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile qualsSubset.fa --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $self->{bowtie_genome}".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $self->{bowtie_transcript}" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
-
+  if($self->{subtaskCmd}){
+    return $self->{subtaskCmd};
+  }else{
+    my $genomeFastaFile = $self->getProperty("genomeFastaFile");
+    my $transcriptFastaFile = $self->getProperty("transcriptFastaFile");
+    my $bowtieBinDir = $self->getProperty("bowtieBinDir");
+    my $perlScriptsDir = $self->getProperty("perlScriptsDir");
+    my $genomeBowtieIndex = $self->getProperty("genomeBowtieIndex");
+    my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
+    my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
+    my $blatExec = $self->getProperty("blatExec");
+    my $mdustExec = $self->getProperty("mdustExec");
+    my $limitNU = $self->getProperty("limitNU");
+    my $minBlatIdentity = $self->getProperty("minBlatIdentity");
+    my $numInsertions = $self->getProperty("numInsertions");
+    my $createSAMFile = $self->getProperty("createSAMFile");
+    my $countMismatches = $self->getProperty("countMismatches");
+    
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $self->{bowtie_genome}".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $self->{bowtie_transcript}" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0");
+    $self->{subtaskCmd} = $cmd;
     return $cmd;
+  }
 }
 
 ## bring back alignment and sam files and append subtasknum.  then at end concatenate.

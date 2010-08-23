@@ -1,10 +1,5 @@
 #!@perl@
 
-
-BEGIN {
-  unshift(@INC,"/genomics/share/lib/perl");
-}
-
 use lib "$ENV{GUS_HOME}/lib/perl";
 use strict;
 use Getopt::Long;
@@ -105,7 +100,7 @@ system("perl $perlScriptsDir/sort_RUM_small_file.pl RUM_NU_temp3 RUM_NU");
 print LOG "finished sorting final results: ".`date`;
 
 if($createSAMFile){
-  system("$perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile RUM_sam");
+  system("perl $perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile RUM_sam");
   &handleError($?,"ERROR creating SAM file");
   print LOG "finished creating SAM file: ".`date`;
 }

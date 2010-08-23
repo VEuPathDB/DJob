@@ -9,11 +9,13 @@ my $debug = 0;
 $| = 1;
 
 my ($fileName,$stdin,$directory,$subtaskSize);
+my $outStem = "subTask.fa";
 
 &GetOptions("fileName=s" => \$fileName, ##just one fasta file as input
-            "$stdin!" => \$stdin,        ##take fasta on stdin
-            "$subtaskSize=i" => \$subtaskSize,        ##take fasta on stdin
-            "$directory=s" => \$directory  ##directory for output
+            "outStem=s" => \$outStem,
+            "stdin!" => \$stdin,        ##take fasta on stdin
+            "subtaskSize=i" => \$subtaskSize,        ##take fasta on stdin
+            "directory=s" => \$directory  ##directory for output
             );
 
 die "invalid directory '$directory'" unless -d "$directory";
@@ -22,16 +24,16 @@ die "you must specify --subtaskSize <size>" unless $subtaskSize;
 
 my $ct = 0;
 my $stnum = 1;
-open(OUT,">$directory/reads.$stnum");
+open(OUT,">$directory/$outStem.$stnum");
 if($stdin){
   while(<STDIN>){
     if(/^\>/){
-      if($ct != 1 && $ct++ % $subtaskSize == 1){
+      $ct++;
+      if($ct != 1 && $ct % $subtaskSize == 1){
         close(OUT);
         $stnum++;
-        open(OUT,">$directory/reads.$stnum");
+        open(OUT,">$directory/$outStem.$stnum");
       }
-      $ct++;
     }
     print OUT $_;
   }
@@ -42,7 +44,7 @@ if($stdin){
       if($ct != 1 && $ct++ % $subtaskSize == 1){
         close(OUT);
         $stnum++;
-        open(OUT,">$directory/reads.$stnum");
+        open(OUT,">$directory/$outStem.$stnum");
       }
       $ct++;
     }
@@ -50,3 +52,8 @@ if($stdin){
   }
 }
 close(OUT);
+
+##print total number of sequences
+open(N,">$directory/sequenceCount");
+print N "$ct\n";
+close(N);
