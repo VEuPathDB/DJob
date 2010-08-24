@@ -291,7 +291,7 @@ sub readPropFile {
 	
     die "\nError: property 'subtasksize' in $propfile must be between 1 and 100000\n" 
 	if ($props->getProp('subtasksize') < 1 
-	    || $props->getProp('subtasksize') > 100000);
+	    || $props->getProp('subtasksize') > 10000000);
 
     die "\nError: property 'taskclass' must be set to the name of a subclass of Task\n"
 	unless $props->getProp('taskclass');

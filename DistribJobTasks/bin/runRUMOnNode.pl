@@ -82,10 +82,10 @@ print LOG "finished merging Bowtie and Blat: ".`date`;
 &runCmd("perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile -faok".($countMismatches ? " -countmismatches" : ""));
 print LOG "finished cleaning up final results: ".`date`;
 
-&runCmd("perl $perlScriptsDir/sort_RUM_small_file.pl merge_Unique_temp2 $mainResultDir/RUM_Unique.$subtaskNumber");
+&runCmd("perl $perlScriptsDir/sort_RUM.pl merge_Unique_temp2 $mainResultDir/RUM_Unique.$subtaskNumber");
 ##Note am writing these final results directly back to the server ...
 &runCmd("perl $perlScriptsDir/limit_NU.pl merge_NU_temp2 $limitNU > RUM_NU_temp3");
-&runCmd("perl $perlScriptsDir/sort_RUM_small_file.pl RUM_NU_temp3 $mainResultDir/RUM_NU.$subtaskNumber");
+&runCmd("perl $perlScriptsDir/sort_RUM.pl RUM_NU_temp3 $mainResultDir/RUM_NU.$subtaskNumber");
 print LOG "finished sorting final results: ".`date`;
 
 if($createSAMFile){
