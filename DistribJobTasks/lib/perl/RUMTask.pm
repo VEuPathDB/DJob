@@ -151,6 +151,7 @@ sub initServer {
   print "Input set size is $self->{size}\n";
   my $c = int($self->{size} / $self->{subTaskSize});
   $c += 1 if $self->{size} % $self->{subTaskSize};
+  $self->{numSubtasks} = $c;
   print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
 }
 
@@ -158,10 +159,12 @@ sub initNode {
   my ($self, $node, $inputDir) = @_;
   
   my $genomeFastaFile = $self->getProperty("genomeFastaFile");
+  my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
   my $nodeDir = $node->getDir();
   $node->runCmd("cp $genomeFastaFile $nodeDir");
   $node->runCmd("cp $self->{bowtie_genome}.* $nodeDir");
   $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir");
+  $node->runCmd("cp $geneAnnotationFile $nodeDir");
 }
 
 sub getInputSetSize {
@@ -182,15 +185,13 @@ sub initSubTask {
 sub makeSubTaskCommand { 
   my ($self, $node, $inputDir, $nodeExecDir,$subtaskNumber,$mainResultDir) = @_;
     
-  if($self->{subtaskCmd}){
-    return $self->{subtaskCmd};
-  }else{
+  if(!$self->{subtaskCmd}){
     my $genomeFastaFile = "../" . basename($self->getProperty("genomeFastaFile"));
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
     my $genomeBowtieIndex =  "../" . basename($self->{bowtie_genome_name});
     my $transcriptBowtieIndex = "../" . basename($self->{bowtie_transcript_name});
-    my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
+    my $geneAnnotationFile = "../" . basename($self->getProperty("geneAnnotationFile"));
     my $blatExec = $self->getProperty("blatExec");
     my $mdustExec = $self->getProperty("mdustExec");
     my $limitNU = $self->getProperty("limitNU");
@@ -199,13 +200,14 @@ sub makeSubTaskCommand {
     my $createSAMFile = $self->getProperty("createSAMFile");
     my $countMismatches = $self->getProperty("countMismatches");
     
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --subtaskNumber $subtaskNumber --mainResultDir $mainResultDir";
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --mainResultDir $mainResultDir";
     $self->{subtaskCmd} = $cmd;
-    return $cmd;
   }
+  return $self->{subtaskCmd} . " --subtaskNumber $subtaskNumber";
 }
 
 ## bring back alignment and sam files and append subtasknum.  then at end concatenate.
+##NOTE: doing this in script so runs in parallel since unique file  names.
 sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 #  $node->runCmd("cp $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
@@ -220,14 +222,20 @@ sub cleanUpServer {
   chomp $currDir;
   chdir("$mainResultDir") || die "$!";
   print STDERR "Concatenating RUM_Unique files\n";
-  foreach my $f ($self->sortResultFiles('RUM_Unique.*')){
-#    print STDERR "  Addng $f\n";
+  my @unique = $self->sortResultFiles('RUM_Unique.*');
+  if(scalar(@unique) != $self->{numSubtasks}){
+    print STDERR "Not concatenating files: number of subtasks ($self->{numSubtasks}) differs from number of files (".scalar(@unique).")\n";
+    return 1;
+  }
+  foreach my $f (@unique){
+    print STDERR "  Addng $f\n";
     &runCmd("cat $f >> RUM_Unique.all");
     unlink($f);
   }
 
   print STDERR "Concatenating RUM_NU files\n";
   foreach my $f ($self->sortResultFiles('RUM_NU.*')){
+    print STDERR "  Addng $f\n";
     &runCmd("cat $f >> RUM_NU.all");
     unlink($f);
   }
@@ -235,6 +243,7 @@ sub cleanUpServer {
   if($self->getProperty("createSAMFile") =~ /true/i){
     print STDERR "Concatenating RUM_sam files\n";
     foreach my $f ($self->sortResultFiles('RUM_sam.*')){
+      print STDERR "  Addng $f\n";
       &runCmd("cat $f >> RUM_sam.all");
       unlink($f);
     }
