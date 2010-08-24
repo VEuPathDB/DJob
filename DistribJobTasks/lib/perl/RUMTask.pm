@@ -27,8 +27,9 @@ my @properties =
  ["limitNU",   "30",     "Limits the number of ambiguous mappers to a max of [30]"],
  ["numInsertions",   "1",     "number of instertions to allow when parsing BLAT [1] (note, if paired end data the number of insertions is constrained to 0 or 1"],
  ["minBlatIdentity",   "93",     "run BLAT with minimum identity of [93]"],
- ["createSAMFile",   "false",     "create SAM file if 1 ([0] | 1)"],
- ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([0] | 1)"]
+ ["createSAMFile",   "false",     "create SAM file if 1 ([false] | true)"],
+ ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
+ ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
 
 ## note passing in additional param that skips computing the size in constructor
@@ -210,9 +211,10 @@ sub makeSubTaskCommand {
 ##NOTE: doing this in script so runs in parallel since unique file  names.
 sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-#  $node->runCmd("cp $nodeExecDir/RUM_Unique $mainResultDir/RUM_Unique.$subTaskNum");
-#  $node->runCmd("cp $nodeExecDir/RUM_NU $mainResultDir/RUM_NU.$subTaskNum");
-#  $node->runCmd("cp $nodeExecDir/RUM_sam $mainResultDir/RUM_sam.$subTaskNum") if $self->getProperty("createSAMFile") =~ /true/i;
+  if($self->getProperty("saveIntermediateFiles") =~ /true/i){
+    mkdir("$mainResultDir/subtask.$subTaskNum");
+    $node->runCmd("cp $nodeExecDir/* $mainResultDir/subtask.$subTaskNum");
+  }
 }
 
 ## concatenate files here so are in order
@@ -228,14 +230,14 @@ sub cleanUpServer {
     return 1;
   }
   foreach my $f (@unique){
-    print STDERR "  Addng $f\n";
+    print STDERR "  Adding $f\n";
     &runCmd("cat $f >> RUM_Unique.all");
     unlink($f);
   }
 
   print STDERR "Concatenating RUM_NU files\n";
   foreach my $f ($self->sortResultFiles('RUM_NU.*')){
-    print STDERR "  Addng $f\n";
+    print STDERR "  Adding $f\n";
     &runCmd("cat $f >> RUM_NU.all");
     unlink($f);
   }
@@ -243,7 +245,7 @@ sub cleanUpServer {
   if($self->getProperty("createSAMFile") =~ /true/i){
     print STDERR "Concatenating RUM_sam files\n";
     foreach my $f ($self->sortResultFiles('RUM_sam.*')){
-      print STDERR "  Addng $f\n";
+      print STDERR "  Adding $f\n";
       &runCmd("cat $f >> RUM_sam.all");
       unlink($f);
     }

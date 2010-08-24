@@ -67,7 +67,7 @@ if($transcriptBowtieIndex){
 &runCmd("perl $perlScriptsDir/make_unmapped_file.pl $readsFile bowtieUnique bowtieNU blatInput.fa $pairedEnd");
 print LOG "finished making R: ".`date`;
 
-&runCmd("$blatExec $genomeFastaFile blatInput.fa blat.out -minIdentity=$minBlatIdentity");
+&runCmd("$blatExec $genomeFastaFile blatInput.fa blat.out -minIdentity=$minBlatIdentity -stepSize=5");
 print LOG "finished first BLAT run: ".`date`;
 
 &runCmd("$mdustExec blatInput.fa > mdust.out");
