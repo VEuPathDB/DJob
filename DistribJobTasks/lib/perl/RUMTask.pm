@@ -164,7 +164,7 @@ sub initNode {
   my $nodeDir = $node->getDir();
   $node->runCmd("cp $genomeFastaFile $nodeDir");
   $node->runCmd("cp $self->{bowtie_genome}.* $nodeDir");
-  $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir");
+  $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir") if $self->{bowtie_transcript};
   $node->runCmd("cp $geneAnnotationFile $nodeDir");
 }
 
@@ -190,8 +190,8 @@ sub makeSubTaskCommand {
     my $genomeFastaFile = "../" . basename($self->getProperty("genomeFastaFile"));
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    my $genomeBowtieIndex =  "../" . basename($self->{bowtie_genome_name});
-    my $transcriptBowtieIndex = "../" . basename($self->{bowtie_transcript_name});
+    my $genomeBowtieIndex =  "../" . $self->{bowtie_genome_name};
+    my $transcriptBowtieIndex = "../" . $self->{bowtie_transcript_name};
     my $geneAnnotationFile = "../" . basename($self->getProperty("geneAnnotationFile"));
     my $blatExec = $self->getProperty("blatExec");
     my $mdustExec = $self->getProperty("mdustExec");
