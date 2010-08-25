@@ -40,57 +40,74 @@ $limitNU,$minBlatIdentity,$countMismatches,$alignToTranscriptome,$inputType,$pai
 
 print LOG "starting: ".`date`; 
 
-&runCmd("$bowtieExec -a --best --strata -f $genomeBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > genomeBowtie.out");
+my $cmd = "$bowtieExec -a --best --strata -f $genomeBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > genomeBowtie.out";
+&runCmd($cmd);
 ## check for error and return proper error code if failed
-print LOG "finished first bowtie run: ".`date`;
+print LOG "finished first bowtie run: ".`date` . "$cmd\n\n";
 
-&runCmd("perl $perlScriptsDir/make_GU_and_GNU.pl genomeBowtie.out btGenomeU btGenomeNU $pairedEnd");
-print LOG "finished parsing genome bowtie run: ".`date`;
+$cmd = "perl $perlScriptsDir/make_GU_and_GNU.pl genomeBowtie.out btGenomeU btGenomeNU $pairedEnd";
+&runCmd($cmd);
+print LOG "finished parsing genome bowtie run: ".`date` . "$cmd\n\n";
 
 if($transcriptBowtieIndex){
+  $cmd = "$bowtieExec -a --best --strata -f $transcriptBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > transcriptBowtie.out";
   &runCmd("$bowtieExec -a --best --strata -f $transcriptBowtieIndex $readsFile -v 3 --suppress 6,7,8 -p 1 > transcriptBowtie.out");
-  print LOG "finished second bowtie run: ".`date`;
+  print LOG "finished second bowtie run: ".`date` . "$cmd\n\n";
 
-  &runCmd("perl $perlScriptsDir/make_TU_and_TNU.pl transcriptBowtie.out $geneAnnotationFile btTranscriptU btTranscriptNU $pairedEnd");
-  print LOG "finished parsing transcriptome bowtie run: ".`date`;
+  $cmd = "perl $perlScriptsDir/make_TU_and_TNU.pl transcriptBowtie.out $geneAnnotationFile btTranscriptU btTranscriptNU $pairedEnd";
+  &runCmd($cmd);
+  print LOG "finished parsing transcriptome bowtie run: ".`date` . "$cmd\n\n";
   
-  &runCmd("perl $perlScriptsDir/merge_GU_and_TU.pl btGenomeU btTranscriptU btGenomeNU btTranscriptNU bowtieUnique combinedNU $pairedEnd");
-  print LOG "finished merging TU and GU: ".`date`;
+  $cmd = "perl $perlScriptsDir/merge_GU_and_TU.pl btGenomeU btTranscriptU btGenomeNU btTranscriptNU bowtieUnique combinedNU $pairedEnd";
+  &runCmd($cmd);
+  print LOG "finished merging TU and GU: ".`date` . "$cmd\n\n";
 
-  &runCmd("perl $perlScriptsDir/merge_GNU_and_TNU_and_CNU.pl btGenomeNU btTranscriptNU combinedNU bowtieNU");
-  print LOG "finished merging GNU, TNU and CNU: ",`date`;
+  $cmd = "perl $perlScriptsDir/merge_GNU_and_TNU_and_CNU.pl btGenomeNU btTranscriptNU combinedNU bowtieNU";
+  &runCmd($cmd);
+  print LOG "finished merging GNU, TNU and CNU: ",`date` . "$cmd\n\n";
 }else{
   &runCmd("mv btGenomeU bowtieUnique");
   &runCmd("mv btGenomeNU bowtieNU");
 }
 
-&runCmd("perl $perlScriptsDir/make_unmapped_file.pl $readsFile bowtieUnique bowtieNU blatInput.fa $pairedEnd");
-print LOG "finished making R: ".`date`;
+$cmd = "perl $perlScriptsDir/make_unmapped_file.pl $readsFile bowtieUnique bowtieNU blatInput.fa $pairedEnd";
+&runCmd($cmd);
+print LOG "finished making R: ".`date` . "$cmd\n\n";
 
-&runCmd("$blatExec $genomeFastaFile blatInput.fa blat.out -minIdentity=$minBlatIdentity -minScore=20 -stepSize=5");
-print LOG "finished first BLAT run: ".`date`;
+$cmd = "$blatExec $genomeFastaFile blatInput.fa blat.out -minIdentity=$minBlatIdentity -minScore=20 -stepSize=5";
+&runCmd($cmd);
+print LOG "finished first BLAT run: ".`date` . "$cmd\n\n";
 
-&runCmd("$mdustExec blatInput.fa > mdust.out");
-print LOG "finished running mdust on R: ".`date`;
+$cmd = "$mdustExec blatInput.fa > mdust.out";
+&runCmd($cmd);
+print LOG "finished running mdust on R: ".`date` . "$cmd\n\n";
 
-&runCmd("perl $perlScriptsDir/parse_blat_out.pl blatInput.fa blat.out mdust.out blatUnique blatNU".($transcriptBowtieIndex ? "" : " -dna")." -num_insertions_allowed $numInsertions");
-print LOG "finished parsing first BLAT run: ".`date`;
+$cmd = "perl $perlScriptsDir/parse_blat_out.pl blatInput.fa blat.out mdust.out blatUnique blatNU".($transcriptBowtieIndex ? "" : " -dna")." -num_insertions_allowed $numInsertions";
+&runCmd($cmd);
+print LOG "finished parsing first BLAT run: ".`date` . "$cmd\n\n";
 
-&runCmd("perl $perlScriptsDir/merge_Bowtie_and_Blat.pl bowtieUnique blatUnique bowtieNU blatNU merge_Unique_temp merge_NU_temp $pairedEnd");
-print LOG "finished merging Bowtie and Blat: ".`date`;
+$cmd = "perl $perlScriptsDir/merge_Bowtie_and_Blat.pl bowtieUnique blatUnique bowtieNU blatNU merge_Unique_temp merge_NU_temp $pairedEnd";
+&runCmd($cmd);
+print LOG "finished merging Bowtie and Blat: ".`date` . "$cmd\n\n";
 
-&runCmd("perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile -faok".($countMismatches ? " -countmismatches" : ""));
-print LOG "finished cleaning up final results: ".`date`;
+$cmd = "perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile ".($countMismatches ? " -countmismatches" : "");
+&runCmd($cmd);
+print LOG "finished cleaning up final results: ".`date` . "$cmd\n\n";
 
-&runCmd("perl $perlScriptsDir/sort_RUM.pl merge_Unique_temp2 $mainResultDir/RUM_Unique.$subtaskNumber");
+$cmd = "perl $perlScriptsDir/sort_RUM.pl merge_Unique_temp2 $mainResultDir/RUM_Unique.$subtaskNumber";
+&runCmd($cmd);
 ##Note am writing these final results directly back to the server ...
-&runCmd("perl $perlScriptsDir/limit_NU.pl merge_NU_temp2 $limitNU > RUM_NU_temp3");
-&runCmd("perl $perlScriptsDir/sort_RUM.pl RUM_NU_temp3 $mainResultDir/RUM_NU.$subtaskNumber");
-print LOG "finished sorting final results: ".`date`;
+$cmd = "perl $perlScriptsDir/limit_NU.pl merge_NU_temp2 $limitNU > RUM_NU_temp3";
+print LOG "finished limiting NU: ".`date` . "$cmd\n\n";
+&runCmd($cmd);
+$cmd = "perl $perlScriptsDir/sort_RUM.pl RUM_NU_temp3 $mainResultDir/RUM_NU.$subtaskNumber";
+&runCmd($cmd);
+print LOG "finished sorting final results: ".`date` . "$cmd\n\n";
 
 if($createSAMFile){
-  &runCmd("perl $perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile $mainResultDir/RUM_sam.$subtaskNumber");
-  print LOG "finished creating SAM file: ".`date`;
+$cmd = "perl $perlScriptsDir/rum2sam.pl RUM_Unique RUM_NU $readsFile $qualFile $mainResultDir/RUM_sam.$subtaskNumber";
+  &runCmd($cmd);
+  print LOG "finished creating SAM file: ".`date` . "$cmd\n\n";
 }
 
 print LOG "runRUMOnNode.pl complete: ".`date`;
