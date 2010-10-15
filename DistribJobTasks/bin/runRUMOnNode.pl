@@ -90,7 +90,7 @@ $cmd = "perl $perlScriptsDir/merge_Bowtie_and_Blat.pl bowtieUnique blatUnique bo
 &runCmd($cmd);
 print LOG "finished merging Bowtie and Blat: ".`date` . "$cmd\n\n";
 
-$cmd = "perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile ".($countMismatches ? " -countmismatches" : "");
+$cmd = "perl $perlScriptsDir/RUM_finalcleanup.pl merge_Unique_temp merge_NU_temp merge_Unique_temp2 merge_NU_temp2 $genomeFastaFile "."samheader.txt ".($countMismatches ? " -countmismatches" : "");
 &runCmd($cmd);
 print LOG "finished cleaning up final results: ".`date` . "$cmd\n\n";
 
