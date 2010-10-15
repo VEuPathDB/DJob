@@ -197,7 +197,7 @@ sub run {
 
     close($sock);
 
-    $self->reportFailures($masterDir, $propfile);
+    my $failures = $self->reportFailures($masterDir, $propfile);
 
     print "Cleaning up server...\n";
     $task->cleanUpServer($inputDir,"$masterDir/mainresult"); ##allows user to clean up at end of run if desired
@@ -211,7 +211,7 @@ sub run {
       print "Set restart=yes in the controller.prop file and re run to run these failed subtasks.\n\n";
     }
 
-    print "Done\n";
+    print "Done\n" unless $failures;
     ##delete the script file ...
     my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
     system($delScript);
@@ -363,6 +363,7 @@ sub kill {
     return $kill;    
 }
 
+# return the number of failures
 sub reportFailures {
     my ($self, $masterDir, $propfile) = @_;
 
@@ -379,6 +380,7 @@ After analyzing and correcting failures:
 
 ";
     }
+    return $count;
 }
 
 1;
