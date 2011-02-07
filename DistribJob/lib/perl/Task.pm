@@ -120,9 +120,6 @@ sub passSubTask {
     my $node = $subTask->getNodeSlot()->getNode();
     my $nodeSlotDir = $subTask->getNodeSlot()->getDir();
 
-    my $date = `date`;
-    chomp $date;
-    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
 
     my $integRes = $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
                                                   $self->{mainResultDir});
@@ -132,8 +129,12 @@ sub passSubTask {
       return;
     }
 
+    my $date = `date`;
+    chomp $date;
+    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
+
     &runCmd("/bin/rm -rf $subTaskDir");
-    &log($self->{completeLog}, "$subTaskNum\n");
+#    &log($self->{completeLog}, "$subTaskNum\n");
 }
 
 sub getProperty {

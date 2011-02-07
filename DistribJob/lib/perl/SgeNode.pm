@@ -90,11 +90,10 @@ sub cleanUp {
       $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
-      system("qdel $self->{jobid} > /dev/null 2>&1");
-    }else{
-      system("qdel $self->{jobid} > /dev/null 2>&1");
     }
   }
+
+  system("qdel $self->{jobid} > /dev/null 2>&1");  ## moved from above if stmt so always releases node.
 
   $self->setState($state ? $state : $COMPLETE); ##complete
   

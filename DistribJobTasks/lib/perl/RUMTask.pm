@@ -19,7 +19,7 @@ my @properties =
  ["genomeBowtieIndex",   "none",     "genome bowtie index file"],
  ["transcriptFastaFile",   "none",     "transcript file in fasta format"],
  ["transcriptBowtieIndex",   "none",     "transcript bowtie index files"],
- ["geneAnnotationFile",   "",     "geneAnnotationFile in Gregs format (ucsc format)"],
+ ["geneAnnotationFile",   "none",     "geneAnnotationFile in Gregs format (ucsc format)"],
  ["bowtieBinDir",   "",     "bowtie bin directory"],
  ["blatExec",   "",     "blat executable, must be full path unless defined in your path"],
  ["mdustExec",   "",     "mdust executable, must be full path unless defined in your path"],
@@ -165,7 +165,7 @@ sub initNode {
   $node->runCmd("cp $genomeFastaFile $nodeDir");
   $node->runCmd("cp $self->{bowtie_genome}.* $nodeDir");
   $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir") if $self->{bowtie_transcript};
-  $node->runCmd("cp $geneAnnotationFile $nodeDir");
+  $node->runCmd("cp $geneAnnotationFile $nodeDir") if (-e "$geneAnnotationFile");
 }
 
 sub getInputSetSize {
@@ -201,7 +201,7 @@ sub makeSubTaskCommand {
     my $createSAMFile = $self->getProperty("createSAMFile");
     my $countMismatches = $self->getProperty("countMismatches");
     
-    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "")." --geneAnnotationFile $geneAnnotationFile --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --mainResultDir $mainResultDir";
+    my $cmd =  "runRUMOnNode.pl --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "").($geneAnnotationFile =~ /none$/ ? "" : " --geneAnnotationFile $geneAnnotationFile")." --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --mainResultDir $mainResultDir";
     $self->{subtaskCmd} = $cmd;
   }
   return $self->{subtaskCmd} . " --subtaskNumber $subtaskNumber";
