@@ -236,7 +236,11 @@ sub getNodeMsgs {
 #        push(@redoSubtasks,$node->failedSoGetSubtasks());
 #        $node->cleanUp(1,$FAILEDNODE);
 #      }
-      $subtask->setState($status);
+      if(!defined $subtask){
+        print STDERR "ERROR: subtask not defined .. nodeMsg = '$slot'\n";
+      }else{
+        $subtask->setState($status);
+      }
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
         if($n->getJobid() eq $jobid){
