@@ -29,7 +29,7 @@ my @nodes;
 my @redoSubtasks;  ##make global variable so can add to it in the getNodeMsgs method
 
 sub new {
-  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $queue) = @_;
+  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $queue) = @_;
 
   my $self = {};
   bless $self;
@@ -84,7 +84,7 @@ sub new {
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
     foreach my $nodenum (@$nodenumlist) {
-      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $queue);
+      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $memPerNode, $queue);
       if (!$node) {               ##failed to initialize so is null..
         print "  Unable to create node $nodenum....skipping\n";
         next;
@@ -93,7 +93,7 @@ sub new {
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $queue);
+      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $memPerNode, $queue);
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;

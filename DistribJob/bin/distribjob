@@ -7,6 +7,7 @@ use Getopt::Long;
 
 my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname, $queue);
 my $procsPerNode = 2;
+my $memPerNode = 1.8;
 
 &GetOptions("help|h!" => \$help, 
             "kill|k!"=> \$kill,
@@ -14,6 +15,7 @@ my $procsPerNode = 2;
             "numNodes|n=i" => \$numNodes,
             "runTime|t=i" => \$runTime,
             "procsPerNode|ppn=i" => \$procsPerNode,
+            "memoryPerNode|mpn=s" => \$memPerNode,
             "parallelInit|pi=i" => \$parInit,
             "propFile|p=s" => \$propFile,
             "fileName|f=s" => \$fileName,
@@ -31,14 +33,14 @@ unless (-e "$propFile"){
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
-DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $queue);
+DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $queue);
 
 sub usage {
 
     print "
 Usage:
   distribjob --help
-  distribjob --propFile propfile --numNodes <number of nodes> --runTime <minutes for expected run> --parallelInit <number of nodes to initialize task on at a time> --procsPerNode <number of processers per node [2]> --queue <queue name>
+  distribjob --propFile propfile --numNodes <number of nodes> --runTime <minutes for expected run> --parallelInit <number of nodes to initialize task on at a time> --procsPerNode <number of processers per node [2]> --memoryPerNode|mpn <GB of memory per node [1.8]> --queue <queue name>
   distribjob --propFile propfile node1 node2...
   distribjob --propFile propfile -kill
   distribjob --propFile propfile -killslow
@@ -56,6 +58,8 @@ where:
   --parallelInit|pi   Number of ndoes to initialize the task on at a time
 
   --procsPerNode|ppn  Number of processors to request / node [default is  2]
+
+  --memoryPerNode|mpn  gigabytes of memory to request / node [default is  1.8]
 
   --queue|q           Name  of queue to use if not using the default queue
 

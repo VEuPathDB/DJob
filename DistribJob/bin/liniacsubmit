@@ -3,11 +3,12 @@
 use strict;
 use Getopt::Long;
 
-my($queue,$procsPerNode,$help);
+my($queue,$procsPerNode,$help,$memPerNode);
 my $pInit = 4;
 
 &GetOptions("help|h!" => \$help, 
             "procsPerNode|ppn=i" => \$procsPerNode,
+            "memoryPerNode|mpn=s" => \$memPerNode,
             "queue|q=s" => \$queue,
             "pInit|pi=i" => \$pInit,
             );
@@ -27,7 +28,7 @@ system("chmod +x $cancelFile");
 
 print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
 
-my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit $pInit --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($queue ? " --q $queue" : "");
+my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit $pInit --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($memPerNode ? " --mpn $memPerNode" : "").($queue ? " --q $queue" : "");
 
 system($cmd);
 
@@ -57,6 +58,6 @@ sub parseArgs {
 
 sub usage {
 
-    print "usage: liniacsubmit nodecount minutes controllerPropFileFullPath --procsPerNode|ppn <num of procs / node [2]> --queue|q queue\n";
+    print "usage: liniacsubmit nodecount minutes controllerPropFileFullPath --procsPerNode|ppn <num of procs / node [2]> --memoryPerNode|mpn <memory in GB / node [1.8]> --queue|q queue\n";
     exit(1);
 }

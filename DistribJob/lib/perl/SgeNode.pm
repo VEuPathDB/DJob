@@ -26,7 +26,7 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{slotCount} $runFile";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -l mem_free=$self->{memPerNode}G $runFile";
 #    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;
@@ -90,6 +90,15 @@ sub cleanUp {
       $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
+    }
+  }
+
+  ##now want to get stats and print them:
+  my @stats = `qstat -f -j $self->{jobid}`;
+  foreach my $line (@stats){
+    if($line =~ /^usage.*?(cpu.*)$/){
+      print "  qstat -f -j $self->{jobid}: $1\n";
+      last;
     }
   }
 

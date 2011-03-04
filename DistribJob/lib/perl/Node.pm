@@ -27,7 +27,7 @@ my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
 
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $queue) = @_;
+    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue) = @_;
 
     my $self = {};
     bless($self, $class);
@@ -40,6 +40,7 @@ sub new {
     $self->{serverPort} = $serverPort;
     $self->{cwd} = getcwd();
     $self->{procsPerNode} = $procsPerNode;
+    $self->{memPerNode} = $memPerNode;
     $self->{queue} = $queue if $queue;
 
     $self->setState($NOCONNECTION);
