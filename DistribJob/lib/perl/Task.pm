@@ -83,7 +83,7 @@ sub runNextSubtask {
   
   my $date = `date`;
   chomp $date;
-  print "\n[$date] subTask $subtaskNumber dispatching to node $nodeNum.$slotNum\n";
+  print "\n[$date] subTask $subtaskNumber dispatching to node $nodeNum.$slotNum ($node->{jobid})\n";
   
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");

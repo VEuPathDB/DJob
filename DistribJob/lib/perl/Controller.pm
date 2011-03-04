@@ -34,45 +34,54 @@ sub new {
   my $self = {};
   bless $self;
 
-  my ($inputDir, $masterDir, $nodeDir, $slotsPerNode, $subTaskSize, $taskClass, $nodeClass, $restart) = $self->readPropFile($propfile, \@properties);
+  $self->{runTime} = $runTime;
+  $self->{parInit} = $parInit;
+  $self->{fileName} = $fileName;
+  $self->{hostname} = $hostname;
+  $self->{procsPerNode} = $procsPerNode;
+  $self->{memPerNode} = $memPerNode;
+  $self->{queue} = $queue;
+  $self->{kill} = $kill;
+  my $restart;
 
-  return if ($self->kill($kill, $masterDir));
+  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $restart) = $self->readPropFile($propfile, \@properties);
+
+  return if ($self->kill($kill));
 
   if ($restart) {
-    die "masterDir $masterDir must exist to restart." unless -e $masterDir;
-    $self->resetKill($masterDir);
+    die "masterDir $self->{masterDir} must exist to restart." unless -e $self->{masterDir};
+    $self->resetKill();
   } else {
-    die "masterDir $masterDir already exists. Delete it or use -restart." 
-      if -e $masterDir;
-    &runCmd("mkdir -p $masterDir");
+    die "masterDir $self->{masterDir} already exists. Delete it or use -restart." 
+      if -e $self->{masterDir};
+    &runCmd("mkdir -p $self->{masterDir}");
   }
 
-  my $taskPath = $taskClass;
+  my $taskPath = $self->{taskClass};
   $taskPath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$taskPath.pm";
 
-  my $nodePath = $nodeClass;
+  my $nodePath = $self->{nodeClass};
   $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$nodePath.pm";
 
-  my $task = $taskClass->new($inputDir, $subTaskSize, $restart, $masterDir);
+  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir});
 
   print "Initializing server...\n\n";
-  $task->initServer($inputDir);
+  $task->initServer($self->{inputDir});
 
   ##open socket to listen for active nodes...
-  my $localPort;
-  $hostname = `hostname -s` unless $hostname;
-  chomp $hostname;
+  $self->{hostname} = `hostname -s` unless $self->{hostname};
+  chomp $self->{hostname};
   
   my $numTries = 0;
   my $sock;
   do {
     die "Unable to create port on server\n" if $numTries++ > 5;
-    $localPort = int(rand(3000)) + 5000;
+    $self->{localPort} = int(rand(3000)) + 5000;
     $sock = new IO::Socket::INET (
-                                     LocalHost => $hostname,
-                                     LocalPort => $localPort,
+                                     LocalHost => $self->{hostname},
+                                     LocalPort => $self->{localPort},
                                      Proto => 'tcp',
                                      Listen => 100,
                                      Reuse => 1,
@@ -84,7 +93,7 @@ sub new {
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
     foreach my $nodenum (@$nodenumlist) {
-      my $node = $nodeClass->new($nodenum, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $memPerNode, $queue);
+      my $node = $self->{nodeClass}->new($nodenum, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
       if (!$node) {               ##failed to initialize so is null..
         print "  Unable to create node $nodenum....skipping\n";
         next;
@@ -93,7 +102,7 @@ sub new {
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $nodeClass->new(undef, $nodeDir, $slotsPerNode, $runTime, $fileName, $hostname, $localPort, $procsPerNode, $memPerNode, $queue);
+      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;
@@ -102,15 +111,15 @@ sub new {
     }
   }
   ##now start running....
-  $self->run($task, $inputDir, $masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit, $sel, $sock);
+  $self->run($task, $propfile, $sel, $sock);
 } 
 
 sub run {
-    my ($self, $task, $inputDir,$masterDir, $propfile,$nodeClass,$nodeDir,$slotsPerNode, $parInit, $sel, $sock) = @_;
+    my ($self, $task, $propfile, $sel, $sock) = @_;
 
     my $running = 1;
     my $kill;
-    $parInit = 1 unless $parInit;
+    $self->{parInit} = 1 unless $self->{parInit};
     my $complete = 0;
     my $ctLoops = 0;
 
@@ -118,7 +127,7 @@ sub run {
 	
 	print  ($kill ? "!" : ".");
 
-	$kill = $self->checkKill($kill, $masterDir);
+	$kill = $self->checkKill($kill);
 
         my $ctRunning = 0;
         my $ctInitTask = 0;
@@ -139,13 +148,29 @@ sub run {
             print "Submitting node to scheduler ...\n";
             $node->queueNode();
           }elsif($node->getState() == $FAILEDNODE){
+
             push(@redoSubtasks,$node->failedSoGetSubtasks());
+            ### may make sense to store nodes in a hash rather than array so can remove failed nodes.
+            ### alternatively, could create a method to remove the node from the array... probably safer.
+
+            ### cleanup this node
+            $node->cleanUp(1);
+            ### remove from the array of @nodes
+            $self->removeNode($node->getJobid());
+            ### want to get a new node here and add to list of nodes but only do once!!
+            my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
+            if (!$tmpNode) {               ##failed to initialize so is null..
+              print "Unable to create new node to replace failed node ".$node->getJobid()."\n";
+              next;
+            }
+            print "New node ($tmpNode->{jobid}) created to replace failed node (".$node->getJobid().")\n";
+            push(@nodes,$tmpNode);
             next;
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
-            next if($ctInitTask > $parInit);
+            next if($ctInitTask > $self->{parInit});
             $ctInitTask++;
             print "Initializing task on node ".$node->getNum()."...".`date`;
-            $node->initializeTask($task,$inputDir);
+            $node->initializeTask($task,$self->{inputDir});
           }elsif($node->getState() == $INITIALIZINGTASK){  ##still initializing task
             $ctInitTask++;
           }elsif($node->getState() == $RUNNINGTASK){  ##running...
@@ -197,10 +222,10 @@ sub run {
 
     close($sock);
 
-    my $failures = $self->reportFailures($masterDir, $propfile);
+    my $failures = $self->reportFailures($propfile);
 
     print "Cleaning up server...\n";
-    $task->cleanUpServer($inputDir,"$masterDir/mainresult"); ##allows user to clean up at end of run if desired
+    $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult"); ##allows user to clean up at end of run if desired
 
     if(scalar(@redoSubtasks) > 0){
       print "\nNodes running the following subtasks failed\n";
@@ -236,11 +261,7 @@ sub getNodeMsgs {
 #        push(@redoSubtasks,$node->failedSoGetSubtasks());
 #        $node->cleanUp(1,$FAILEDNODE);
 #      }
-      if(!defined $subtask){
-        print STDERR "ERROR: subtask not defined .. nodeMsg = '$slot'\n";
-      }else{
-        $subtask->setState($status);
-      }
+      $subtask->setState($status);
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
         if($n->getJobid() eq $jobid){
@@ -319,14 +340,14 @@ sub readPropFile {
 }
 
 sub checkKill {
-    my ($self, $kill, $masterDir) = @_;
+    my ($self, $kill) = @_;
 
     if (kill != $KILLNOW) {
 
-	if (-e "$masterDir/kill") {
+	if (-e "$self->{masterDir}/kill") {
 	    print  "\nKilled.  Gracefully terminating\n";
 	    $kill = $KILLNOW;
-	} elsif (!$kill && -e "$masterDir/killslow") {
+	} elsif (!$kill && -e "$self->{masterDir}/killslow") {
 	    print  "\nKilled.  Terminating as soon as running subTasks complete\n";
 	    $kill = 1;
 	}
@@ -335,56 +356,66 @@ sub checkKill {
 }
 
 sub resetKill {
-    my ($self, $masterDir) = @_;
+    my ($self) = @_;
 
-    if (-e "$masterDir/killslow") {
-	&runCmd("/bin/rm $masterDir/killslow");
+    if (-e "$self->{masterDir}/killslow") {
+	&runCmd("/bin/rm $self->{masterDir}/killslow");
     }
     
-    if (-e "$masterDir/kill") {
-	&runCmd("/bin/rm $masterDir/kill");
+    if (-e "$self->{masterDir}/kill") {
+	&runCmd("/bin/rm $self->{masterDir}/kill");
     }    
 }
 
 sub kill {
-    my ($self, $kill, $masterDir) = @_;
+    my ($self, $kill) = @_;
 
-    if (-e $masterDir) {
+    if (-e $self->{masterDir}) {
 	if ($kill == $KILLNOW) {
-	    open(F, ">$masterDir/kill");
+	    open(F, ">$self->{masterDir}/kill");
 	    print F "kill\n";
 	    close(F);
 	    print  "Killing now: will not wait for running jobs to complete\n";
 	} elsif ($kill) {
-	    open(F, ">$masterDir/killslow");
+	    open(F, ">$self->{masterDir}/killslow");
 	    print F "killslow\n";
 	    close(F);
 	    print  "Killing slow: will wait for running jobs to complete\n";
 	}
     } elsif ($kill) {
-	print  "Can't kill: masterDir $masterDir doesn't exist\n";
+	print  "Can't kill: masterDir $self->{masterDir} doesn't exist\n";
     }
     return $kill;    
 }
 
 # return the number of failures
 sub reportFailures {
-    my ($self, $masterDir, $propfile) = @_;
+    my ($self, $propfile) = @_;
 
-    my @failures = split("\n", &runCmd("ls -l $masterDir/failures"));
+    my @failures = split("\n", &runCmd("ls -l $self->{masterDir}/failures"));
     my $count = scalar(@failures) - 1;
     if ($count > 0) {
 	print "
 Failure: $count subtasks failed
-Please look in $masterDir/failures/*/result
+Please look in $self->{masterDir}/failures/*/result
 After analyzing and correcting failures:
-  1. mv $masterDir/failures $masterDir/failures.save
+  1. mv $self->{masterDir}/failures $self->{masterDir}/failures.save
   2. set restart=yes in $propfile
   3. restart the job
 
 ";
     }
     return $count;
+}
+
+sub removeNode {
+  my($self,$jid) = @_;
+  my @tmp;
+  foreach my $node (@nodes) {
+    push(@tmp,$node)  unless $node->getJobid() eq $jid;
+  }
+  @nodes = @tmp;
+
 }
 
 1;
