@@ -163,7 +163,7 @@ sub run {
               print "Unable to create new node to replace failed node ".$node->getJobid()."\n";
               next;
             }
-            print "New node ($tmpNode->{jobid}) created to replace failed node (".$node->getJobid().")\n";
+            print "New node created to replace failed node (".$node->getJobid().")\n";
             push(@nodes,$tmpNode);
             next;
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
