@@ -154,6 +154,8 @@ sub initSubTask {
 
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
     $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles");
+
+    $node->runCmd("mkdir $nodeExecDir/output");
 }
 
 # Actually run the subtask by issuing a command on a node. This method
