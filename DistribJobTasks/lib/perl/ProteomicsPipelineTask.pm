@@ -41,6 +41,14 @@ my @properties =
 # verbatim into your task.
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+
+    ##would be good here to check to see that all files exist .. die if not ...
+    die("inputParamFile does not exist\n") unless (-e $self->getProperty("inputParamFile"));
+    die("parserParamFile does not exist\n") unless (-e $self->getProperty("parserParamFile"));
+    die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
+    my $ls = `ls $ENV{PIPELINE_HOME}/pipelineForCluster.jar`;
+    die("ERROR: PIPELINE_HOME environment variable must be set and valid\n" unless $ls =~ /pipelineForCluster/;
+
     return $self;
 }
 
@@ -60,11 +68,6 @@ sub new {
 #
 sub initServer {
     my ($self, $inputDir) = @_;
-
-    ##would be good here to check to see that all files exist .. die if not ...
-    die("inputParamFile does not exist\n") unless (-e $self->getProperty("inputParamFile"));
-    die("parserParamFile does not exist\n") unless (-e $self->getProperty("parserParamFile"));
-    die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
 
 }
 
@@ -150,6 +153,9 @@ sub getInputSetSize {
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
 
+    ##check here to make certain that subtask size = 1
+    die "You must set the subtask size to 1\n" unless $start == $end;
+
     my $mgfFile = $self->{"files"}->[$start];
 
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
@@ -213,6 +219,8 @@ sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
     my @files = $node->runCmd("ls $nodeExecDir/output");
+    ##could check to make sure that the number of files is correct, otherwise throw an error.
+    ##need to go back and look at how to get this to copy into failures ...
     foreach my $file (@files){
       chomp $file;
       $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir");
