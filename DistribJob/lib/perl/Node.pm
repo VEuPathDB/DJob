@@ -45,6 +45,8 @@ sub new {
 
     $self->setState($NOCONNECTION);
 
+    $self->setSaveForCleanup(0);
+
     return $self;
 }
 
@@ -112,6 +114,7 @@ sub runCmd {
   return if $self->getState() >= $COMPLETE;
   my $sock = $self->getPort();
   if(!$sock){
+    print "Falied to get Sock for $self->{nodeNum}\n";
     $self->cleanUp(1, $FAILEDNODE);
     return undef;
   }
@@ -324,12 +327,25 @@ sub checkNode {
   return 1;  ##implement if there are problems..
 }
 
+## saving node for cleanup
+sub setSaveForCleanup {
+  my($self,$val) = @_;
+  $self->{saveForCleanup} = $val;
+}
+
+sub getSaveForCleanup {
+  my($self) = @_;
+  return $self->{saveForCleanup};
+}
+
 
 ##want to only clean up if both slots are finished
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  return if $self->getState() >= $COMPLETE; ##already cleaned up
+  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
+    return if $self->getState() >= $COMPLETE && !$force; ##already cleaned up
+  }
     
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
@@ -342,6 +358,11 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
+  $self->setState($state ? $state : $COMPLETE); ##complete
+
+  ## if saving this one so don't clean up further and release
+  return if($self->getSaveForCleanup() && !$force);  
+
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
 
     print "Cleaning up node $self->{nodeNum}...\n";
@@ -349,14 +370,13 @@ sub cleanUp {
     ##now call the task->cleanUpNode method to enable  users to stop processes running on node
     my $task = $self->getTask();
     $task->cleanUpNode($self) if $task;
-    
+
     if($self->{nodeNum} && $self->getPort()){
       $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
   }
-  $self->setState($state ? $state : $COMPLETE); ##complete
 }
 
 1;

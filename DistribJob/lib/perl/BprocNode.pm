@@ -206,13 +206,20 @@ sub tryCommand {
 sub cleanUp {
     my ($self,$force, $state) = @_;
 
-    return if $self->getState() >= $COMPLETE;  ##already cleaned up
+    if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
+      return if $self->getState() >= $COMPLETE; #already cleaned up
+    }
     
     if(!$force){
       foreach my $slot (@{$self->getSlots()}){
         return unless $slot->isFinished();
       }
     }
+
+    $self->setState($state ? $state : $COMPLETE);  ##complete
+
+    ## if saving this one so don't clean up further and release
+    return if($self->getSaveForCleanup() && !$force);  
 
     ##want to kill any child processes still running to quit cleanly
     if($self->getState() == $QUEUED && $self->{initPid}){
@@ -224,7 +231,6 @@ sub cleanUp {
     $self->runCmd("/bin/rm -r $self->{nodeDir}") if $self->getState() > $QUEUED;
     unlink("$self->{jobid}.stdout");  ##delete that nasty .stdout file
     system("canceljob $self->{jobid} > /dev/null");  ##release the node back into scheduler
-    $self->setState($state ? $state : $COMPLETE);  ##complete
 }
 
 1;

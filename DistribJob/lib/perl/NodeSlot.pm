@@ -79,7 +79,7 @@ sub isFinished {
 sub cleanUp {
     my ($self) = @_;
     $self->{finished} = 1;
-    $self->{node}->cleanUp();
+    $self->{node}->cleanUp(); 
 }
 
 1;

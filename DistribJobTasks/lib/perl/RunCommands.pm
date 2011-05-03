@@ -86,4 +86,13 @@ sub integrateSubTaskResults {
     my $cmd = "cat $nodeExecDir/$out >> $mainResultDir/$out";
     $node->runCmd($cmd); 
 }
+
+
+# a node is now passed in that can be used to run commands on a node using $node->runCmd("cmd")
+# NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
+sub cleanUpServer {
+  my($self, $inputDir, $mainResultDir, $node) = @_;
+  return 1;
+}
+
 1;

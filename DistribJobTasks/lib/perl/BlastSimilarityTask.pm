@@ -165,4 +165,19 @@ sub integrateSubTaskResults {
     $node->runCmd("cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
     $node->runCmd("cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log");
 }
+
+
+## concatenate files here so are in order
+sub cleanUpServer {
+  my($self, $inputDir, $mainResultDir, $node) = @_;
+
+  ## testing that have a node to use for cleanup
+  if($node){
+    print "node->cleanUpServer ...\n";
+    my $host = $node->runCmd("hostname"); chomp $host;
+    print "   Have this node available ... $node->{nodeNum}: hostname='$host'\n";
+  }
+
+}
+
 1;

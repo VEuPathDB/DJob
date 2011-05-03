@@ -218,8 +218,18 @@ sub integrateSubTaskResults {
 }
 
 ## concatenate files here so are in order
+# a node is now passed in that can be used to run commands on a node using $node->runCmd("cmd")
+# NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 sub cleanUpServer {
-  my($self, $inputDir, $mainResultDir) = @_;
+  my($self, $inputDir, $mainResultDir, $node) = @_;
+
+  ## testing that have a node to use for cleanup
+  if($node){
+    print "node->cleanUpServer ...\n";
+    my $host = $node->runCmd("hostname"); chomp $host;
+    print "   Have this node available ... $node->{nodeNum}: hostname='$host'\n";
+  }
+
   my $currDir = `pwd`;
   chomp $currDir;
   chdir("$mainResultDir") || die "$!";

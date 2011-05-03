@@ -66,7 +66,9 @@ sub _initNodeDir {
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  return if $self->getState() >= $COMPLETE; #already cleaned up
+  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
+    return if $self->getState() >= $COMPLETE; #already cleaned up
+  }
     
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
@@ -78,6 +80,11 @@ sub cleanUp {
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
+
+  $self->setState($state ? $state : $COMPLETE); ##complete
+
+  ## if saving this one so don't clean up further and release
+  return if($self->getSaveForCleanup() && !$force);  
   
   print "Cleaning up node $self->{nodeNum}...\n";
   
@@ -96,7 +103,6 @@ sub cleanUp {
   }
   my $delCmd = "/bin/rm $ENV{HOME}/$jid.*OU > /dev/null 2>&1";
   system($delCmd); 
-  $self->setState($state ? $state : $COMPLETE); ##complete
 }
 
 1;

@@ -72,7 +72,9 @@ sub getNodeAddress {
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  return if $self->getState() >= $COMPLETE; #already cleaned up
+  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
+    return if $self->getState() >= $COMPLETE; #already cleaned up
+  }
     
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
@@ -84,6 +86,11 @@ sub cleanUp {
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
+
+  $self->setState($state ? $state : $COMPLETE); ##complete
+
+  ## if saving this one so don't clean up further and release
+  return if($self->getSaveForCleanup() && !$force);  
 
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
   
@@ -103,7 +110,6 @@ sub cleanUp {
     }
   }
 
-  $self->setState($state ? $state : $COMPLETE); ##complete
   
   ##delete those pesky OU files that don't do anything
   my $jid = $self->{jobid};

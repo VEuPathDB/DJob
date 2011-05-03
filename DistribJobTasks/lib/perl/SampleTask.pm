@@ -225,8 +225,10 @@ sub cleanUpNode {
 # all nodes have completed.  This allows users to run some additional analysis
 # on the server that may clean up or further analyze the combined  results of
 # the run.
+# a node is now passed in that can be used to run commands on a node using $node->runCmd("cmd")
+# NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 sub cleanUpServer {
-  my($self, $inputDir, $mainResultDir) = @_;
+  my($self, $inputDir, $mainResultDir, $node) = @_;
   return 1;
 }
 

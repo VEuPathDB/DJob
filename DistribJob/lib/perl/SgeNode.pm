@@ -65,21 +65,33 @@ sub getNodeAddress {
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  return if $self->getState() >= $COMPLETE; #already cleaned up
-    
+  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
+    return if $self->getState() >= $COMPLETE; #already cleaned up
+  }
+
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
       return unless $slot->isFinished();
     }
   }
+
+
+  my $host = $self->runCmd("hostname");
+  chomp $host;
   
   ##want to kill any child processes still running to quit cleanly
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
+  $self->setState($state ? $state : $COMPLETE); ##complete
+
+  ## if saving this one so don't clean up further and release
+  return if($self->getSaveForCleanup() && !$force);  
+    
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
   
+
     print "Cleaning up node $self->{nodeNum}...\n";
     
     my $task = $self->getTask();
@@ -104,8 +116,6 @@ sub cleanUp {
 
   system("qdel $self->{jobid} > /dev/null 2>&1");  ## moved from above if stmt so always releases node.
 
-  $self->setState($state ? $state : $COMPLETE); ##complete
-  
   ##delete those pesky files that don't do anything
   my $jid = $self->{jobid};
   if($self->{jobid} =~ /^(\d+)/){

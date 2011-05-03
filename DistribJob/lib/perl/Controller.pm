@@ -22,6 +22,7 @@ my @properties =
  ["subtasksize",  "",  "Number of input elements to include in each subtask"],
  ["taskclass",    "",  "Subclass of DJob::DistribJob::Task that manages the task"],
  ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
+ ["keepNodeForPostProcessing", "no",  "yes/no: keep a node for cleanup at end"],
  ["restart",      "",  "yes/no: restart a task"]
  );
 
@@ -44,7 +45,7 @@ sub new {
   $self->{kill} = $kill;
   my $restart;
 
-  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $restart) = $self->readPropFile($propfile, \@properties);
+  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $restart) = $self->readPropFile($propfile, \@properties);
 
   return if ($self->kill($kill));
 
@@ -155,6 +156,7 @@ sub run {
 
             ### cleanup this node
             $node->cleanUp(1);
+            $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes';
             ### remove from the array of @nodes
             $self->removeNode($node->getJobid());
             ### want to get a new node here and add to list of nodes but only do once!!
@@ -175,6 +177,11 @@ sub run {
             $ctInitTask++;
           }elsif($node->getState() == $RUNNINGTASK){  ##running...
             $ctRunning++;
+            ##set node to be saved if not already set to be saved and count < saveforcleanup
+            if ($self->{keepNodeForPostProcessing} eq 'yes' && !$self->{haveCleanupNode} && !$node->getSaveForCleanup()){
+              $node->setSaveForCleanup(1);
+              $self->{haveCleanupNode} = 1;
+            }
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
                 last if $node->getState() == $FAILEDNODE;  ##taskComplete can fail if results can't be integrated so need to stop processing if that happens.
@@ -198,6 +205,7 @@ sub run {
                     ##need to get all subtasks from this node and assign to another...
                     push(@redoSubtasks,$node->failedSoGetSubtasks());
                     $node->cleanUp(1,$FAILEDNODE);
+                    $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes';
                     last;
                   }
                 }
@@ -217,15 +225,26 @@ sub run {
 
     print "Cleaning up nodes...\n";
     foreach my $node (@nodes) {
-	$node->cleanUp(1);
+      $node->cleanUp(1) unless $node->getSaveForCleanup();
     }
-
-    close($sock);
 
     my $failures = $self->reportFailures($propfile);
 
+    ##get node that have been saved for cleanup here so can pass to cleanUpServer method
+    my $cNode;
+    foreach my $node (@nodes){
+      if($node->getSaveForCleanup()){
+        $node->setState($RUNNINGTASK);
+        $cNode = $node;
+        last;
+      }
+    }
+    
     print "Cleaning up server...\n";
-    $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult"); ##allows user to clean up at end of run if desired
+    $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
+    
+    $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
+
 
     if(scalar(@redoSubtasks) > 0){
       print "\nNodes running the following subtasks failed\n";
@@ -240,6 +259,7 @@ sub run {
     ##delete the script file ...
     my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
     system($delScript);
+    close($sock);
 }
 
 sub getNodeMsgs {
@@ -336,7 +356,7 @@ sub readPropFile {
 	    $props->getProp('nodedir'), 
 	    $props->getProp('slotspernode'), $props->getProp('subtasksize'), 
 	    $props->getProp('taskclass'), 
-	    $props->getProp('nodeclass'), $restart);
+	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'), $restart);
 }
 
 sub checkKill {
