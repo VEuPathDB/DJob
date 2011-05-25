@@ -134,7 +134,7 @@ sub passSubTask {
     print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
 
     &runCmd("/bin/rm -rf $subTaskDir");
-#    &log($self->{completeLog}, "$subTaskNum\n");
+    &appendToLogFile($self->{completeLog}, "$subTaskNum\n");
 }
 
 sub getProperty {
