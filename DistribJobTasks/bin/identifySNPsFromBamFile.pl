@@ -30,18 +30,18 @@ my ($genomeFastaFile, $perlScriptsDir, $varscan, $samtools, $samFile);
             "perlScriptsDir=s" => \$perlScriptsDir, 
             "varScanJarFile|vsjf=s" => \$varscan,
             "samtoolsPath|sp=s" => \$samtools,
-            "samFile|sf=s" => \$samFile,
+            "bamFile|sf=s" => \$samFile,
             );
 
-die "requires --genomeFastaFile --varScanJarFile --samtoolsPath --samFile\n" unless -e $genomeFastaFile && -e $varscan && -e $samtools && -e $samFile;
+die "requires --genomeFastaFile --varScanJarFile --samtoolsPath --bamFile\n" unless -e $genomeFastaFile && -e $varscan && -e $samtools && -e $samFile;
 
 my $fileBase = $samFile;
-$fileBase =~ s/\.sam$//;
+$fileBase =~ s/\.bam$//;
 
 print LOG "starting: ".`date`."\n";
 
 ##samtools to generate sorted bam file
-my $cmd = "$samtools view -uS $samFile | $samtools sort - $fileBase";
+my $cmd = "$samtools view -u $samFile | $samtools sort - $fileBase";
 &runCmd($cmd);
 ## check for error and return proper error code if failed
 print LOG "finished BAM file generation ".`date` . "$cmd\n\n";
