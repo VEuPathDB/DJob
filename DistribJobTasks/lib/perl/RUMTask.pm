@@ -1,6 +1,6 @@
 package DJob::DistribJobTasks::RUMTask;
-
 use DJob::DistribJob::Task;
+#use CBIL::Bio::FastaFile;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -31,6 +31,7 @@ my @properties =
  ["strandSpecific",   "false",     "data is strand specific if 1 ([false] | true)"],
  ["createJunctionsFile", "false", "create Juncctions file if 1 ([false] | true)"],
  ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
+ ["SNPs",   "false",     "run snp finder ([false] | true)"],
  ["variableLengthReads",   "false",     "reads have variable lengths [false] | true)"],
  ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
@@ -328,7 +329,7 @@ sub cleanUpServer {
 	    }
 	    close(SAMHEADER);
 	}
-	open(SAMOUT, ">RUM_sam");
+	open(SAMOUT, ">RUM.sam");
 	foreach my $key (sort {cmpChrs($a,$b)} keys %samheader) {
 	    my $shout = $samheader{$key};
 	    print SAMOUT "$shout\n";
@@ -336,14 +337,14 @@ sub cleanUpServer {
 	close(SAMOUT);
 	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
 	    print STDERR "  Adding $f\n";
-	    &runCmd("cat $f >> RUM_sam");
+	    &runCmd("cat $f >> RUM.sam");
 	    unlink($f);
 	}
     }
     
-    &runCmd("samtools view -b -S RUM_sam > RUM.bam");
+    &runCmd("samtools view -b -S RUM.sam > RUM.bam");
 
-    my $X = `tail -1 RUM_sam`;
+    my $X = `tail -1 RUM.sam`;
     $X =~ /^seq.(\d+)/;
     my $NumSeqs = $1;
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
@@ -402,7 +403,12 @@ sub cleanUpServer {
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.minus $mainResultDir/RUM_NU.minus.cov -name \"Non-Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
     }
 
-#    node->runCmd("perl identifySNPsFromSamFile.pl");
+
+    my $SNPs = $self->getProperty("SNPs");
+    if($SNPs eq 'true') {
+	my $genomeFastaFile = $self->getProperty("genomeFastaFile");
+	$node->runCmd("perl identifySNPsFromSamFile.pl --genomeFastaFile $genomeFastaFile --varScanJarFile \$GUS_HOME/lib/java/VarScan.v2.2.5.jar --samtoolsPath /gpfs/fs0/share/apps/bs/bioscope/bin/samtools --samFile RUM.sam");
+    }
     
     chdir("$currDir") || die "$!";
     return 1;
@@ -413,10 +419,10 @@ sub sortResultFiles {
   my @files = `ls $fn`;
   my @tmp;
   foreach my $f (@files){
-    next if $f  =~ /all$/;
+    next if !($f  =~ /\d$/);
     chomp $f;
-    next if $f  =~ /all$/;
-    if($f =~ /\.(\d+)$/){
+    next if !($f  =~ /\d$/);
+    if($f =~ /[a-zA-Z]\.(\d+)/){
       push(@tmp,[$f,$1]);
     }else{
       die "ERROR sorting result files";
