@@ -1,6 +1,6 @@
 package DJob::DistribJobTasks::RUMTask;
+
 use DJob::DistribJob::Task;
-#use CBIL::Bio::FastaFile;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -106,7 +106,8 @@ sub initServer {
     }
 
     ##get read length
-    if($self->{variableLengthReads} eq 'true') {
+    my $variableLengthReads = $self->getProperty("variableLengthReads");
+    if($variableLengthReads eq 'true') {
 	$self->{readLength} = "v";
     } else {
 	my $read = `head -2 $inputDir/subtasks/reads.1  | tail -1`;
@@ -187,7 +188,7 @@ sub initServer {
     my $date = `date`;
     open(LOGFILE, ">rum.log_master");
     print LOGFILE "\nstart: $date\n";
-    if($self->{variableLengthReads} eq "false") {
+    if($variableLengthReads eq "false") {
         my $readlength = $self->{readLength};
 	print LOGFILE "readlength: $readlength\n";
     } else {
@@ -195,7 +196,7 @@ sub initServer {
     }
     
     my $minlength = $self->{minlength};
-    if($self->{variableLengthReads} eq "false" || $minlength > 0) {
+    if($variableLengthReads eq "false" || $minlength > 0) {
 	if($minlength == 0) {
 	    print LOGFILE "minimum length alignment to report: $match_length_cutoff\n  *** NOTE: If you want shorter alignments reported, use the -minlength option.\n";
 	} else {
@@ -303,14 +304,14 @@ sub cleanUpServer {
     foreach my $f (@unique){
 	$numchunks++;
 	print STDERR "  Adding $f\n";
-	&runCmd("cat $f >> RUM_Unique.all");
+	&runCmd("cat $f >> RUM_Unique");
 	unlink($f);
     }
 
     print STDERR "Concatenating RUM_NU files\n";
     foreach my $f ($self->sortResultFiles('RUM_NU.* | grep -v sorted')){
 	print STDERR "  Adding $f\n";
-	&runCmd("cat $f >> RUM_NU.all");
+	&runCmd("cat $f >> RUM_NU");
 	unlink($f);
     }
 
@@ -327,7 +328,7 @@ sub cleanUpServer {
 	    }
 	    close(SAMHEADER);
 	}
-	open(SAMOUT, ">RUM_sam.all");
+	open(SAMOUT, ">RUM_sam");
 	foreach my $key (sort {cmpChrs($a,$b)} keys %samheader) {
 	    my $shout = $samheader{$key};
 	    print SAMOUT "$shout\n";
@@ -335,27 +336,32 @@ sub cleanUpServer {
 	close(SAMOUT);
 	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
 	    print STDERR "  Adding $f\n";
-	    &runCmd("cat $f >> RUM_sam.all");
+	    &runCmd("cat $f >> RUM_sam");
 	    unlink($f);
 	}
     }
     
-    my $X = `tail -1 RUM_sam.all`;
+    &runCmd("samtools view -b -S RUM_sam > RUM.bam");
+
+    my $X = `tail -1 RUM_sam`;
     $X =~ /^seq.(\d+)/;
     my $NumSeqs = $1;
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    $node->runCmd("perl $perlScriptsDir/count_reads_mapped.pl $mainResultDir/RUM_Unique.all $mainResultDir/RUM_NU.all -minseq 1 -maxseq $NumSeqs > $mainResultDir/mapping_stats.txt 2>> PostProcessing-errorlog");
+    $node->runCmd("perl $perlScriptsDir/count_reads_mapped.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU -minseq 1 -maxseq $NumSeqs > $mainResultDir/mapping_stats.txt 2>> PostProcessing-errorlog");
 
-    if($self->getProperty("strandSpecific") eq 'true') {
-	$node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl feature_quantifications.ps feature_quantifications.ms feature_quantifications.pa feature_quantifications.ma $geneAnnotationFile feature_quantifications 2>> PostProcessing-errorlog");
-    } else {
-	$node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
+    my $transcriptFastaFile = $self->getProperty("transcriptFastaFile");
+    if($transcriptFastaFile ne 'none') {
+	if($self->getProperty("strandSpecific") eq 'true') {
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
+	} else {
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
+	}
     }
-		
+
     my $string = "$mainResultDir/RUM_Unique.sorted";
     for(my $j=1; $j<$numchunks+1; $j++) {
 	$string = $string . " $mainResultDir/RUM_Unique.sorted.$j";
@@ -395,6 +401,8 @@ sub cleanUpServer {
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.plus.cov -name \"Non-Unique Mappers Plus Strand\" 2>> PostProcessing-errorlog");
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.minus $mainResultDir/RUM_NU.minus.cov -name \"Non-Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
     }
+
+#    node->runCmd("perl identifySNPsFromSamFile.pl");
     
     chdir("$currDir") || die "$!";
     return 1;
