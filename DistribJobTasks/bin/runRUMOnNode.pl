@@ -146,20 +146,21 @@ $cmd = "perl $perlScriptsDir/sort_RUM_by_location.pl $mainResultDir/RUM_Unique.$
 $cmd = "perl $perlScriptsDir/sort_RUM_by_location.pl $mainResultDir/RUM_NU.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber > $mainResultDir/chr_counts_nu.$subtaskNumber";
 &runCmd($cmd);
 
-if($strandSpecific eq 'true') {
-    $cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ps.$subtaskNumber -countsonly -strand p";
-    &runCmd($cmd);
-    $cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ms.$subtaskNumber -countsonly -strand m";
-    &runCmd($cmd);
-    $cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.pa.$subtaskNumber -countsonly -strand p -anti";
-    &runCmd($cmd);
-    $cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ma.$subtaskNumber -countsonly -strand m -anti";
-    &runCmd($cmd);
-} else {
-    $cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.$subtaskNumber -countsonly";
-    &runCmd($cmd);
+if($transcriptBowtieIndex) {
+    if($strandSpecific eq 'true') {
+	$cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ps.$subtaskNumber -countsonly -strand p";
+	&runCmd($cmd);
+	$cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ms.$subtaskNumber -countsonly -strand m";
+	&runCmd($cmd);
+	$cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.pa.$subtaskNumber -countsonly -strand p -anti";
+	&runCmd($cmd);
+	$cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.ma.$subtaskNumber -countsonly -strand m -anti";
+	&runCmd($cmd);
+    } else {
+	$cmd = "perl $perlScriptsDir/rum2quantifications.pl $geneAnnotationFile $mainResultDir/RUM_Unique.sorted.$subtaskNumber $mainResultDir/RUM_NU.sorted.$subtaskNumber $mainResultDir/quant.$subtaskNumber -countsonly";
+	&runCmd($cmd);
+    }
 }
-
 
 print LOG "runRUMOnNode.pl complete: ".`date`;
 
