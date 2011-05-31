@@ -406,8 +406,7 @@ sub cleanUpServer {
 
     my $SNPs = $self->getProperty("SNPs");
     if($SNPs eq 'true') {
-	my $genomeFastaFile = $self->getProperty("genomeFastaFile");
-	$node->runCmd("perl identifySNPsFromSamFile.pl --genomeFastaFile $genomeFastaFile --varScanJarFile \$GUS_HOME/lib/java/VarScan.v2.2.5.jar --samtoolsPath /gpfs/fs0/share/apps/bs/bioscope/bin/samtools --samFile RUM.sam");
+	$node->runCmd("identifySNPsFromBamFile.pl --genomeFastaFile $genomeFastaFile --varScanJarFile $ENV{GUS_HOME}/lib/java/VarScan.v2.2.5.jar --samtoolsPath /gpfs/fs0/share/apps/bs/bioscope/bin/samtools --bamFile $mainResultDir/RUM.bam");
     }
     
     chdir("$currDir") || die "$!";

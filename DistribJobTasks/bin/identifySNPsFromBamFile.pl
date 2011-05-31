@@ -5,7 +5,7 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-open(LOG,">identifySNPsFromSamFile.log");
+open(LOG,">identifySNPsFromBamFile.log");
 
 #print STDERR "args:\n"; foreach my $a (@ARGV){ print STDERR " '$a'\n"; }
 
@@ -24,24 +24,24 @@ my $debug = 0;
 
 $| = 1;
 
-my ($genomeFastaFile, $perlScriptsDir, $varscan, $samtools, $samFile);
+my ($genomeFastaFile, $perlScriptsDir, $varscan, $samtools, $bamFile);
 
 &GetOptions("genomeFastaFile=s" => \$genomeFastaFile, 
             "perlScriptsDir=s" => \$perlScriptsDir, 
             "varScanJarFile|vsjf=s" => \$varscan,
             "samtoolsPath|sp=s" => \$samtools,
-            "bamFile|sf=s" => \$samFile,
+            "bamFile|sf=s" => \$bamFile,
             );
 
-die "requires --genomeFastaFile --varScanJarFile --samtoolsPath --bamFile\n" unless -e $genomeFastaFile && -e $varscan && -e $samtools && -e $samFile;
+die "requires --genomeFastaFile --varScanJarFile --samtoolsPath --bamFile\n" unless -e $genomeFastaFile && -e $varscan && -e $samtools && -e $bamFile;
 
-my $fileBase = $samFile;
+my $fileBase = $bamFile;
 $fileBase =~ s/\.bam$//;
 
 print LOG "starting: ".`date`."\n";
 
 ##samtools to generate sorted bam file
-my $cmd = "$samtools view -u $samFile | $samtools sort - $fileBase";
+my $cmd = "$samtools view -u $bamFile | $samtools sort - $fileBase";
 &runCmd($cmd);
 ## check for error and return proper error code if failed
 print LOG "finished BAM file generation ".`date` . "$cmd\n\n";
