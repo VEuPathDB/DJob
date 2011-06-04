@@ -1,6 +1,5 @@
 package DJob::DistribJobTasks::RUMTask;
 use DJob::DistribJob::Task;
-#use CBIL::Bio::FastaFile;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -18,7 +17,7 @@ my @properties =
  ["genomeBowtieIndex",   "none",     "genome bowtie index file"],
  ["transcriptFastaFile",   "none",     "transcript file in fasta format"],
  ["transcriptBowtieIndex",   "none",     "transcript bowtie index files"],
- ["geneAnnotationFile",   "none",     "geneAnnotationFile in Gregs format (ucsc format)"],
+ ["geneAnnotationFile",   "none",     "geneAnnotationFile in Greg's format (ucsc format)"],
  ["bowtieBinDir",   "",     "bowtie bin directory"],
  ["blatExec",   "",     "blat executable, must be full path unless defined in your path"],
  ["mdustExec",   "",     "mdust executable, must be full path unless defined in your path"],
@@ -343,23 +342,41 @@ sub cleanUpServer {
     }
     
     &runCmd("samtools view -b -S RUM.sam > RUM.bam");
+    &runCmd("samtools sort RUM.bam RUM.sorted");
+    &runCmd("samtools index RUM.sorted.bam RUM.sorted.bam.bai");
 
-    my $X = `tail -1 RUM.sam`;
-    $X =~ /^seq.(\d+)/;
-    my $NumSeqs = $1;
+# I did the following because sometimes the file RUM.sam isn't written
+# by the time it reaches this, because of occasional turgid file system on the cluster.
+    my $flag_x = 0;
+    my $cnt_x = 0;
+    my $NumSeqs;
+    while($flag_x == 0) {
+	$cnt_x++;
+	if($cnt_x > 100) {
+	    $flag_x = 1;
+	}
+	my $X = `tail -1 RUM.sam`;
+	$X =~ /^seq.(\d+)/;
+	$NumSeqs = $1;
+	if($NumSeqs =~ /^\d+$/) {
+	    $flag_x = 1;
+	} else {
+	    sleep(5);
+	}
+    }
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
     $node->runCmd("perl $perlScriptsDir/count_reads_mapped.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU -minseq 1 -maxseq $NumSeqs > $mainResultDir/mapping_stats.txt 2>> PostProcessing-errorlog");
 
-    my $transcriptFastaFile = $self->getProperty("transcriptFastaFile");
-    if($transcriptFastaFile ne 'none') {
+    my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
+    if($transcriptBowtieIndex ne 'none') {
 	if($self->getProperty("strandSpecific") eq 'true') {
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma -countsonly 2>> PostProcessing-errorlog");
 	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
 	} else {
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications -countsonly 2>> PostProcessing-errorlog");
 	}
     }
 
@@ -391,18 +408,46 @@ sub cleanUpServer {
     }
 
     $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.cov -name \"Unique Mappers\" 2>> PostProcessing-errorlog");
+    $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.cov -open > $mainResultDir/RUM_Unique.normalized.cov 2>> PostProcessing-errorlog");
+
     $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.cov -name \"Non-Unique Mappers\" 2>> PostProcessing-errorlog");
+    $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.cov -open > $mainResultDir/RUM_NU.normalized.cov 2>> PostProcessing-errorlog");
+
     if($self->getProperty("strandSpecific") eq 'true') {
 	# breakup RUM_Unique and RUM_NU files into plus and minus
 	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.sorted.plus $mainResultDir/RUM_Unique.sorted.minus 2>> PostProcessing-errorlog");
 	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.sorted.minus 2>> PostProcessing-errorlog");
 	# run rum2cov on all four files
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.plus $mainResultDir/RUM_Unique.plus.cov -name \"Unique Mappers Plus Strand\" 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.minus $mainResultDir/RUM_Unique.minus.cov -name \"Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.plus.cov -open > $mainResultDir/RUM_Unique.plus.normalized.cov 2>> PostProcessing-errorlog");
+ 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.minus $mainResultDir/RUM_Unique.minus.cov -name \"Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.minus.cov -open > $mainResultDir/RUM_Unique.minus.normalized.cov 2>> PostProcessing-errorlog");
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.plus.cov -name \"Non-Unique Mappers Plus Strand\" 2>> PostProcessing-errorlog");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.plus.cov -open > $mainResultDir/RUM_NU.plus.normalized.cov 2>> PostProcessing-errorlog");
 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.minus $mainResultDir/RUM_NU.minus.cov -name \"Non-Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.minus.cov -open > $mainResultDir/RUM_NU.minus.normalized.cov 2>> PostProcessing-errorlog");
     }
 
+# cleanup temp files
+
+    `rm RUM_Unique.s*`;
+    `rm RUM_Unique`;
+    `rm RUM_NU.s*`;
+    `rm RUM_NU`;
+    `rm RUM.sam*`;
+    `rm chr_counts*`;
+    `rm sam_header*`;
+    if($transcriptBowtieIndex ne 'none') {
+	`rm quant*`;
+    }
+    if($transcriptBowtieIndex ne 'none' && $self->getProperty("strandSpecific") eq 'true') {
+	`rm feature_quantifications.ps`;
+	`rm feature_quantifications.ms`;
+	`rm feature_quantifications.pa`;
+	`rm feature_quantifications.ma`;
+    }
+
+# do SNP calling, if requested
 
     my $SNPs = $self->getProperty("SNPs");
     if($SNPs eq 'true') {
