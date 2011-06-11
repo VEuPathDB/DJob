@@ -296,8 +296,14 @@ sub cleanUpServer {
     # concatenate files so are in order
     print STDERR "Concatenating RUM_Unique files\n";
     my @unique = $self->sortResultFiles('RUM_Unique.* | grep -v sorted');
+    my $cnt_x = 0;
+    if(scalar(@unique) != $self->{numSubtasks} && $cnt_x < 20){
+	sleep(5);
+	@unique = $self->sortResultFiles('RUM_Unique.* | grep -v sorted');
+	$cnt_x++;
+    }    
     if(scalar(@unique) != $self->{numSubtasks}){
-	print STDERR "Not concatenating files: number of subtasks ($self->{numSubtasks}) differs from number of files (".scalar(@unique).")\n";
+	print STDERR "Not concatenating files: number of subtasks ($self->{numSubtasks}) differs from number of files (".scalar(@unique).") ($cnt_x)\n";
 	return 1;
     }
     my $numchunks;
@@ -371,12 +377,22 @@ sub cleanUpServer {
     if($transcriptBowtieIndex ne 'none') {
 	if($self->getProperty("strandSpecific") eq 'true') {
 	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ps -strand ps 2>> PostProcessing-errorlog");
+
 	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ms -strand ms 2>> PostProcessing-errorlog");
+
 	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.pa -strand pa 2>> PostProcessing-errorlog");
+
 	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ma -strand ma 2>> PostProcessing-errorlog");
+
+	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_counts 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications_normalized.ps $mainResultDir/feature_quantifications_normalized.ms $mainResultDir/feature_quantifications_normalized.pa $mainResultDir/feature_quantifications_normalized.ma $geneAnnotationFile $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
 	} else {
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_counts -countsonly 2>> PostProcessing-errorlog");
+	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
 	}
     }
 
@@ -430,10 +446,20 @@ sub cleanUpServer {
 
 # cleanup temp files
 
-    `rm RUM_Unique.s*`;
     `rm RUM_Unique`;
-    `rm RUM_NU.s*`;
     `rm RUM_NU`;
+    `rm RUM_Unique.sorted`;
+    `rm RUM_NU.sorted`;
+    if($self->getProperty("strandSpecific") eq 'true') {
+	`rm RUM_Unique.sorted.plus`;
+	`rm RUM_Unique.sorted.minus`;
+	`rm RUM_NU.sorted.plus`;
+	`rm RUM_NU.sorted.minus`;
+    }
+    for(my $j=1; $j<$numchunks+1; $j++) {
+	`rm RUM_Unique.sorted.$j`;
+	`rm RUM_NU.sorted.$j`;
+    }    
     `rm RUM.sam*`;
     `rm chr_counts*`;
     `rm sam_header*`;
@@ -445,6 +471,10 @@ sub cleanUpServer {
 	`rm feature_quantifications.ms`;
 	`rm feature_quantifications.pa`;
 	`rm feature_quantifications.ma`;
+	`rm feature_quantifications_normalized.ps`;
+	`rm feature_quantifications_normalized.ms`;
+	`rm feature_quantifications_normalized.pa`;
+	`rm feature_quantifications_normalized.ma`;
     }
 
 # do SNP calling, if requested
