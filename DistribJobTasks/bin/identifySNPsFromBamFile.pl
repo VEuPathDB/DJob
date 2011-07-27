@@ -52,7 +52,7 @@ $cmd = "$samtools pileup -f $genomeFastaFile $fileBase.bam > $fileBase.pileup";
 print LOG "finished pileup file generation ".`date` . "$cmd\n\n";
 
 ##run varscan to identify SNPs
-$cmd = "java -jar $varscan pileup2snp $fileBase.pileup -p-value .01 > $fileBase.snps";
+$cmd = "java -jar $varscan pileup2snp $fileBase.pileup --p-value .01 --min-coverage 5 > $fileBase.snps";
 &runCmd($cmd);
 print LOG "finished varscan run to call SNPs ".`date` . "$cmd\n\n";
 
