@@ -32,6 +32,8 @@ my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $contr
 
 system($cmd);
 
+print "\nRunning cmd:\n$cmd";
+
 open(F,">>$cancelFile");
 print F "\n\n";
 close F;
