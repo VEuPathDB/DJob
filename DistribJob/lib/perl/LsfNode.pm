@@ -52,7 +52,7 @@ EOF
     DEBUG && warn "DEBUG: jobid $jid";    
 
     if($jid =~ /^\d+$/) { 
-      $self->{nodeDir} = "$self->{nodeDir}.$jid";
+      $self->{nodeDir} = "$self->{nodeDir}/$jid";
     } # else ??
 
     $self->setJobid($jid);
