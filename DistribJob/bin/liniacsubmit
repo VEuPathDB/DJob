@@ -46,10 +46,10 @@ unlink "$cancelFile";
 sub parseArgs {
     my ($nodecount, $minutes, $controllerPropFile,$ppn) = @ARGV;
 
-    &usage unless ($nodecount && $minutes && $controllerPropFile);
+    &usage unless ($nodecount && $controllerPropFile);
 
     &usage if ($nodecount <= 0 || $nodecount > 10000); 
-    &usage if ($minutes <= 0 || $minutes > 100000); 
+    &usage if ($minutes < 0 || $minutes > 100000); 
     &usage unless $controllerPropFile =~ /^\//;
 
     die "controller properties file $controllerPropFile does not exist"
