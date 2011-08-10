@@ -30,9 +30,9 @@ print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
 
 my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit $pInit --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($memPerNode ? " --mpn $memPerNode" : "").($queue ? " --q $queue" : "");
 
-system($cmd);
-
 print "\nRunning cmd:\n$cmd";
+
+system($cmd);
 
 open(F,">>$cancelFile");
 print F "\n\n";
