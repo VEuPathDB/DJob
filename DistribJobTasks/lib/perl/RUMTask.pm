@@ -448,8 +448,8 @@ sub cleanUpServer {
 
     `rm RUM_Unique`;
     `rm RUM_NU`;
-    `rm RUM_Unique.sorted`;
-    `rm RUM_NU.sorted`;
+    #`rm RUM_Unique.sorted`;
+    #`rm RUM_NU.sorted`;
     if($self->getProperty("strandSpecific") eq 'true') {
 	`rm RUM_Unique.sorted.plus`;
 	`rm RUM_Unique.sorted.minus`;
