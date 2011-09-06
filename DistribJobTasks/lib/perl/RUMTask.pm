@@ -446,8 +446,8 @@ sub cleanUpServer {
 
 # cleanup temp files
 
-    `rm RUM_Unique`;
-    `rm RUM_NU`;
+    #`rm RUM_Unique`;
+    #`rm RUM_NU`;
     #`rm RUM_Unique.sorted`;
     #`rm RUM_NU.sorted`;
     if($self->getProperty("strandSpecific") eq 'true') {
