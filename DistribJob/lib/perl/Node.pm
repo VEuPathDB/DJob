@@ -73,6 +73,14 @@ sub initialize {
   }
 }
 
+sub getNodeAddress {
+  my $self = shift;
+  if (!defined $self->{nodeNum}) {
+    die "ERROR: getNodeAddress failed ... no nodeNum defined ... check nodeMsgs in Controller.pm and / or over-ride the getNodeAddress method in the specific Node class to retrieve it\n";
+  }
+  return $self->{nodeNum};
+}
+
 # must be over ridden in node objects if specific initialization is necessary
 sub _init {
   my $self = shift;
@@ -123,8 +131,8 @@ sub runCmd {
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       if($1 && !$ignoreErr){
-        print STDERR "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n";
-#        sleep 100;  ##uncomment if need to test problems on the nodes
+        print "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n";
+#        sleep 200;  ##uncomment if need to test problems on the nodes
         $self->cleanUp(1, $FAILEDNODE);  
       }
       last;

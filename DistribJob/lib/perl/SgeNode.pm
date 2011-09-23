@@ -47,20 +47,6 @@ sub queueNode {
   $self->setState($QUEUED);
 }
 
-sub getNodeAddress {
-  my $self = shift;
-  if (!defined $self->{nodeNum}) {
-    my $getCmd = "qstat";
-    my @stat = `$getCmd`;
-    return undef if $?;         ##command failed
-    foreach my $line (@stat){
-      if($line =~ /^\s*$self->{jobid}.*(node\d+).q/){
-        $self->{nodeNum} = $1;
-      }
-    }
-  }
-  return $self->{nodeNum};
-}
 ##over ride this because want to delete those pesky *.OU files
 sub cleanUp {
   my ($self,$force, $state) = @_;
@@ -76,8 +62,8 @@ sub cleanUp {
   }
 
 
-  my $host = $self->runCmd("hostname");
-  chomp $host;
+#  my $host = $self->runCmd("hostname");
+#  chomp $host;
   
   ##want to kill any child processes still running to quit cleanly
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
@@ -89,10 +75,10 @@ sub cleanUp {
   ## if saving this one so don't clean up further and release
   return if($self->getSaveForCleanup() && !$force);  
     
+  print ($state == $FAILEDNODE ? "FAILEDNODE: " : "") . "Cleaning up node $self->{nodeNum}...\n";
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
   
 
-    print "Cleaning up node $self->{nodeNum}...\n";
     
     my $task = $self->getTask();
     $task->cleanUpNode($self) if $task;
