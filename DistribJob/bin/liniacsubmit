@@ -22,7 +22,7 @@ my ($nodecount, $minutes, $controllerPropFile) = &parseArgs(@ARGV);
 my $tmp = "cancelLiniacJob.$$";
 my $cancelFile = "$ENV{HOME}/$tmp";
 open(F,">$cancelFile") || die "couldn't open '$cancelFile'";
-print F "#!/bin/sh\n\nqdel ";
+print F "#!/bin/sh\n\nkill $$\n\nqdel ";
 close F;
 system("chmod +x $cancelFile");
 
