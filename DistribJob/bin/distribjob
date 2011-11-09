@@ -30,6 +30,12 @@ unless (-e "$propFile"){
     exit(0);
 }
 
+##need to write to cancel file to kill self since now controller requests more nodes when existing go away
+if(-e $fileName){
+  open(F, ">>$fileName");
+  print F "kill $$\n\nqdel ";
+  close F;
+}
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
