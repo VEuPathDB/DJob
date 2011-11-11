@@ -18,7 +18,6 @@ my @properties =
  ["queryPath",   "",     "full path to input file"],
  ["nodePort", "", "port used on port for gfServer and gfClient"],
  ["queryType", "dna", "type of query ([dna]|prot)"],
- ["dbType", "dna", "type of database ([dna]|prot)"],
  ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
  );
 
@@ -43,8 +42,9 @@ sub initNode {
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
     my $port = $self->getProperty("nodePort");
+    my $queryType = $self->getProperty("queryType");
 
-    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath");
+    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : ""));
 
 }
 
@@ -80,7 +80,7 @@ sub makeSubTaskCommand {
     my $nodeDir = $node->getDir();
     my $maxIntron = $self->getProperty("maxIntron");
     my $queryType = $self->getProperty("queryType");
-    my $dbType = $self->getProperty("dbType");
+    my $dbType = $queryType eq 'dna' ? 'dna' : 'dnax';
 
     my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
 

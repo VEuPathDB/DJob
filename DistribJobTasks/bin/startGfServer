@@ -7,17 +7,20 @@
 use strict;
 use Getopt::Long;
 
-my($port,$path,$dir);
+my($port,$path,$dir,$trans);
 &GetOptions('nodePort=i' => \$port,
             'binPath=s' => \$path,
+            'trans!' => \$trans,
 	    'targetDir=s' => \$dir);
 
 ($path && $port && $dir) ||
-	die "Usage:startGfServer --nodePort --binPath <gfServer/gfClient path> --targetDir";  
+	die "Usage:startGfServer --nodePort --binPath <gfServer/gfClient path> --targetDir --trans";  
+
+my $translate = $trans ? "-trans" : "";
 
 chdir("$dir");
 
-system("${path}/gfServer -canStop start localhost $port *.nib &");
+system("${path}/gfServer -canStop $translate start localhost $port *.nib &");
 
 
 system("${path}/gfServer status localhost $port");
