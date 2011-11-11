@@ -17,6 +17,8 @@ my @properties =
  ["targetDirPath",      "",     "full path to directory containing *.nib files"],
  ["queryPath",   "",     "full path to input file"],
  ["nodePort", "", "port used on port for gfServer and gfClient"],
+ ["queryType", "dna", "type of query ([dna]|prot)"],
+ ["dbType", "dna", "type of database ([dna]|prot)"],
  ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
  );
 
@@ -73,16 +75,14 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
-
     my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
-
     my $port = $self->getProperty("nodePort");
-
     my $nodeDir = $node->getDir();
-
     my $maxIntron = $self->getProperty("maxIntron");
+    my $queryType = $self->getProperty("queryType");
+    my $dbType = $self->getProperty("dbType");
 
-    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=dna -q=dna -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
+    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
 }
