@@ -266,6 +266,10 @@ sub getNodeMsgs {
   my($self,$sel,$sock) = @_;
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
+    if(!$fh){
+      print STDERR "ERROR: getNodeMsgs: There is no file handle from socket\n";
+      next;
+    }
     my $s = <$fh>;
     chomp $s;
     my ($jobid,$slot,$status,$tmpDir) = split(" ",$s);

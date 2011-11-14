@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::GenomeAlignWithGfClientTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -58,7 +58,7 @@ sub getInputSetSize {
     }
 
     print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
 
     return $self->{fastaFile}->getCount();
 }

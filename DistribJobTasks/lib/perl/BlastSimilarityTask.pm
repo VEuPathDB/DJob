@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::BlastSimilarityTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -121,12 +121,13 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
+#    print STDERR "start=$start, end=$end\n";
 
     my $blastParamsFile = $self->getProperty("blastParamsFile");
     &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
