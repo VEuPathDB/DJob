@@ -27,7 +27,7 @@ my $stnum = 1;
 open(OUT,">$directory/$outStem.$stnum");
 if($stdin){
   while(<STDIN>){
-    if(/^\>/){
+    if(/^\>seq/){
       $ct++;
       if($ct != 1 && $ct % $subtaskSize == 1){
         close(OUT);
