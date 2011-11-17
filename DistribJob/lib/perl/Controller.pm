@@ -50,10 +50,10 @@ sub new {
   return if ($self->kill($kill));
 
   if ($restart) {
-    die "masterDir $self->{masterDir} must exist to restart." unless -e $self->{masterDir};
+    die "masterDir $self->{masterDir} must exist to restart.\n" unless -e $self->{masterDir};
     $self->resetKill();
   } else {
-    die "masterDir $self->{masterDir} already exists. Delete it or use -restart." 
+    die "masterDir $self->{masterDir} already exists. Delete it or use -restart.\n" 
       if -e $self->{masterDir};
     &runCmd("mkdir -p $self->{masterDir}");
   }
