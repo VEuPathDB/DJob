@@ -93,7 +93,7 @@ sub _init {
   if (!$self->checkNode()) {
     print "Node $self->{nodeNum} is not responding to commands....skipping\n";
     $self->cleanUp(1, $FAILEDNODE);  
-    return;
+    return 0;
   }
   return $self->_initNodeDir(); 
 }
@@ -101,7 +101,7 @@ sub _init {
 sub _initNodeDir {
   my ($self) = @_;
 
-  if ($self->_fileExists($self->{nodeDir})) {
+if ($self->_fileExists($self->{nodeDir})) {
     $self->runCmd("/bin/rm -r $self->{nodeDir}",1);
   }
 

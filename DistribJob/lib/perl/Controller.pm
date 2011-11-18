@@ -42,7 +42,7 @@ sub new {
   $self->{procsPerNode} = $procsPerNode;
   $self->{memPerNode} = $memPerNode;
   $self->{queue} = $queue;
-  $self->{propFile} = $propFile;
+  $self->{propFile} = $propfile;
   $self->{kill} = $kill;
   my $restart;
 
@@ -54,17 +54,17 @@ sub new {
     die "masterDir $self->{masterDir} must exist to restart.\n" unless -e $self->{masterDir};
     $self->resetKill();
   } else {
-      my $restartInstructions = $self->getRestartInstructions();
-    die $ "
+    my $restartInstructions = $self->getRestartInstructions();
+    die "
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-masterDir $self->{masterDir} already exists. 
+masterDir $self->{masterDir} already exists.
 
-Probably that is because you have run a job, had some failures, and are trying to restart.  
+Probably that is because you have run a job, had some failures, and are trying to restart.
 
 If so, then:
 $restartInstructions
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-";
+"
       if -e $self->{masterDir};
     &runCmd("mkdir -p $self->{masterDir}");
   }
