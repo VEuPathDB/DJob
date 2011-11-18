@@ -42,6 +42,7 @@ sub new {
   $self->{procsPerNode} = $procsPerNode;
   $self->{memPerNode} = $memPerNode;
   $self->{queue} = $queue;
+  $self->{propFile} = $propFile;
   $self->{kill} = $kill;
   my $restart;
 
@@ -53,7 +54,17 @@ sub new {
     die "masterDir $self->{masterDir} must exist to restart.\n" unless -e $self->{masterDir};
     $self->resetKill();
   } else {
-    die "masterDir $self->{masterDir} already exists. Delete it or use -restart.\n" 
+      my $restartInstructions = $self->getRestartInstructions();
+    die $ "
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+masterDir $self->{masterDir} already exists. 
+
+Probably that is because you have run a job, had some failures, and are trying to restart.  
+
+If so, then:
+$restartInstructions
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+";
       if -e $self->{masterDir};
     &runCmd("mkdir -p $self->{masterDir}");
   }
@@ -419,17 +430,30 @@ sub reportFailures {
     my @failures = split("\n", &runCmd("ls -l $self->{masterDir}/failures"));
     my $count = scalar(@failures) - 1;
     if ($count > 0) {
+	my $restartInstructions = $self->getRestartInstructions();
 	print "
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Failure: $count subtasks failed
-Please look in $self->{masterDir}/failures/*/result
-After analyzing and correcting failures:
-  1. mv $self->{masterDir}/failures $self->{masterDir}/failures.save
-  2. set restart=yes in $propfile
-  3. restart the job
-
+$restartInstructions
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ";
     }
     return $count;
+}
+
+sub getRestartInstructions {
+    my ($self) = @_;
+
+return "
+Please look in $self->{masterDir}/failures/*/result
+
+After analyzing and correcting failures:
+  1. mv $self->{masterDir}/failures $self->{masterDir}/failures.save
+  2. set restart=yes in $self->{propfile}
+  3. restart the job
+
+If the masterDir does not contain any completed subtasks, an alternative is to delete it and start the job again with restart=no.
+";
 }
 
 sub removeNode {
