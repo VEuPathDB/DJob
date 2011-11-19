@@ -107,9 +107,13 @@ sub cleanUp {
   if($self->{jobid} =~ /^(\d+)/){
     $jid = $1;
   }
-  my $errBase = basename($self->{script});
-  my $delCmd = "/bin/rm $errBase.?$jid > /dev/null 2>&1";
-  system($delCmd); 
+  if($self->{script}){
+    my $errBase = basename($self->{script});
+    my $delCmd = "/bin/rm $errBase.?$jid > /dev/null 2>&1";
+    system($delCmd); 
+  }else{
+    print "ERROR MSG for basename ... script name = '$self->{script}'\n";
+  }
 }
 
 1;
