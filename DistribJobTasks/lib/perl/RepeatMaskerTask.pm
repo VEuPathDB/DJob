@@ -15,7 +15,7 @@ my @properties =
  ["rmPath",        "",  "eg: /export/Bioinformatics/usr/local/src/bio/RepeatMasker/latest"],
  ["inputFilePath", "",  "full path to input file"],
  ["trimDangling",  "",  "y or n"],
- ["rmOptions",     "NONE",  ""],
+ ["rmParamsFile",     "",  "full path to file containing RepeatMasker command line options. Can be all on one line or one line / option."],
  ["dangleMax", "", "trim this or fewer bases"]
 
  );
@@ -62,13 +62,11 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $rmPath = $self->getProperty("rmPath");
-    my $rmOptions = $self->getProperty("rmOptions");
+    my $rmParamsFile = $self->getProperty("rmParamsFile");
     my $trimDangling = $self->getProperty("trimDangling") eq "y"? "--trimDangling" : "";
     my $dangleMax = $self->getProperty("dangleMax");
 
-#    my $options = $rmOptions eq "NONE"? "" : "--rmOptions \"'$rmOptions'\"";
-    my $cmd = "repeatMasker --rmPath $rmPath --seqFile seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax -- -dir . $rmOptions";
-#    my $cmd = "$rmPath/RepeatMasker $rmOptions seqsubset.fsa";
+    my $cmd = "repeatMasker --rmPath $rmPath --seqFile seqsubset.fsa --outFile blocked.seq --errorFile blocked.err $trimDangling --dangleMax $dangleMax --rmParamsFile $rmParamsFile";
 
     return $cmd;
 }

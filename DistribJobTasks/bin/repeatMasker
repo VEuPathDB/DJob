@@ -11,26 +11,33 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
-print STDERR "Incoming cmdline: repeatMasker @ARGV\n";
+# print STDERR "Incoming cmdline: repeatMasker @ARGV\n";
 
-my($rmOptions,$inFile,$outFile,$errFile,$rmPath,$trimDangling,
-  $dangleLength,$dangleMax);
+my($inFile,$outFile,$errFile,$rmPath,$trimDangling,
+  $dangleLength,$dangleMax,$paramFile);
 &GetOptions('rmPath=s' => \$rmPath,
             'seqFile=s' => \$inFile,
             'errorFile=s' => \$errFile,
             'outFile=s' => \$outFile,
             'trimDangling!' => \$trimDangling,
+            'rmParamsFile=s' => \$paramFile,
 	    'dangleMax=i' => \$dangleMax);
 
 
 ##usage etc
-if (!$inFile || !$outFile ) {
-	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --mod <number of logical parts to split file into> --modValue <mod value for this run>  --trimDangling <boolean: trim bases from end if dangling off of masked seq> --dangleMax <this number or less of bases will be trimmed> -- <RepeatMasker options as they appear on the command line>\n\n";
+if (!-e $inFile || !$outFile || !-e $paramFile ) {
+	print STDERR "Usage: blockLibraryWithRM --inFile <inputSequenceFile> --outFile <outputSequenceFile> --errorFile <errorFilename> --mod <number of logical parts to split file into> --modValue <mod value for this run>  --trimDangling <boolean: trim bases from end if dangling off of masked seq> --dangleMax <this number or less of bases will be trimmed> --rmParamsFile <file with repeatmasker parameters>\n\n";
 	system("$rmPath/RepeatMasker");
 	exit 1;
 }
 
-$rmOptions = join(" ",@ARGV);
+if(!-e $paramFile){
+  die "Note: repeatMasker requires a file containing the RepeatMasker commandline parameters\n";
+}
+
+my $rmOptions = &parseParams($paramFile);
+
+#print STDERR "RMOptions: $rmOptions\n";
 
 my $errorFile = $errFile ? $errFile : ">blockLib_error.log";
 	
@@ -55,7 +62,7 @@ open(OUT, ">$outFile");
 ##command for RepeatMasker
 
 my $RepMaskCmd = "RepeatMasker $rmOptions $inFile";
-#print STDERR "RepeatMasker command:\n  $RepMaskCmd\n";
+print STDERR "RepeatMasker command:\n  $RepMaskCmd\n";
 
 
 my $tmpSeq = "";
@@ -196,3 +203,17 @@ sub compNuc{
   return $nuc;
 }
 
+sub parseParams {
+  my ($file) = @_;
+  
+  my @params;
+  open(C, "$file") or &error("cannot open rmParams file $file");
+  while(<C>){
+    next if /^\s*#/;
+    next if /^\s*$/;
+    chomp;
+    push(@params,$_);
+  }
+  close(C);
+  return join(" ",@params);
+}
