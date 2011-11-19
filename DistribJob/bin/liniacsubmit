@@ -39,9 +39,9 @@ print F "\n\n";
 close F;
 system("$cancelFile > /dev/null 2>&1");
 
-unlink "$cancelFile";
+system("/bin/rm $cancelFile");
 $cancelFile =~ s/cancel/run/;
-unlink "$cancelFile";
+system("/bin/rm $cancelFile");
 
 sub parseArgs {
     my ($nodecount, $minutes, $controllerPropFile,$ppn) = @ARGV;
