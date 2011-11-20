@@ -30,7 +30,7 @@ print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
 
 my $cmd = "distribjob --numNodes $nodecount --runTime $minutes --propFile $controllerPropFile --parallelInit $pInit --fileName $cancelFile".($procsPerNode ? " --ppn $procsPerNode" : "").($memPerNode ? " --mpn $memPerNode" : "").($queue ? " --q $queue" : "");
 
-print "\nRunning cmd:\n$cmd";
+print "\nRunning cmd:\n$cmd\n";
 
 system($cmd);
 
@@ -39,9 +39,9 @@ print F "\n\n";
 close F;
 system("$cancelFile > /dev/null 2>&1");
 
-system("/bin/rm $cancelFile");
+system("/bin/rm $cancelFile") if (-e $cancelFile);
 $cancelFile =~ s/cancel/run/;
-system("/bin/rm $cancelFile");
+system("/bin/rm $cancelFile") if (-e $cancelFile);
 
 sub parseArgs {
     my ($nodecount, $minutes, $controllerPropFile,$ppn) = @ARGV;

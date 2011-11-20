@@ -6,6 +6,7 @@ use CBIL::Util::Utils;
 use DJob::DistribJob::Node ":states";
 use IO::Socket;
 use IO::Select;
+use File::Basename;
 
 my $KILLNOW = 2;
 
@@ -266,11 +267,25 @@ sub run {
       print "Set restart=yes in the controller.prop file and re run to run these failed subtasks.\n\n";
     }
 
-    print "Done\n" unless $failures;
     ##delete the script file ...
+    print "Cleaning up files on server\n";
     my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
     system($delScript);
     close($sock);
+    ##also delete those error files that are of no use since we capture
+    sleep 10;  ##give time for the nodes to all be released
+    foreach my $n (@nodes){
+      if($n->{script}){
+        my $errBase = basename($n->{script});
+        my $delCmd = "/bin/rm $errBase.* > /dev/null 2>&1";
+#        print STDERR "$delCmd\n";
+        system("$delCmd"); 
+        last;
+      }else{
+        print "ERROR MSG for basename ... script name = '$n->{script}'\n";
+      }
+    }
+    print "Done\n" unless $failures;
 }
 
 sub getNodeMsgs {

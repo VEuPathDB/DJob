@@ -14,7 +14,7 @@ sub queueNode {
     my $runFile = $self->{fileName};
     if(!$runFile){
       $runFile = "nodeScript.$$";
-    }elsif($self->{filename} =~ /cancel/){
+    }elsif($self->{fileName} =~ /cancel/){
       $runFile =~ s/cancel/run/;
     }else{
       $runFile = "$runFile.run";
@@ -100,20 +100,9 @@ sub cleanUp {
     }
   }
 
-  system("qdel $self->{jobid} > /dev/null 2>&1");  ## moved from above if stmt so always releases node.
+  system("qdel $self->{jobid} > /dev/null 2>&1");  
 
-  ##delete those pesky files that don't do anything
-  my $jid = $self->{jobid};
-  if($self->{jobid} =~ /^(\d+)/){
-    $jid = $1;
-  }
-  if($self->{script}){
-    my $errBase = basename($self->{script});
-    my $delCmd = "/bin/rm $errBase.?$jid > /dev/null 2>&1";
-    system($delCmd); 
-  }else{
-    print "ERROR MSG for basename ... script name = '$self->{script}'\n";
-  }
 }
+
 
 1;
