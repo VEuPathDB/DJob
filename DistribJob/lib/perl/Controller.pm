@@ -464,7 +464,7 @@ Please look in $self->{masterDir}/failures/*/result
 
 After analyzing and correcting failures:
   1. mv $self->{masterDir}/failures $self->{masterDir}/failures.save
-  2. set restart=yes in $self->{propfile}
+  2. set restart=yes in $self->{propFile}
   3. restart the job
 
 If the masterDir does not contain any completed subtasks, an alternative is to delete it and start the job again with restart=no.
