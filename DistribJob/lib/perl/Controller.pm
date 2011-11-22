@@ -236,6 +236,7 @@ sub run {
       } while ($running && $kill != $KILLNOW);
 
     print "Cleaning up nodes...\n";
+    print "Average time to complete subtasks = ",(int($task->getSubtaskTime()*10)/10)." seconds\n";
     foreach my $node (@nodes) {
       $node->cleanUp(1) unless $node->getSaveForCleanup();
     }
