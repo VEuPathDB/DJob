@@ -133,7 +133,8 @@ sub makeSubTaskCommand {
 
 	# Required parameters
 	push @cmd_params, "-i $nodeExecDir/seqsubset.fsa";
-	push @cmd_params, "-email " . $self->getProperty ("email");
+#	push @cmd_params, "-email " . $self->getProperty ("email");
+	push @cmd_params, "-email dontcare@dontcare.nowhere.com";
 	push @cmd_params, "-o $nodeExecDir/" . $self->getProperty ("outputfile");
 
 	# Task defaults (which override default iprscan configuration in case of a conflict)
