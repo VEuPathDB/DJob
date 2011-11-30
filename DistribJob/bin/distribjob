@@ -6,7 +6,7 @@ use DJob::DistribJob::Controller;
 use Getopt::Long;
 
 my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname, $queue);
-my $procsPerNode = 2;
+my $procsPerNode = 1;
 my $memPerNode = 1.8;
 
 &GetOptions("help|h!" => \$help, 
