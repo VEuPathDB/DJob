@@ -65,7 +65,7 @@ sub makeSubTaskCommand {
     my $tmhmmProgram = $self->getProperty("tmhmmProgram");
     my $tmhmmOptions = $self->getProperty("tmhmmOptions");
     my $inputFilePath = $self->getProperty("inputFilePath");
-    my $cmd = "runTMHMM -binPath $tmhmmProgram -workdir=$nodeExecDir $tmhmmOptions -seqFile $nodeExecDir/seqsubset.fsa -outFile tmhmm.out";
+    my $cmd = "runTMHMM_distribjob -binPath $tmhmmProgram -workdir=$nodeExecDir $tmhmmOptions -seqFile $nodeExecDir/seqsubset.fsa -outFile tmhmm.out";
 
     return $cmd;
 }
