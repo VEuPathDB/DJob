@@ -55,6 +55,8 @@ sub initSubTask {
     $self->{fastaFile}->writeSeqsToFile($start, $end, 
 					"$subTaskDir/seqsubset.fsa");
 
+    my $rmParamsFile = $self->getProperty("rmParamsFile");
+    &runCmd("cp $inputDir/$rmParamsFile $serverSubTaskDir");
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
