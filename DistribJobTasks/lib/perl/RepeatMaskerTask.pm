@@ -56,7 +56,7 @@ sub initSubTask {
 					"$subTaskDir/seqsubset.fsa");
 
     my $rmParamsFile = $self->getProperty("rmParamsFile");
-    &runCmd("cp $inputDir/$rmParamsFile $serverSubTaskDir");
+    &runCmd("cp $inputDir/$rmParamsFile $subTaskDir");
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
