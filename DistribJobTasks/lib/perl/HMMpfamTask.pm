@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::HMMpfamTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -47,8 +47,8 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    print "Counting sequences in $fastaFileName\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 

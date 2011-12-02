@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::RepeatMaskerTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use CBIL::Util::Utils;
 
@@ -44,8 +44,8 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    print "Counting sequences in $fastaFileName\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 
@@ -55,6 +55,8 @@ sub initSubTask {
     $self->{fastaFile}->writeSeqsToFile($start, $end, 
 					"$subTaskDir/seqsubset.fsa");
 
+    my $rmParamsFile = $self->getProperty("rmParamsFile");
+    &runCmd("cp $inputDir/$rmParamsFile $serverSubTaskDir");
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }
 

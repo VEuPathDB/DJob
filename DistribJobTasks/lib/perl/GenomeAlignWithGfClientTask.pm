@@ -18,6 +18,7 @@ my @properties =
  ["queryPath",   "",     "full path to input file"],
  ["nodePort", "", "port used on port for gfServer and gfClient"],
  ["queryType", "dna", "type of query ([dna]|prot)"],
+ ["blatParams", "none", "additional params to be passed to blat"],
  ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
  );
 
@@ -81,8 +82,10 @@ sub makeSubTaskCommand {
     my $maxIntron = $self->getProperty("maxIntron");
     my $queryType = $self->getProperty("queryType");
     my $dbType = $queryType eq 'dna' ? 'dna' : 'dnax';
+    my $tmpBlatParams = $self->getProperty('blatParams');
+    my $blatParams = $tmpBlatParams eq 'none' ? "" : $tmpBlatParams;
 
-    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 localhost $port $targetPath seqsubset.fsa out.psl";
+    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 $blatParams localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
 }
