@@ -64,7 +64,9 @@ sub makeSubTaskCommand {
 
     my $trainingOption = $self->{props}->getProp("trainingOption"); 
 
-    my $cmd =  "$tRNAscanDir/tRNAscan-SE -$trainingOption $nodeExecDir/seqsubset.fsa";
+    # no longer support training option.  out of date and too slow
+#    my $cmd =  "$tRNAscanDir/tRNAscan-SE -$trainingOption $nodeExecDir/seqsubset.fsa";
+    my $cmd =  "$tRNAscanDir/tRNAscan-SE  $nodeExecDir/seqsubset.fsa";
 
     return $cmd;
 }
