@@ -1,7 +1,7 @@
    package DJob::DistribJobTasks::tRNAscanTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
@@ -44,8 +44,8 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    print "Counting sequences in $fastaFileName\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 
@@ -64,7 +64,9 @@ sub makeSubTaskCommand {
 
     my $trainingOption = $self->{props}->getProp("trainingOption"); 
 
-    my $cmd =  "$tRNAscanDir/tRNAscan-SE -$trainingOption $nodeExecDir/seqsubset.fsa";
+    # no longer support training option.  out of date and too slow
+#    my $cmd =  "$tRNAscanDir/tRNAscan-SE -$trainingOption $nodeExecDir/seqsubset.fsa";
+    my $cmd =  "$tRNAscanDir/tRNAscan-SE  $nodeExecDir/seqsubset.fsa";
 
     return $cmd;
 }

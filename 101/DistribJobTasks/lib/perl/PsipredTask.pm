@@ -1,7 +1,7 @@
 package DJob::DistribJobTasks::PsipredTask;
 
 use CBIL::Util::Utils;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 
 use File::Basename;
 
@@ -57,8 +57,8 @@ sub getInputSetSize {
       &runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    print "Counting sequences in $fastaFileName\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 

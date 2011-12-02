@@ -5,7 +5,7 @@
 package DJob::DistribJobTasks::TmhmmTask;
 
 use DJob::DistribJob::Task;
-use CBIL::Bio::FastaFile;
+use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use CBIL::Util::Utils;
 
@@ -45,8 +45,8 @@ sub getInputSetSize {
 	&runCmd("gunzip $fastaFileName.gz");
     }
 
-    print "Creating index for $fastaFileName (may take a while)\n";
-    $self->{fastaFile} = CBIL::Bio::FastaFile->new($fastaFileName);
+    print "Counting sequences in $fastaFileName\n";
+    $self->{fastaFile} = CBIL::Bio::FastaFileSequential->new($fastaFileName);
     return $self->{fastaFile}->getCount();
 }
 
@@ -65,7 +65,7 @@ sub makeSubTaskCommand {
     my $tmhmmProgram = $self->getProperty("tmhmmProgram");
     my $tmhmmOptions = $self->getProperty("tmhmmOptions");
     my $inputFilePath = $self->getProperty("inputFilePath");
-    my $cmd = "runTMHMM -binPath $tmhmmProgram -workdir=$nodeExecDir $tmhmmOptions -seqFile $nodeExecDir/seqsubset.fsa -outFile tmhmm.out";
+    my $cmd = "runTMHMM_distribjob -binPath $tmhmmProgram -workdir=$nodeExecDir $tmhmmOptions -seqFile $nodeExecDir/seqsubset.fsa -outFile tmhmm.out";
 
     return $cmd;
 }
