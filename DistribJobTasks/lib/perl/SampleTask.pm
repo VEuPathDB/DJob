@@ -143,8 +143,7 @@ sub getInputSetSize {
 # param nodeSubTaskDir The subtask specific input dir on the node.
 # 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, 
-	$nodeSubTaskDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeSubTaskDir,$subTask) = @_;
 
     &runCmd("cp $inputDir/task.prop $serverSubTaskDir");
 

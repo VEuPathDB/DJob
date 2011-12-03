@@ -46,11 +46,12 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir,$subTask) = @_;
     print "DEBUG: SimpleTask::initSubTask(start=$start, end=$end, node=$node, "
 	. "inputDir=$inputDir, subTaskDir=$subTaskDir, nodeSlotDir=$nodeSlotDir)\n"
 	if $self->{'debug'};
 
+    ##need to copy work to be doneinto $subTaskDir before copying to node
     my $cmd = "cp -r $subTaskDir/* $nodeSlotDir";
     print "DEBUG: SimpleTask::initSubTask: running command $cmd...\n" if $self->{'debug'};
     $node->runCmd("$cmd");

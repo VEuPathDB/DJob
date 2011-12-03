@@ -65,14 +65,16 @@ sub getInputSetSize {
 
 
 sub initSubTask {
-    my ($self, $start, $stop, $node, $inputDir, $serverSubTaskDir,$nodeExecDir) = @_;
+    my ($self, $start, $stop, $node, $inputDir, $serverSubTaskDir,$nodeExecDir,$subTask) = @_;
 
 
-    my @files = @{$self->{fileArray}}[$start..$stop];
-
-    foreach my $file (@files) {
-      $node->runCmd("cp $file $serverSubTaskDir");
-
+    if(!$subTask->getRedoSubtask()){
+      my @files = @{$self->{fileArray}}[$start..$stop];
+      
+      foreach my $file (@files) {
+        $node->runCmd("cp $file $serverSubTaskDir");
+        
+      }
     }
     $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 

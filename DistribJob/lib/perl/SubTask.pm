@@ -53,6 +53,16 @@ sub getEnd {
   return $self->{end};
 }
 
+sub setRedoSubtask {
+  my($self,$val) = @_;
+  $self->{redotask} = $val;
+}
+
+sub getRedoSubtask {
+  my $self = shift; return $self->{redotask};
+}
+
+
 ## states are 'done' and 'failed'
 sub setState {
   my($self,$state) = @_;

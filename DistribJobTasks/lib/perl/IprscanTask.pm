@@ -118,9 +118,12 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
-    $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
+    if(!$subTask->getRedoSubtask()){
+      $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
+    }
+
     $node->runCmd("cp -r $serverSubTaskDir/seqsubset.fsa $nodeExecDir");
 
 	# print "Created subtask fasta file at: $nodeExecDir/seqsubset.fsa\n";

@@ -235,7 +235,7 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
     my $subtaskNum = int($start / $self->{subTaskSize}) + 1;
     $node->runCmd("cp $inputDir/subtasks/reads.$subtaskNum $nodeExecDir/seqSubset.fa");

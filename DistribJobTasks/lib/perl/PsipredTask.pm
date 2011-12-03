@@ -64,12 +64,14 @@ sub getInputSetSize {
 
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir,$subTask) = @_;
 
-    $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
+    if(!$subTask->getRedoSubtask()){
+      $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
+    }
 
     open(FILE, "$subTaskDir/seqsubset.fsa") || die "Cannot open file $subTaskDir/seqsubset.fsa for reading: $!";
-
+    
     my $line = <FILE>;
     close(FILE);
 

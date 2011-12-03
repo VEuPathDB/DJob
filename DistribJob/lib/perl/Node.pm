@@ -319,7 +319,11 @@ sub failedSoGetSubtasks {
   return if $self->{retrievedFailedSubtasks};
   my @st;
   foreach my $ns (@{$self->getSlots()}){
-    push(@st,$ns->getTask()) if $ns->getTask();
+    if($ns->getTask()){
+      my $subt = $ns->getTask();
+      $subt->setRedoSubtask(1);
+      push(@st,$subt);
+    }
   }
   $self->{retrievedFailedSubtasks} = 1;
   return @st;

@@ -100,14 +100,15 @@ sub getInputSetSize {
 
 #copy the correct file to the node ... will have already made it in the getInputSetSize method
 sub initSubTask {
-  my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+  my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir,$subTask) = @_;
+
   my $file = $commands[$start];
   system("echo $file > $subTaskDir/subtask.file"); ##so have record on server
-  $node->runCmd("cp $inputDir/taskFiles/$file $nodeSlotDir/subtask.gg");
   ##also need to create config file and copy to the node
   open(F,">$subTaskDir/orthomcl.conf");
   print F $self->getConfigString($nodeSlotDir,$node->getDir());
   close F;
+  $node->runCmd("cp $inputDir/taskFiles/$file $nodeSlotDir/subtask.gg");
   $node->runCmd("cp $subTaskDir/orthomcl.conf $nodeSlotDir/");
 }
 

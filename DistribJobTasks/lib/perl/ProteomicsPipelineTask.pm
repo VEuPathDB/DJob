@@ -151,13 +151,13 @@ sub getInputSetSize {
 # param nodeSubTaskDir The subtask specific input dir on the node.
 # 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
     ##check here to make certain that subtask size = 1
     die "You must set the subtask size to 1\n" unless $start == $end;
-
+    
     my $mgfFile = $self->{"files"}->[$start];
-
+    
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
     $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles");
 

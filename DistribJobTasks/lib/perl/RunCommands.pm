@@ -62,7 +62,7 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $subTaskDir, $nodeSlotDir,$subTask) = @_;
     open(O,">$subTaskDir/run.sh");
     my $num = $start + 1;
     my @cmds = @commands[$start..$end - 1];

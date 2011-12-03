@@ -126,12 +126,14 @@ sub getInputSetSize {
 }
 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 #    print STDERR "start=$start, end=$end\n";
 
-    my $blastParamsFile = $self->getProperty("blastParamsFile");
-    &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
-    $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
+    if(!$subTask->getRedoSubtask()){
+      my $blastParamsFile = $self->getProperty("blastParamsFile");
+      &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
+      $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
+    }
 
     $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 }

@@ -87,10 +87,11 @@ sub runNextSubtask {
   
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");
-  
   $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
-                     $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir);
+                     $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir, $nextSubTask);
   
+  $nextSubTask->setRedoSubtask(0);
+
   my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir});
   ##note: with perl subtaskInvoker there seems to be a problem with quotes
 #  $cmd =~ s/\'/\\\'/g;
@@ -167,6 +168,8 @@ sub _newSubTaskDir {
     my ($self, $nodeNum, $nodeSlotNum) = @_;
 
     my $subTaskDir = "$self->{runningDir}/subtask_$self->{subTaskNum}";
+    ##if subtaskDir already exists then don't delete and make again
+    return $subTaskDir if (-e $subTaskDir);
     &runCmd("/bin/rm -rf $subTaskDir");
     &runCmd("mkdir -p $subTaskDir/result");
 
