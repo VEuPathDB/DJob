@@ -16,7 +16,6 @@ my @properties =
  ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
  ["targetDirPath",      "",     "full path to directory containing *.nib files"],
  ["queryPath",   "",     "full path to input file"],
- ["nodePort", "", "port used on port for gfServer and gfClient"],
  ["queryType", "dna", "type of query ([dna]|prot)"],
  ["blatParams", "none", "additional params to be passed to blat"],
  ["maxIntron", "", "the maximum length allowed for gaps that correspond to introns"]
@@ -24,6 +23,7 @@ my @properties =
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+    my $self->{port} = int(rand(3000)) + 8000;
     return $self;
 }
 
@@ -42,7 +42,7 @@ sub initNode {
 
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
-    my $port = $self->getProperty("nodePort");
+    my $port = $self->{port};
     my $queryType = $self->getProperty("queryType");
 
     $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : ""));
@@ -79,7 +79,7 @@ sub makeSubTaskCommand {
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
     my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
-    my $port = $self->getProperty("nodePort");
+    my $port = $self->{port};
     my $nodeDir = $node->getDir();
     my $maxIntron = $self->getProperty("maxIntron");
     my $queryType = $self->getProperty("queryType");
