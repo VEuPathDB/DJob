@@ -23,7 +23,7 @@ my @properties =
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
-    my $self->{port} = int(rand(3000)) + 8000;
+    $self->{port} = int(rand(3000)) + 8000;
     return $self;
 }
 
