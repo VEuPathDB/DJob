@@ -101,7 +101,7 @@ sub integrateSubTaskResults {
 sub cleanUpNode {
     my ($self,$node) = @_;
 
-    my $port = $self->getProperty('nodePort');
+    my $port = $self->{port};
 
     $node->runCmd($self->getProperty('gaBinPath')."/gfServer stop localhost $port");
 }
