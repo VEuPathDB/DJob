@@ -252,8 +252,7 @@ sub run {
         last;
       }
     }
-    
-    print "Cleaning up server...\n";
+    print STDERR "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
     $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
     
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it

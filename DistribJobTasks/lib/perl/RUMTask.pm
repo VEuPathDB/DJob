@@ -287,8 +287,6 @@ sub integrateSubTaskResults {
 sub cleanUpServer {
     my($self, $inputDir, $mainResultDir, $node) = @_;
 
-    print STDERR "Running post-processing steps on node ".$node->getNum()."\n";
-
     my $genomeFastaFile = $self->getProperty("genomeFastaFile");
     my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
     
