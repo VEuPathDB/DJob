@@ -32,7 +32,7 @@ my @properties =
  ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
  ["SNPs",   "false",     "run snp finder ([false] | true)"], ##not currently supported
  ["variableLengthReads",   "false",     "reads have variable lengths [false] | true)"],
- ["postProcess",   "true",     "run Post Processing steps false | [true])"],
+ ["postProcess",   "true",     "run Post Processing steps (false | [true])"],
  ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
 
