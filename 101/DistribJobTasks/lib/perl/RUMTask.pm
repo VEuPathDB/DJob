@@ -32,6 +32,7 @@ my @properties =
  ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
  ["SNPs",   "false",     "run snp finder ([false] | true)"], ##not currently supported
  ["variableLengthReads",   "false",     "reads have variable lengths [false] | true)"],
+ ["postProcess",   "true",     "run Post Processing steps false | [true])"],
  ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
 
@@ -306,6 +307,7 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
     my($self, $inputDir, $mainResultDir, $node) = @_;
+    return 1 if $self->getProperty('postProcess') ne 'true';
 
     my $genomeFastaFile = $self->getProperty("genomeFastaFile");
     my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
@@ -335,6 +337,7 @@ sub cleanUpServer {
 	print STDERR "  Adding $f\n";
 	$node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM_Unique.tmp");
       }
+      sleep 10;
       &runCmd("/bin/mv $mainResultDir/RUM_Unique.tmp $mainResultDir/RUM_Unique");
       foreach my $f (@unique){
         unlink($f);
@@ -353,6 +356,7 @@ sub cleanUpServer {
 	$node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM_NU.tmp");
 	unlink($f);
       }
+      sleep 10;
       &runCmd("/bin/mv $mainResultDir/RUM_NU.tmp $mainResultDir/RUM_NU");
       foreach my $f (@nu){
         unlink($f);
@@ -361,77 +365,73 @@ sub cleanUpServer {
       print STDERR "  DONE\n";
     }
 
-    if($self->getProperty("createSAMFile") =~ /true/i){
-      $date = `date`; chomp $date;
-	print STDERR "[$date] Concatenating RUM.sam files\n";
-      if(-e "$mainResultDir/RUM.sam.1"){  #input file still exists so need to run.
-        unlink("$mainResultDir/RUM.sam_tmp");
-	my %samheader;
-	my @samheaders = $self->sortResultFiles('sam_header.*');
-	foreach my $f (@samheaders){
-	    open(SAMHEADER, $f);
-	    while(my $line = <SAMHEADER>) {
-		chomp($line);
-		$line =~ /SN:([^\s]+)\s/;
-		$samheader{$1}=$line;
-	    }
-	    close(SAMHEADER);
-	}
-	open(SAMOUT, ">RUM.sam_tmp");
-	foreach my $key (sort {cmpChrs($a,$b)} keys %samheader) {
-	    my $shout = $samheader{$key};
-	    print SAMOUT "$shout\n";
-	}
-	close(SAMOUT);
-	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
-	    print STDERR "  Adding $f\n";
-	    $node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM.sam_tmp");
-	}
-	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
-	    unlink($f);
-	}
-        &runCmd("/bin/mv $mainResultDir/RUM.sam_tmp $mainResultDir/RUM.sam");
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Concatenating RUM.sam files\n";
+    if(-e "$mainResultDir/RUM_sam.1"){  #input file still exists so need to run.
+      unlink("$mainResultDir/RUM.sam_tmp");
+      my %samheader;
+      my @samheaders = $self->sortResultFiles('sam_header.*');
+      foreach my $f (@samheaders){
+        open(SAMHEADER, $f);
+        while(my $line = <SAMHEADER>) {
+          chomp($line);
+          $line =~ /SN:([^\s]+)\s/;
+          $samheader{$1}=$line;
+        }
+        close(SAMHEADER);
       }
-    # I did the following because sometimes the file RUM.sam isn't written
-# by the time it reaches this, because of occasional turgid file system on the cluster.
-## BB: I don't think this is necessary anymore ...
-#       my $flag_x = 0;
-#       my $cnt_x = 0;
-#       my $NumSeqs;
-#       while($flag_x == 0) {
-# 	$cnt_x++;
-# 	if($cnt_x > 100) {
-#           $flag_x = 1;
-# 	}
-# 	my $X = `tail -1 $mainResultDir/RUM.sam`;
-# 	$X =~ /^seq.(\d+)/;
-# 	$NumSeqs = $1;
-# 	if($NumSeqs =~ /^\d+$/) {
-#           $flag_x = 1;
-# 	} else {
-#           sleep(5);
-# 	}
-#       }
-      $date = `date`; chomp $date;
-      print STDERR "[$date] running samtools on file to create sorted bam file\n";
-      if(!-e "$mainResultDir/RUM.bam"){
-        unlink("$mainResultDir/RUM.bam_tmp");
-        $node->runCmd("samtools view -b -S $mainResultDir/RUM.sam > $mainResultDir/RUM.bam_tmp");
-        &runCmd("/bin/mv $mainResultDir/RUM.bam_tmp $mainResultDir/RUM.bam");
+      open(SAMOUT, ">RUM.sam_tmp");
+      foreach my $key (sort {cmpChrs($a,$b)} keys %samheader) {
+        my $shout = $samheader{$key};
+        print SAMOUT "$shout\n";
       }
-      if(!-e "$mainResultDir/RUM.sorted.bam"){
-        unlink("$mainResultDir/RUM.sorted_tmp.bam");
-        $node->runCmd("samtools sort $mainResultDir/RUM.bam $mainResultDir/RUM.sorted_tmp");
-        &runCmd("/bin/mv $mainResultDir/RUM.sorted_tmp.bam $mainResultDir/RUM.sorted.bam");
+      close(SAMOUT);
+      foreach my $f ($self->sortResultFiles('RUM_sam.*')){
+        print STDERR "  Adding $f\n";
+        $node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM.sam_tmp");
       }
-      if(!-e "$mainResultDir/RUM.sorted.bam.bai"){
-        unlink("$mainResultDir/RUM.sorted.bam_tmp.bai");
-        $node->runCmd("samtools index $mainResultDir/RUM.sorted.bam $mainResultDir/RUM.sorted.bam_tmp.bai");
-        &runCmd("/bin/mv $mainResultDir/RUM.sorted.bam_tmp.bai $mainResultDir/RUM.sorted.bam.bai");
+      sleep 10;
+      &runCmd("/bin/mv $mainResultDir/RUM.sam_tmp $mainResultDir/RUM.sam");
+      foreach my $f ($self->sortResultFiles('RUM_sam.*')){
+        unlink($f);
       }
     }
-
-    my $NumSeqs = $self->{inputSetSize};
+    # I did the following because sometimes the file RUM.sam isn't written
+# by the time it reaches this, because of occasional turgid file system on the cluster.
+    my $flag_x = 0;
+    my $cnt_x = 0;
+    my $NumSeqs;
+    while($flag_x == 0) {
+      $cnt_x++;
+      if($cnt_x > 100) {
+        $flag_x = 1;
+      }
+      my $X = `tail -1 $mainResultDir/RUM.sam`;
+      $X =~ /^seq.(\d+)/;
+      $NumSeqs = $1;
+      if($NumSeqs =~ /^\d+$/) {
+        $flag_x = 1;
+      } else {
+        sleep(5);
+      }
+    }
+    $date = `date`; chomp $date;
+    print STDERR "[$date] running samtools on file to create sorted bam file\n";
+    if(!-e "$mainResultDir/RUM.bam"){
+      unlink("$mainResultDir/RUM.bam_tmp");
+      $node->runCmd("samtools view -b -S $mainResultDir/RUM.sam > $mainResultDir/RUM.bam_tmp");
+      &runCmd("/bin/mv $mainResultDir/RUM.bam_tmp $mainResultDir/RUM.bam");
+    }
+    if(!-e "$mainResultDir/RUM.sorted.bam"){
+      unlink("$mainResultDir/RUM.sorted_tmp.bam");
+      $node->runCmd("samtools sort $mainResultDir/RUM.bam $mainResultDir/RUM.sorted_tmp");
+      &runCmd("/bin/mv $mainResultDir/RUM.sorted_tmp.bam $mainResultDir/RUM.sorted.bam");
+    }
+    if(!-e "$mainResultDir/RUM.sorted.bam.bai"){
+      unlink("$mainResultDir/RUM.sorted.bam_tmp.bai");
+      $node->runCmd("samtools index $mainResultDir/RUM.sorted.bam $mainResultDir/RUM.sorted.bam_tmp.bai");
+      &runCmd("/bin/mv $mainResultDir/RUM.sorted.bam_tmp.bai $mainResultDir/RUM.sorted.bam.bai");
+    }
 
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
     $date = `date`; chomp $date;
@@ -443,7 +443,7 @@ sub cleanUpServer {
     }
 
 ## --- good to here --- ###
-    my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
+    my $transcriptBowtieIndex = $self->{bowtie_transcript};
     if($transcriptBowtieIndex ne 'none') {
       $date = `date`; chomp $date;
       print STDERR "[$date] Merging blat and bowtie quantifications\n";
