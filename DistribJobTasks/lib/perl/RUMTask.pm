@@ -30,7 +30,7 @@ my @properties =
  ["strandSpecific",   "false",     "data is strand specific if 1 ([false] | true)"],
  ["createJunctionsFile", "false", "create Juncctions file if 1 ([false] | true)"],
  ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
- ["SNPs",   "false",     "run snp finder ([false] | true)"],
+ ["SNPs",   "false",     "run snp finder ([false] | true)"], ##not currently supported
  ["variableLengthReads",   "false",     "reads have variable lengths [false] | true)"],
  ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
@@ -80,20 +80,49 @@ sub initServer {
     }
     
     ##make fasta file and qual files .. note that will chunk them up here as well.
+    my $date;
     if(!(-d "$inputDir/subtasks")){
 	mkdir("$inputDir/subtasks");
     }
+    my $madeReadFile = 0;
+  REDOSUBTASKS:
     if(!(-e "$inputDir/subtasks/sequenceCount")){ ##file will exist if have already done this
-	print "parsing reads file(s) to fasta and qual files\n";
-	&runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
-	&runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem reads --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}");
+      $date = `date`; chomp $date;
+      print "[$date] parsing reads file(s) to fasta and qual files\n";
+      &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
+      &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem reads --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}");
+      $madeReadFile = 1;
     }
-    
-    $self->{pairedEnd} = (-e "$pairedReadFilePath") ? "paired" : "single";
-    
+
     ##set the count .. inputSetSize
     $self->{inputSetSize} = `cat $inputDir/subtasks/sequenceCount`;
     chomp $self->{inputSetSize};
+
+    ##get and report size ....
+    $self->{size} = $self->getInputSetSize($inputDir);
+    if ($self->{size} == 0) {
+	print "Error: Input set size is 0\n";
+	exit 1;
+    }
+    my $c = int($self->{size} / $self->{subTaskSize});
+    $c += 1 if $self->{size} % $self->{subTaskSize};
+    $self->{numSubtasks} = $c;
+
+    ##check to see if the the number of files created is consistent with number of subtasks
+    ## if not, make the files above because subtask size has changed;
+    ## not going to test for change in inputfile as if user is silly enough to change insitu they'll have to live with it
+    ## intended to catch case where subtask size has been changed.
+    my @sFiles = glob("$inputDir/subtasks/reads.*");
+    if(scalar(@sFiles) != $self->{numSubtasks}){
+      die "Unable to create subtask reads files properly\n" if $madeReadFile;
+      system("/bin/rm $inputDir/subtasks/*");
+      goto REDOSUBTASKS;
+    }
+    print "Input set size is $self->{size}\n";
+    print "Subtask set size is $self->{subTaskSize} ($self->{numSubtasks} subtasks)\n";
+    
+    $self->{pairedEnd} = (-e "$pairedReadFilePath") ? "paired" : "single";
+    
     
     ##now check to see if have valid quals file
     if($self->{quals}){
@@ -148,7 +177,8 @@ sub initServer {
 	my @lsg = `ls -rt $genomeFastaFile $self->{bowtie_genome}.1.ebwt`;
 	map { chomp } @lsg;
 	if (scalar(@lsg) != 2 || $lsg[0] ne $genomeFastaFile) { 
-	    print "Building bowtie index for genome\n";
+          $date = `date`; chomp $date;
+	    print "$date: Building bowtie index for genome\n";
 	    &runCmd("$bowtieBinDir/bowtie-build $genomeFastaFile $self->{bowtie_genome}");
 	}
     }
@@ -166,26 +196,16 @@ sub initServer {
 	    my @lst = `ls -rt $transcriptFastaFile $self->{bowtie_transcript}.1.ebwt`;
 	    map { chomp } @lst;
 	    if (scalar(@lst) != 2 || $lst[0] ne $transcriptFastaFile) { 
-		print "Building bowtie index for transcriptome\n";
+              $date = `date`; chomp $date;
+		print "$date: Building bowtie index for transcriptome\n";
 		&runCmd("$bowtieBinDir/bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
 	    }
 	}
     }
     
-    ##get and report size ....
-    print "Finding input set size\n";
-    $self->{size} = $self->getInputSetSize($inputDir);
-    if ($self->{size} == 0) {
-	print "Error: Input set size is 0\n";
-	exit 1;
-    }
-    print "Input set size is $self->{size}\n";
-    my $c = int($self->{size} / $self->{subTaskSize});
-    $c += 1 if $self->{size} % $self->{subTaskSize};
-    $self->{numSubtasks} = $c;
-    print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
+
     
-    my $date = `date`;
+    $date = `date`;
     open(LOGFILE, ">rum.log_master");
     print LOGFILE "\nstart: $date\n";
     if($variableLengthReads eq "false") {
@@ -218,7 +238,7 @@ sub initServer {
 
 sub initNode {
   my ($self, $node, $inputDir) = @_;
-  
+  return 1;
   my $genomeFastaFile = $self->getProperty("genomeFastaFile");
   my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
   my $nodeDir = $node->getDir();
@@ -247,12 +267,12 @@ sub makeSubTaskCommand {
   my ($self, $node, $inputDir, $nodeExecDir,$subtaskNumber,$mainResultDir) = @_;
     
   if(!$self->{subtaskCmd}){
-    my $genomeFastaFile = "../" . basename($self->getProperty("genomeFastaFile"));
+    my $genomeFastaFile = $self->getProperty("genomeFastaFile");
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    my $genomeBowtieIndex =  "../" . $self->{bowtie_genome_name};
-    my $transcriptBowtieIndex = "../" . $self->{bowtie_transcript_name};
-    my $geneAnnotationFile = "../" . basename($self->getProperty("geneAnnotationFile"));
+    my $genomeBowtieIndex =  $self->{bowtie_genome};
+    my $transcriptBowtieIndex = $self->{bowtie_transcript};
+    my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
     my $blatExec = $self->getProperty("blatExec");
     my $mdustExec = $self->getProperty("mdustExec");
     my $limitNU = $self->getProperty("limitNU");
@@ -294,35 +314,58 @@ sub cleanUpServer {
     chomp $currDir;
     chdir("$mainResultDir") || die "$!";
     # concatenate files so are in order
-    print STDERR "Concatenating RUM_Unique files\n";
-    my @unique = $self->sortResultFiles('RUM_Unique.* | grep -v sorted');
-    my $cnt_x = 0;
-    if(scalar(@unique) != $self->{numSubtasks} && $cnt_x < 20){
+    my $date;
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Concatenating RUM_Unique files\n";
+    my $numchunks = $self->{numSubtasks};
+    if(!-e "$mainResultDir/RUM_Unique"){
+      unlink("$mainResultDir/RUM_Unique.tmp");
+      my @unique = $self->sortResultFiles('RUM_Unique.* | grep -v sorted');
+      my $cnt_x = 0;
+      if(scalar(@unique) != $self->{numSubtasks} && $cnt_x < 20){
 	sleep(5);
 	@unique = $self->sortResultFiles('RUM_Unique.* | grep -v sorted');
 	$cnt_x++;
-    }    
-    if(scalar(@unique) != $self->{numSubtasks}){
+      }    
+      if(scalar(@unique) != $self->{numSubtasks}){
 	print STDERR "Not concatenating files: number of subtasks ($self->{numSubtasks}) differs from number of files (".scalar(@unique).") ($cnt_x)\n";
 	return 1;
-    }
-    my $numchunks;
-    foreach my $f (@unique){
-	$numchunks++;
+      }
+      foreach my $f (@unique){
 	print STDERR "  Adding $f\n";
-	&runCmd("cat $f >> RUM_Unique");
-	unlink($f);
+	$node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM_Unique.tmp");
+      }
+      &runCmd("/bin/mv $mainResultDir/RUM_Unique.tmp $mainResultDir/RUM_Unique");
+      foreach my $f (@unique){
+        unlink($f);
+      }
+    }else{
+      print STDERR "  DONE\n";
     }
 
-    print STDERR "Concatenating RUM_NU files\n";
-    foreach my $f ($self->sortResultFiles('RUM_NU.* | grep -v sorted')){
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Concatenating RUM_NU files\n";
+    if(!-e "$mainResultDir/RUM_NU"){
+      unlink("$mainResultDir/RUM_NU.tmp");
+      my @nu = $self->sortResultFiles('RUM_NU.* | grep -v sorted');
+      foreach my $f (@nu){
 	print STDERR "  Adding $f\n";
-	&runCmd("cat $f >> RUM_NU");
+	$node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM_NU.tmp");
 	unlink($f);
+      }
+      &runCmd("/bin/mv $mainResultDir/RUM_NU.tmp $mainResultDir/RUM_NU");
+      foreach my $f (@nu){
+        unlink($f);
+      }
+    }else{
+      print STDERR "  DONE\n";
     }
 
     if($self->getProperty("createSAMFile") =~ /true/i){
-	print STDERR "Concatenating RUM.sam files\n";
+      $date = `date`; chomp $date;
+	print STDERR "[$date] Concatenating RUM.sam files\n";
+      if(-e "$mainResultDir/RUM.sam.1"){  #input file still exists so need to run.
+        unlink("$mainResultDir/RUM.sam_tmp");
 	my %samheader;
 	my @samheaders = $self->sortResultFiles('sam_header.*');
 	foreach my $f (@samheaders){
@@ -334,7 +377,7 @@ sub cleanUpServer {
 	    }
 	    close(SAMHEADER);
 	}
-	open(SAMOUT, ">RUM.sam");
+	open(SAMOUT, ">RUM.sam_tmp");
 	foreach my $key (sort {cmpChrs($a,$b)} keys %samheader) {
 	    my $shout = $samheader{$key};
 	    print SAMOUT "$shout\n";
@@ -342,109 +385,271 @@ sub cleanUpServer {
 	close(SAMOUT);
 	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
 	    print STDERR "  Adding $f\n";
-	    &runCmd("cat $f >> RUM.sam");
+	    $node->runCmd("cat $mainResultDir/$f >> $mainResultDir/RUM.sam_tmp");
+	}
+	foreach my $f ($self->sortResultFiles('RUM_sam.*')){
 	    unlink($f);
 	}
-    }
-    
-    &runCmd("samtools view -b -S RUM.sam > RUM.bam");
-    &runCmd("samtools sort RUM.bam RUM.sorted");
-    &runCmd("samtools index RUM.sorted.bam RUM.sorted.bam.bai");
-
-# I did the following because sometimes the file RUM.sam isn't written
+        &runCmd("/bin/mv $mainResultDir/RUM.sam_tmp $mainResultDir/RUM.sam");
+      }
+    # I did the following because sometimes the file RUM.sam isn't written
 # by the time it reaches this, because of occasional turgid file system on the cluster.
-    my $flag_x = 0;
-    my $cnt_x = 0;
-    my $NumSeqs;
-    while($flag_x == 0) {
-	$cnt_x++;
-	if($cnt_x > 100) {
-	    $flag_x = 1;
-	}
-	my $X = `tail -1 RUM.sam`;
-	$X =~ /^seq.(\d+)/;
-	$NumSeqs = $1;
-	if($NumSeqs =~ /^\d+$/) {
-	    $flag_x = 1;
-	} else {
-	    sleep(5);
-	}
+## BB: I don't think this is necessary anymore ...
+#       my $flag_x = 0;
+#       my $cnt_x = 0;
+#       my $NumSeqs;
+#       while($flag_x == 0) {
+# 	$cnt_x++;
+# 	if($cnt_x > 100) {
+#           $flag_x = 1;
+# 	}
+# 	my $X = `tail -1 $mainResultDir/RUM.sam`;
+# 	$X =~ /^seq.(\d+)/;
+# 	$NumSeqs = $1;
+# 	if($NumSeqs =~ /^\d+$/) {
+#           $flag_x = 1;
+# 	} else {
+#           sleep(5);
+# 	}
+#       }
+      $date = `date`; chomp $date;
+      print STDERR "[$date] running samtools on file to create sorted bam file\n";
+      if(!-e "$mainResultDir/RUM.bam"){
+        unlink("$mainResultDir/RUM.bam_tmp");
+        $node->runCmd("samtools view -b -S $mainResultDir/RUM.sam > $mainResultDir/RUM.bam_tmp");
+        &runCmd("/bin/mv $mainResultDir/RUM.bam_tmp $mainResultDir/RUM.bam");
+      }
+      if(!-e "$mainResultDir/RUM.sorted.bam"){
+        unlink("$mainResultDir/RUM.sorted_tmp.bam");
+        $node->runCmd("samtools sort $mainResultDir/RUM.bam $mainResultDir/RUM.sorted_tmp");
+        &runCmd("/bin/mv $mainResultDir/RUM.sorted_tmp.bam $mainResultDir/RUM.sorted.bam");
+      }
+      if(!-e "$mainResultDir/RUM.sorted.bam.bai"){
+        unlink("$mainResultDir/RUM.sorted.bam_tmp.bai");
+        $node->runCmd("samtools index $mainResultDir/RUM.sorted.bam $mainResultDir/RUM.sorted.bam_tmp.bai");
+        &runCmd("/bin/mv $mainResultDir/RUM.sorted.bam_tmp.bai $mainResultDir/RUM.sorted.bam.bai");
+      }
     }
-    my $perlScriptsDir = $self->getProperty("perlScriptsDir");
-    $node->runCmd("perl $perlScriptsDir/count_reads_mapped.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU -minseq 1 -maxseq $NumSeqs > $mainResultDir/mapping_stats.txt 2>> PostProcessing-errorlog");
 
+    my $NumSeqs = $self->{inputSetSize};
+
+    my $perlScriptsDir = $self->getProperty("perlScriptsDir");
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Counting mapped reads\n";
+    if(!-e "$mainResultDir/mapping_stats.txt"){
+      unlink("$mainResultDir/mapping_stats.txt.tmp");
+      $node->runCmd("perl $perlScriptsDir/count_reads_mapped.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU -minseq 1 -maxseq $NumSeqs > $mainResultDir/mapping_stats.txt.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/mapping_stats.txt.tmp $mainResultDir/mapping_stats.txt");
+    }
+
+## --- good to here --- ###
     my $transcriptBowtieIndex = $self->getProperty("transcriptBowtieIndex");
     if($transcriptBowtieIndex ne 'none') {
-	if($self->getProperty("strandSpecific") eq 'true') {
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps -strand ps -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ps -strand ps 2>> PostProcessing-errorlog");
-
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms -strand ms -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ms -strand ms 2>> PostProcessing-errorlog");
-
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa -strand pa -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.pa -strand pa 2>> PostProcessing-errorlog");
-
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma -strand ma -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ma -strand ma 2>> PostProcessing-errorlog");
-
-	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_counts 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications_normalized.ps $mainResultDir/feature_quantifications_normalized.ms $mainResultDir/feature_quantifications_normalized.pa $mainResultDir/feature_quantifications_normalized.ma $geneAnnotationFile $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
-	} else {
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_counts -countsonly 2>> PostProcessing-errorlog");
-	    $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications 2>> PostProcessing-errorlog");
-	}
+      $date = `date`; chomp $date;
+      print STDERR "[$date] Merging blat and bowtie quantifications\n";
+      if($self->getProperty("strandSpecific") eq 'true') {
+        if(!-e "$mainResultDir/feature_quantifications.ps"){
+          unlink("$mainResultDir/feature_quantifications.ps.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ps.tmp -strand ps -countsonly 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.ps.tmp $mainResultDir/feature_quantifications.ps");
+        }
+        if(!-e "$mainResultDir/feature_quantifications_normalized.ps"){
+          unlink("$mainResultDir/feature_quantifications_normalized.ps.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ps.tmp -strand ps 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications_normalized.ps.tmp $mainResultDir/feature_quantifications_normalized.ps");
+        }
+        if(!-e "$mainResultDir/feature_quantifications.ms"){
+          unlink("$mainResultDir/feature_quantifications.ms.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ms.tmp -strand ms -countsonly 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.ms.tmp $mainResultDir/feature_quantifications.ms");
+        }
+        if(!-e "$mainResultDir/feature_quantifications_normalized.ms"){
+          unlink("$mainResultDir/feature_quantifications_normalized.ms.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ms.tmp -strand ms 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications_normalized.ms.tmp $mainResultDir/feature_quantifications_normalized.ms");
+        }
+          
+        if(!-e "$mainResultDir/feature_quantifications.pa"){
+          unlink("$mainResultDir/feature_quantifications.pa.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.pa.tmp -strand pa -countsonly 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.pa.tmp $mainResultDir/feature_quantifications.pa");
+        }
+        if(!-e "$mainResultDir/feature_quantifications_normalized.pa"){
+          unlink("$mainResultDir/feature_quantifications_normalized.pa.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.pa.tmp -strand pa 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications_normalized.pa.tmp $mainResultDir/feature_quantifications_normalized.pa");
+        }
+          
+        if(!-e "$mainResultDir/feature_quantifications.ma"){
+          unlink("$mainResultDir/feature_quantifications.ma.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.ma.tmp -strand ma -countsonly 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.ma.tmp $mainResultDir/feature_quantifications.ma");
+        }
+        if(!-e "$mainResultDir/feature_quantifications_normalized.ma"){
+          unlink("$mainResultDir/feature_quantifications_normalized.ma.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications_normalized.ma.tmp -strand ma 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications_normalized.ma.tmp $mainResultDir/feature_quantifications_normalized.ma");
+        }
+          
+        if(!-e "$mainResultDir/feature_counts"){
+          unlink("$mainResultDir/feature_counts.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications.ps $mainResultDir/feature_quantifications.ms $mainResultDir/feature_quantifications.pa $mainResultDir/feature_quantifications.ma $geneAnnotationFile $mainResultDir/feature_counts.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_counts.tmp $mainResultDir/feature_counts");
+        }
+        if(!-e "$mainResultDir/feature_quantifications"){
+          unlink("$mainResultDir/feature_quantifications.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants_strandspecific.pl $mainResultDir/feature_quantifications_normalized.ps $mainResultDir/feature_quantifications_normalized.ms $mainResultDir/feature_quantifications_normalized.pa $mainResultDir/feature_quantifications_normalized.ma $geneAnnotationFile $mainResultDir/feature_quantifications.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.tmp $mainResultDir/feature_quantifications");
+        }
+      } else {
+        if(!-e "$mainResultDir/feature_counts"){
+          unlink("$mainResultDir/feature_counts.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_counts.tmp -countsonly 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_counts.tmp $mainResultDir/feature_counts");
+        }
+        if(!-e "$mainResultDir/feature_quantifications"){
+          unlink("$mainResultDir/feature_quantifications.tmp");
+          $node->runCmd("perl $perlScriptsDir/merge_quants.pl $mainResultDir $numchunks $mainResultDir/feature_quantifications.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+          &runCmd("/bin/mv $mainResultDir/feature_quantifications.tmp $mainResultDir/feature_quantifications");
+        }
+      }
     }
 
-    my $string = "$mainResultDir/RUM_Unique.sorted";
-    for(my $j=1; $j<$numchunks+1; $j++) {
+    my $string;
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Merging sorted RUM files\n";
+    if(!-e "$mainResultDir/RUM_Unique.sorted"){
+      unlink("$mainResultDir/RUM_Unique.sorted_tmp");
+      $string = "$mainResultDir/RUM_Unique.sorted_tmp";
+      for(my $j=1; $j<$numchunks+1; $j++) {
 	$string = $string . " $mainResultDir/RUM_Unique.sorted.$j";
+      }
+      $node->runCmd("perl $perlScriptsDir/merge_sorted_RUM_files.pl $string 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_Unique.sorted_tmp $mainResultDir/RUM_Unique.sorted");
     }
-    $node->runCmd("perl $perlScriptsDir/merge_sorted_RUM_files.pl $string 2>> PostProcessing-errorlog");
-    $string = "$mainResultDir/RUM_NU.sorted";
-    for(my $j=1; $j<$numchunks+1; $j++) {
+    if(!-e "$mainResultDir/RUM_NU.sorted"){
+      unlink("$mainResultDir/RUM_NU.sorted_tmp");
+      $string = "$mainResultDir/RUM_NU.sorted_tmp";
+      for(my $j=1; $j<$numchunks+1; $j++) {
 	$string = $string . " $mainResultDir/RUM_NU.sorted.$j";
+      }
+      $node->runCmd("perl $perlScriptsDir/merge_sorted_RUM_files.pl $string 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_NU.sorted_tmp $mainResultDir/RUM_NU.sorted");
     }
-    $node->runCmd("perl $perlScriptsDir/merge_sorted_RUM_files.pl $string 2>> PostProcessing-errorlog");
 
     # add counts of reads per chromosome to the mapping_stats.txt file:
-    $string = "$mainResultDir/mapping_stats.txt";
-    for(my $j=1; $j<$numchunks+1; $j++) {
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Colating mapping stats\n";
+    if(!-e "$mainResultDir/mapping_stats.txt"){
+      unlink("$mainResultDir/mapping_stats.txt.tmp");
+      $string = "$mainResultDir/mapping_stats.txt.tmp";
+      for(my $j=1; $j<$numchunks+1; $j++) {
 	$string = $string . " $mainResultDir/chr_counts_u.$j";
-    }
-    $node->runCmd("perl $perlScriptsDir/merge_chr_counts.pl $string 2>> PostProcessing-errorlog");
-    $string = "$mainResultDir/mapping_stats.txt";
-    for(my $j=1; $j<$numchunks+1; $j++) {
+      }
+      $node->runCmd("perl $perlScriptsDir/merge_chr_counts.pl $string 2>> $mainResultDir/PostProcessing-errorlog");
+      $string = "$mainResultDir/mapping_stats.txt.tmp";
+      for(my $j=1; $j<$numchunks+1; $j++) {
 	$string = $string . " $mainResultDir/chr_counts_nu.$j";
+      }
+      $node->runCmd("perl $perlScriptsDir/merge_chr_counts.pl $string 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/mapping_stats.txt.tmp $mainResultDir/mapping_stats.txt");
     }
-    $node->runCmd("perl $perlScriptsDir/merge_chr_counts.pl $string 2>> PostProcessing-errorlog");
 
     if($self->getProperty("createJunctionsFile") eq 'true') {
-	$node->runCmd("perl $perlScriptsDir/make_RUM_junctions_file.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU $genomeFastaFile $geneAnnotationFile $mainResultDir/junctions_all.rum $mainResultDir/junctions_all.bed $mainResultDir/junctions_high-quality.bed -faok 2>> PostProcessing-errorlog");
+      $date = `date`; chomp $date;
+      print STDERR "[$date] Creating junctions file\n";
+      if(!-e "$mainResultDir/junctions_all.rum"){
+        unlink("$mainResultDir/junctions_all.rum.tmp");
+        $node->runCmd("perl $perlScriptsDir/make_RUM_junctions_file.pl $mainResultDir/RUM_Unique $mainResultDir/RUM_NU $genomeFastaFile $geneAnnotationFile $mainResultDir/junctions_all.rum.tmp $mainResultDir/junctions_all.bed $mainResultDir/junctions_high-quality.bed -faok 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/junctions_all.rum.tmp $mainResultDir/junctions_all.rum");
+      }
     }
 
-    $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.cov -name \"Unique Mappers\" 2>> PostProcessing-errorlog");
-    $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.cov -open > $mainResultDir/RUM_Unique.normalized.cov 2>> PostProcessing-errorlog");
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Creating coverage files\n";
+    if(!-e "$mainResultDir/RUM_Unique.cov"){
+      unlink("$mainResultDir/RUM_Unique.cov.tmp");
+      $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.cov.tmp -name \"Unique Mappers\" 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_Unique.cov.tmp $mainResultDir/RUM_Unique.cov");
+    }
 
-    $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.cov -name \"Non-Unique Mappers\" 2>> PostProcessing-errorlog");
-    $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.cov -open > $mainResultDir/RUM_NU.normalized.cov 2>> PostProcessing-errorlog");
+    if(!-e "$mainResultDir/RUM_Unique.normalized.cov"){
+      unlink("$mainResultDir/RUM_Unique.normalized.cov.tmp");
+      $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.cov -open > $mainResultDir/RUM_Unique.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_Unique.normalized.cov.tmp $mainResultDir/RUM_Unique.normalized.cov");
+    }
+
+    if(!-e "$mainResultDir/RUM_NU.cov"){
+      unlink("$mainResultDir/RUM_NU.cov.tmp");
+      $node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.cov.tmp -name \"Non-Unique Mappers\" 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_NU.cov.tmp $mainResultDir/RUM_NU.cov");
+    }
+    if(!-e "$mainResultDir/RUM_NU.normalized.cov"){
+      unlink("$mainResultDir/RUM_NU.normalized.cov.tmp");
+      $node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.cov -open > $mainResultDir/RUM_NU.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+      &runCmd("/bin/mv $mainResultDir/RUM_NU.normalized.cov.tmp $mainResultDir/RUM_NU.normalized.cov");
+    }
 
     if($self->getProperty("strandSpecific") eq 'true') {
+      $date = `date`; chomp $date;
+      print STDERR "[$date] Making strand specific files\n";
 	# breakup RUM_Unique and RUM_NU files into plus and minus
-	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.sorted.plus $mainResultDir/RUM_Unique.sorted.minus 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.sorted.minus 2>> PostProcessing-errorlog");
+      if(!-e "$mainResultDir/RUM_Unique.sorted.plus"){
+        unlink("$mainResultDir/RUM_Unique.sorted.plus.tmp");
+	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_Unique.sorted $mainResultDir/RUM_Unique.sorted.plus.tmp $mainResultDir/RUM_Unique.sorted.minus 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_Unique.sorted.plus.tmp $mainResultDir/RUM_Unique.sorted.plus");
+      }
+      if(!-e "$mainResultDir/RUM_NU.sorted.plus"){
+        unlink("$mainResultDir/RUM_NU.sorted.plus.tmp");
+	$node->runCmd("perl $perlScriptsDir/breakup_RUM_files_by_strand.pl $mainResultDir/RUM_NU.sorted $mainResultDir/RUM_NU.sorted.plus.tmp $mainResultDir/RUM_NU.sorted.minus 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_NU.sorted.plus.tmp $mainResultDir/RUM_NU.sorted.plus");
+      }
 	# run rum2cov on all four files
-	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.plus $mainResultDir/RUM_Unique.plus.cov -name \"Unique Mappers Plus Strand\" 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.plus.cov -open > $mainResultDir/RUM_Unique.plus.normalized.cov 2>> PostProcessing-errorlog");
- 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.minus $mainResultDir/RUM_Unique.minus.cov -name \"Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.minus.cov -open > $mainResultDir/RUM_Unique.minus.normalized.cov 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.plus.cov -name \"Non-Unique Mappers Plus Strand\" 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.plus.cov -open > $mainResultDir/RUM_NU.plus.normalized.cov 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.minus $mainResultDir/RUM_NU.minus.cov -name \"Non-Unique Mappers Minus Strand\" 2>> PostProcessing-errorlog");
-	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.minus.cov -open > $mainResultDir/RUM_NU.minus.normalized.cov 2>> PostProcessing-errorlog");
+      if(!-e "$mainResultDir/RUM_Unique.plus.cov"){
+        unlink("$mainResultDir/RUM_Unique.plus.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.plus $mainResultDir/RUM_Unique.plus.cov.tmp -name \"Unique Mappers Plus Strand\" 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_Unique.plus.cov.tmp $mainResultDir/RUM_Unique.plus.cov");
+      }
+      if(!-e "$mainResultDir/RUM_Unique.plus.normalized.cov"){
+        unlink("$mainResultDir/RUM_Unique.plus.normalized.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.plus.cov -open > $mainResultDir/RUM_Unique.plus.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_Unique.plus.normalized.cov.tmp $mainResultDir/RUM_Unique.plus.normalized.cov");
+      }
+      if(!-e "$mainResultDir/RUM_Unique.minus.cov"){
+        unlink("$mainResultDir/RUM_Unique.minus.cov.tmp");
+ 	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_Unique.sorted.minus $mainResultDir/RUM_Unique.minus.cov.tmp -name \"Unique Mappers Minus Strand\" 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_Unique.minus.cov.tmp $mainResultDir/RUM_Unique.minus.cov");
+      }
+      if(!-e "$mainResultDir/RUM_Unique.minus.normalized.cov"){
+        unlink("$mainResultDir/RUM_Unique.minus.normalized.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_Unique.minus.cov -open > $mainResultDir/RUM_Unique.minus.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_Unique.minus.normalized.cov.tmp $mainResultDir/RUM_Unique.minus.normalized.cov");
+      }
+      if(!-e "$mainResultDir/RUM_NU.plus.cov"){
+        unlink("$mainResultDir/RUM_NU.plus.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.plus $mainResultDir/RUM_NU.plus.cov.tmp -name \"Non-Unique Mappers Plus Strand\" 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_NU.plus.cov.tmp $mainResultDir/RUM_NU.plus.cov");
+      }
+      if(!-e "$mainResultDir/RUM_NU.plus.normalized.cov"){
+        unlink("$mainResultDir/RUM_NU.plus.normalized.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.plus.cov -open > $mainResultDir/RUM_NU.plus.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_NU.plus.normalized.cov.tmp $mainResultDir/RUM_NU.plus.normalized.cov");
+      }
+      if(!-e "$mainResultDir/RUM_NU.minus.cov"){
+        unlink("$mainResultDir/RUM_NU.minus.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/rum2cov.pl $mainResultDir/RUM_NU.sorted.minus $mainResultDir/RUM_NU.minus.cov.tmp -name \"Non-Unique Mappers Minus Strand\" 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_NU.minus.cov.tmp $mainResultDir/RUM_NU.minus.cov");
+      }
+      if(!-e "$mainResultDir/RUM_NU.minus.normalized.cov"){
+        unlink("$mainResultDir/RUM_NU.minus.normalized.cov.tmp");
+	$node->runCmd("perl $perlScriptsDir/normalizeCov.pl $mainResultDir/RUM_NU.minus.cov -open > $mainResultDir/RUM_NU.minus.normalized.cov.tmp 2>> $mainResultDir/PostProcessing-errorlog");
+        &runCmd("/bin/mv $mainResultDir/RUM_NU.minus.normalized.cov.tmp $mainResultDir/RUM_NU.minus.normalized.cov");
+      }
     }
 
 # cleanup temp files
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Cleaning up temp files\n";
 
     #`rm RUM_Unique`;
     #`rm RUM_NU`;
@@ -478,12 +683,17 @@ sub cleanUpServer {
     }
 
 # do SNP calling, if requested
+# not currently supported!!
 
-    my $SNPs = $self->getProperty("SNPs");
-    if($SNPs eq 'true') {
-	$node->runCmd("identifySNPsFromBamFile.pl --genomeFastaFile $genomeFastaFile --varScanJarFile $ENV{GUS_HOME}/lib/java/VarScan.v2.2.5.jar --samtoolsPath /gpfs/fs0/share/apps/bs/bioscope/bin/samtools --bamFile $mainResultDir/RUM.bam");
-    }
+#    my $SNPs = $self->getProperty("SNPs");
+#    if($SNPs eq 'true') {
+#      $date = `date`; chomp $date;
+#      print STDERR "[$date] Calling SNPs\n";
+#	$node->runCmd("identifySNPsFromBamFile.pl --genomeFastaFile $genomeFastaFile --varScanJarFile $ENV{GUS_HOME}/lib/java/VarScan.v2.2.5.jar --samtoolsPath /gpfs/fs0/share/apps/bs/bioscope/bin/samtools --bamFile $mainResultDir/RUM.bam");
+#    }
     
+    $date = `date`; chomp $date;
+    print STDERR "[$date] Post processing steps complete\n";
     chdir("$currDir") || die "$!";
     return 1;
 }
