@@ -1,0 +1,35 @@
+#!@perl@
+
+## starts gfServer with cmd: gfServer -canStop start localhost port 
+## checks status with gfServer status localhost port 
+##every 10 seconds until 0 is returned
+
+use strict;
+use Getopt::Long;
+
+my($port,$path,$dir,$trans);
+&GetOptions('nodePort=i' => \$port,
+            'binPath=s' => \$path,
+            'trans!' => \$trans,
+	    'targetDir=s' => \$dir);
+
+($path && $port && $dir) ||
+	die "Usage:startGfServer --nodePort --binPath <gfServer/gfClient path> --targetDir --trans";  
+
+my $translate = $trans ? "-trans" : "";
+
+chdir("$dir");
+
+system("${path}/gfServer -canStop $translate start localhost $port *.nib &");
+
+
+system("${path}/gfServer status localhost $port");
+
+while($?){
+    sleep 5;
+    system("${path}/gfServer status localhost $port");
+} 
+
+
+
+
