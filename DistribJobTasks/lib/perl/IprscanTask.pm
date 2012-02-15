@@ -18,7 +18,7 @@ my @properties =
 	["seqtype", "p", "Sequence type: n for DNA/RNA, p for protein"],
 	["trlen", "false", "Transcript length threshold"],
 	["appl", "", "Comma-separated names of applications. Supported applications: blastprodom coils "
-					 . "fprintscan gene3d hmmpanther hmmpfam hmmpir hmmsmart hmmtigr profilescan pfscan"
+					 . "fprintscan gene3d hmmpanther hmmpfam hmmpir hmmsmart hmmtigr profilescan "
 					 . "scanregexp seg superfamily"],
 	["crc", "false", "Checks interpro compatible databases for data consistency. Set this to false "
 					. " (default) to allow updating individual databases without updating interproscan"],
@@ -59,7 +59,7 @@ sub initNode {
 						hmmsmart=>'smart.*',
 						hmmtigr=>'TIGRFAMs_*',
 						fprintscan=>'prints.*;FingerPRINTSparser.db',
-						pfscan=>'prosite*',
+						profilescan=>'prosite*',
 						superfamily=>'superfamily.*',
 						tmhmm=>''
 						);
