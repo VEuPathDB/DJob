@@ -264,7 +264,9 @@ sub run {
         next unless defined $subtask;
         print "subtask_".$subtask->getNum()."\n";
       }
-      print "Set restart=yes in the controller.prop file and re run to run these failed subtasks.\n\n";
+      $failures = 1;   # added temporarily until we figure out the right way to do this.
+      print "Set restart=yes in the controller.prop file and re-run to run these failed subtasks.\n\n";
+      print "PLEASE CHECK THE running/ dir to be sure there are no left over subtasks in there.  they belong in failures/ if so.\n\n";
     }
 
     ##delete the script file ...
@@ -318,7 +320,7 @@ sub getNodeMsgs {
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
           $n->setDir($tmpDir) if $tmpDir;
-          print STDERR "NOTE: nodedir for node $slot set to ".$n->getDir()."\n";
+          print STDERR "Node $slot nodedir set to ".$n->getDir()."\n";
           $n->setLocalPort($status) if $status;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
