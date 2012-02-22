@@ -264,7 +264,7 @@ sub run {
         next unless defined $subtask;
         print "subtask_".$subtask->getNum()."\n";
       }
-      $failures = 1;   # added temporarily until we figure out the right way to do this.
+      $failures = scalar(@redoSubtasks) unless $failures;   # added temporarily until we figure out the right way to do this.
       print "Set restart=yes in the controller.prop file and re-run to run these failed subtasks.\n\n";
       print "PLEASE CHECK THE running/ dir to be sure there are no left over subtasks in there.  they belong in failures/ if so.\n\n";
     }
