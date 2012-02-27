@@ -26,8 +26,8 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -l mem_free=$self->{memPerNode}G $runFile";
-#    print "$qsubcmd\n";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -l h_vmem=$self->{memPerNode}G $runFile";
+    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;
     if($tjid =~ /job\s(\d+)/){
