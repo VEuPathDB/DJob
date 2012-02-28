@@ -34,7 +34,7 @@ sub queueNode {
       my $jid = $1;
       $self->setJobid($jid);
 ##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that PBS will clean up.
-      $self->{nodeDir} = "$ENV{TMPDIR}/$jid";
+      $self->{nodeDir} = "$self->{nodeDir}/$jid";
       if($self->{fileName}){
         open(C,">>$self->{fileName}");
         print C "$self->{jobid} ";
