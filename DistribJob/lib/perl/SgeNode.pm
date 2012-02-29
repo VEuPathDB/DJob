@@ -11,13 +11,15 @@ sub queueNode {
   my $self = shift;
   if (!$self->getJobid()) {     ##need to run qsub 
     ##first create the script...
-    my $runFile = $self->{fileName};
-    if(!$runFile){
-      $runFile = "nodeScript.$$";
+    my $wd = `pwd`;
+    chomp $wd;
+    my $runFile = "$wd/$self->{fileName}";
+    if(!$self->{fileName}){
+      $runFile = "$wd/nodeScript.$$";
     }elsif($self->{fileName} =~ /cancel/){
       $runFile =~ s/cancel/run/;
     }else{
-      $runFile = "$runFile.run";
+      $runFile = "$wd/$runFile.run";
     }
     $self->{script} = $runFile;
     if(!-e "$runFile"){
@@ -85,7 +87,7 @@ sub cleanUp {
     
     
     if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+      $self->runCmd("/bin/rm -rf $self->{nodeDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }

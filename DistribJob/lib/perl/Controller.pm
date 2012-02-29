@@ -24,6 +24,7 @@ my @properties =
  ["taskclass",    "",  "Subclass of DJob::DistribJob::Task that manages the task"],
  ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
  ["keepNodeForPostProcessing", "no",  "yes/no: keep a node for cleanup at end"],
+ ["useTmpDir", "yes",  "[yes]/no: set the nodeDir to the tmpDir assigned by scheduler"],
  ["restart",      "",  "yes/no: restart a task"]
  );
 
@@ -47,7 +48,7 @@ sub new {
   $self->{kill} = $kill;
   my $restart;
 
-  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $restart) = $self->readPropFile($propfile, \@properties);
+  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $self->{useTmpDir}, $restart) = $self->readPropFile($propfile, \@properties);
 
   return if ($self->kill($kill));
 
@@ -252,7 +253,7 @@ sub run {
         last;
       }
     }
-    print STDERR "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
+    print "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
     $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
     
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
@@ -319,8 +320,8 @@ sub getNodeMsgs {
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
-          $n->setDir($tmpDir) if $tmpDir;
-          print STDERR "Node $slot nodedir set to ".$n->getDir()."\n";
+          $n->setDir($tmpDir) if ($tmpDir && $self->{useTmpDir} eq 'yes');
+          print "Node $slot nodedir set to ".$n->getDir()."\n";
           $n->setLocalPort($status) if $status;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
@@ -388,7 +389,8 @@ sub readPropFile {
 	    $props->getProp('nodedir'), 
 	    $props->getProp('slotspernode'), $props->getProp('subtasksize'), 
 	    $props->getProp('taskclass'), 
-	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'), $restart);
+	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'), 
+            $props->getProp('useTmpDir'), $restart);
 }
 
 sub checkKill {
