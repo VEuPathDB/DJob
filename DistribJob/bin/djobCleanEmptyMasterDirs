@@ -7,24 +7,35 @@ usage() unless $dataDir;
 
 die "First argument '$dataDir' must be a directory in which to find master/ dirs" unless -d $dataDir;
 
+print STDERR "\nSearching for master/ dirs inside of $dataDir\n\n";
 my @dirs = `find $dataDir -name master`;
 
-print STDERR "Found these dirs to delete:\n\n";
+my $r;
+$r = " (but won't because only reporting)" if $reportOnly;
 
+print STDERR "Found these dirs to delete$r\n";
+
+my $deleted = 0;
 foreach my $dir (@dirs) {
-  chomp;
-  my $count = `ls $dir/mainresult|wc -l`;
-  chomp $c;
-  next if $c;   # only delete dirs which have non-zero number of files in mainresult
+  chomp $dir;
+  my $count = 0;
+  if (-d "$dir/mainresult") {
+    $count = `ls $dir/mainresult|wc -l`;
+    chomp $count;
+  }
+  next if $count;   # only delete dirs which have non-zero number of files in mainresult
   if ($reportOnly) {
-    print STDERR "$dir\n";
+    print STDERR "  $dir\n";
     next;
   }
-  my $cmd = "rm -r $dataDir/$dir";
-  print STDERR "$cmd";
+  my $cmd = "rm -r $dir";
+  print STDERR "  $dir\n";
   system($cmd) && die "Failed: $?\n";
+  $deleted++;
 }
 
+
+print "\nDeleted $deleted dirs\n";
 
 sub usage {
 
