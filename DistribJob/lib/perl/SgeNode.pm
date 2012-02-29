@@ -11,15 +11,13 @@ sub queueNode {
   my $self = shift;
   if (!$self->getJobid()) {     ##need to run qsub 
     ##first create the script...
-    my $wd = `pwd`;
-    chomp $wd;
-    my $runFile = "$wd/$self->{fileName}";
-    if(!$self->{fileName}){
-      $runFile = "$wd/nodeScript.$$";
+    my $runFile = "$self->{fileName}";
+    if(!$runFile){
+      $runFile = "nodeScript.$$";
     }elsif($self->{fileName} =~ /cancel/){
       $runFile =~ s/cancel/run/;
     }else{
-      $runFile = "$wd/$runFile.run";
+      $runFile = "$runFile.run";
     }
     $self->{script} = $runFile;
     if(!-e "$runFile"){
@@ -28,8 +26,8 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -q $self->{queue} -l h_vmem=$self->{memPerNode}G $runFile";
-#    print "$qsubcmd\n";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
+    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;
     if($tjid =~ /job\s(\d+)/){
