@@ -12,10 +12,10 @@ my @dirs = `find $dataDir -name master`;
 
 my $r;
 $r = " (but won't because only reporting)" if $reportOnly;
-
 print STDERR "Found these dirs to delete$r\n";
 
 my $deleted = 0;
+my @foundDirs;
 foreach my $dir (@dirs) {
   chomp $dir;
   my $count = 0;
@@ -24,16 +24,25 @@ foreach my $dir (@dirs) {
     chomp $count;
   }
   next if $count;   # only delete dirs which have non-zero number of files in mainresult
-  if ($reportOnly) {
-    print STDERR "  $dir\n";
-    next;
-  }
-  my $cmd = "rm -r $dir";
+  push(@foundDirs, $dir);
   print STDERR "  $dir\n";
+}
+
+my $foundCount = scalar(@foundDirs);
+
+exit(0) if $reportOnly;
+
+print "\nYou are about to delete $foundCount master/ dirs.  Type 'yes' to confirm: ";
+my $confirm = <STDIN>;
+chomp $confirm;
+die "You did not type yes\n" unless $confirm eq 'yes';
+
+foreach my $f (@foundDirs) {
+  my $cmd = "rm -r $f";
+  print STDERR "$cmd\n";
   system($cmd) && die "Failed: $?\n";
   $deleted++;
 }
-
 
 print "\nDeleted $deleted dirs\n";
 
