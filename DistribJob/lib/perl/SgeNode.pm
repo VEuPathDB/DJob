@@ -26,7 +26,7 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -l mem_free=$self->{memPerNode}G $runFile";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} -q $self->{queue} -l h_vmem=$self->{memPerNode}G $runFile";
 #    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;
@@ -34,7 +34,7 @@ sub queueNode {
       my $jid = $1;
       $self->setJobid($jid);
 ##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that PBS will clean up.
-      $self->{nodeDir} = "/tmp/$jid";
+      $self->{nodeDir} = "$self->{nodeDir}/$jid";
       if($self->{fileName}){
         open(C,">>$self->{fileName}");
         print C "$self->{jobid} ";

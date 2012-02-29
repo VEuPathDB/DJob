@@ -27,7 +27,7 @@ my @properties =
  ["saveGoodBlastFiles",   "no",    "If yes then blast results that meet parse are saved"],
  ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=yes [$ENV{HOME}/blastFiles]"],
  ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
- ["copyDbToNode", "yes", "([yes] | no) if 'yes' then copies the blast indices to the local nodeDir on node ... may be faster in some contexts"],
+ ["copyDbToNode", "no", "(yes | [no]) if 'yes' then copies the blast indices to the local nodeDir on node ... may be faster in some contexts"],
  ["printSimSeqsFile", "no", "print output in format for sqlldr for similarsequences"]
  );
 

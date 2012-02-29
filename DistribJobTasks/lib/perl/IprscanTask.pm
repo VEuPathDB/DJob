@@ -24,6 +24,7 @@ my @properties =
 					. " (default) to allow updating individual databases without updating interproscan"],
 	["email", $ENV{USER} . "\@pcbi.upenn.edu", "Submitter's email address to send job status"],
 	["taxo", "false", "Activate the Taxonomy filter for abbreviated taxonomy"],
+        ["copyDbToNode", "no", "(yes | [no]) if 'yes' then copies the blast indices to the local nodeDir on node ... may be faster in some contexts"],
 	["datadir", "false", "Full path to the Interproscan data directory"]
 	
 	# Notes:
@@ -49,6 +50,8 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 	
+    return if $self->getProperty("copyDbToNode") eq 'no';
+
 	# This determines what application uses which files. If adding a new application,
 	# make sure this hash is populated appropriately. Look at the individual [app].conf
 	# files in IPRSCAN_HOMe/conf directory to figure out the files used by each app.
