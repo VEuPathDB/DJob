@@ -52,6 +52,11 @@ sub new {
 
   return if ($self->kill($kill));
 
+
+### NOTE: hacking in a memortPerNode for blast tasks temporarily ... need to fix in the workflow and then remove here ###
+  $self->{memPerNode} = 9 if $self->{taskClass} =~ /BlastSimilarity/;
+#################
+
   if ($restart) {
     die "masterDir $self->{masterDir} must exist to restart.\n" unless -e $self->{masterDir};
     $self->resetKill();
