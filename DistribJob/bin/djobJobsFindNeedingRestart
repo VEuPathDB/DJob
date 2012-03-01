@@ -7,7 +7,7 @@ usage() unless $taskLogDir;
 
 # find task.logs that don't end in Done
 die "Error: arg '$taskLogDir' is not a dir\n" unless -d $taskLogDir;
-my @logs = `ls $taskLogdir/*.log`;
+my @logs = `ls $taskLogDir/*.log`;
 my @masterDirsOfInterest;
 foreach my $log (@logs) {
     my @masterDir = `egrep '^master' $log`;   # find line in file that declares master dir
@@ -32,15 +32,14 @@ sub usage {
 
 die "
 
-Delete distribjob master/ dirs that are empty.  This is useful in a workflow context where there may be many systematic failures.  Directories that have an empty master/mainresult dir are deleted.
+Provide a list of controller.prop files that should have restart set to yes.  They correspond to task.log files that do not end in Done, and have non-empty master/mainresult.
 
-CAUTION:  do not run this command if any djob runs are in progress.   It could remove master/ dirs from them if they have not yet written to mainresult/
+CAUTION:  THESE MIGHT BE RUNNING JOBS.  So be sure they are not first.
 
-usage:  djobCleanEmptyMasterDirs data_dir [-r]
+usage:  djobFindJobsNeedingRestart tasklogs_dir
 
 where:
-   data_dir - a dir to start searching for master/ dirs
-   -r       - a flag to report only, ie, show what will be deleted, but don't do the delete
+   tasklogs_dir - a dir containg task.log files
 
 ";
 }
