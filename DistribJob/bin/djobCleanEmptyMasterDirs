@@ -25,7 +25,7 @@ foreach my $dir (@dirs) {
   }
   next if $count;   # only delete dirs which have non-zero number of files in mainresult
   push(@foundDirs, $dir);
-  print STDERR "  $dir\n";
+  print  "  $dir\n";
 }
 
 my $foundCount = scalar(@foundDirs);
