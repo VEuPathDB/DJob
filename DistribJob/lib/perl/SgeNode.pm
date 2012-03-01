@@ -21,10 +21,17 @@ sub queueNode {
     }
     $self->{script} = $runFile;
     if(!-e "$runFile"){
+      my $host = `hostname`;
+      chomp $host;
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
       print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
       close R;
       system("chmod +x $runFile");
+      if($host =~ /cluster/){
+        print STDERR "sleeping to allow nfs to catch up with the script file ... ";
+        sleep 60 ;
+        print STDERR "done \n";
+      }
     }
     my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
 #    print "$qsubcmd\n";
