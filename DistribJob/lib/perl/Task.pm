@@ -9,7 +9,7 @@ my $haveReadJobscript = 0;
 $| = 1;
 
 sub new {
-    my ($class, $inputDir, $subTaskSize, $restart, $masterDir, $nodes, $props, $sizeAfterInitServer) = @_;
+    my ($class, $inputDir, $subTaskSize, $restart, $masterDir, $props, $sizeAfterInitServer) = @_;
 
     my $self = {};
     bless $self, $class;
@@ -43,7 +43,6 @@ sub new {
     $self->{failedDir} = "$masterDir/failures";
     $self->{completeLog} = "$masterDir/completedSubtasks.log";
     $self->{mainResultDir} = "$masterDir/mainresult";
-    $self->setNodes($nodes);
 
     $self->_initMasterDir();
     $self->{completedInPastRun} = $self->_findCompletedFromLog($restart);
@@ -163,16 +162,6 @@ sub addSubtaskTime {
 sub getSubtaskTime {
   my $self = shift;
   return $self->{ctCompleteSubtasks} ? $self->{totSubtaskTime} / $self->{ctCompleteSubtasks} : 0
-}
-
-sub setNodes {
-  my($self,$nodes) = @_;
-  $self->{nodes} = $nodes;
-}
-
-sub getNodes {
-  my $self = shift;
-  return $self->{nodes};
 }
 
 sub _newSubTaskDir {

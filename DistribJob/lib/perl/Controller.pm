@@ -84,6 +84,10 @@ $restartInstructions
   $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$nodePath.pm";
 
+  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir});
+  print "Initializing server...\n\n";
+  $task->initServer($self->{inputDir});
+
 
   ##open socket to listen for active nodes...
   $self->{hostname} = `hostname -s` unless $self->{hostname};
@@ -125,11 +129,6 @@ $restartInstructions
       push(@nodes,$node);
     }
   }
-  ##add a pointer to the nodes to the task so can get at them if necessary from the task
-  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},\@nodes);
-  print "Initializing server...\n\n";
-  $task->initServer($self->{inputDir});
-
 
   ##now start running....
   $self->run($task, $propfile, $sel, $sock);
