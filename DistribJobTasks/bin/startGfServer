@@ -18,18 +18,45 @@ my($port,$path,$dir,$trans);
 
 my $translate = $trans ? "-trans" : "";
 
+my $fuser = -e "/sbin/fuser" ? "/sbin/fuser" : "/usr/sbin/fuser";
+
+die "fuser command not found\n" unless $fuser;
+
 chdir("$dir");
 
-system("${path}/gfServer -canStop $translate start localhost $port *.nib &");
+##first find an available port
+#my $ctp = 0;
+#while(!&testPort($port)){
+#  $ctp++;
+#  die "Unable to find open port\n" if $ctp > 10;
+#  $port = int(rand(3000)) + 8000;
+#}
 
+my $hostname = `hostname`;
+chomp $hostname;
 
-system("${path}/gfServer status localhost $port");
+if(&testPort($port)){ ##returns true if port is not being used
+  die "port $port in use by another process, can't start gfServer\n";
+}
 
+system("${path}/gfServer -canStop $translate start localhost $port *.nib > /dev/null 2>&1 &");
+
+system("${path}/gfServer status localhost $port > /dev/null 2>&1");
+
+my $ct = 0;
 while($?){
-    sleep 5;
-    system("${path}/gfServer status localhost $port");
-} 
+  $ct++;
+  die "Unable to create gfServer on port $port\n" if $ct > 5;
+  sleep 5;
+  system("${path}/gfServer status localhost $port > /dev/null 2>&1");
+}
 
+print "gfServer started on $hostname:$port\n";
 
-
-
+sub testPort {
+  my $port = shift;
+  my $tcmd = "$fuser $port/tcp > /dev/null 2>&1";
+#  print STDERR "testPort: $tcmd\n";
+  system($tcmd);
+  return $? ? 0 : 1;
+}

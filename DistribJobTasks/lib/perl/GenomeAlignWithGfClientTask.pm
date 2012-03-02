@@ -23,7 +23,6 @@ my @properties =
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
-    $self->{port} = int(rand(3000)) + 8000;
     return $self;
 }
 
@@ -42,11 +41,13 @@ sub initNode {
 
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
-    my $port = $self->{port};
     my $queryType = $self->getProperty("queryType");
 
-    $node->runCmd("startGfServer --binPath $gaBinPath --nodePort $port --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : ""));
 
+    my $cmd = "startGfServer --binPath $gaBinPath --nodePort $node->{gfport} --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : "");
+
+#    print STDERR "$cmd\n";
+    print $node->runCmd($cmd)."\n";
 }
 
 sub getInputSetSize {
@@ -79,7 +80,7 @@ sub makeSubTaskCommand {
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
     my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
-    my $port = $self->{port};
+    my $port = $node->{gfport};
     my $nodeDir = $node->getDir();
     my $maxIntron = $self->getProperty("maxIntron");
     my $queryType = $self->getProperty("queryType");
@@ -101,7 +102,7 @@ sub integrateSubTaskResults {
 sub cleanUpNode {
     my ($self,$node) = @_;
 
-    my $port = $self->{port};
+    my $port = $node->{gfport};
 
     $node->runCmd($self->getProperty('gaBinPath')."/gfServer stop localhost $port");
 }

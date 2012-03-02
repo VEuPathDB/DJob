@@ -25,6 +25,7 @@ our $FAILEDNODE = 7;
 
 my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
+my %gfServerPort;
 
 sub new {
     my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue) = @_;
@@ -46,6 +47,15 @@ sub new {
     $self->setState($NOCONNECTION);
 
     $self->setSaveForCleanup(0);
+
+    ##bit of a hack but want to generate a unique high number to use for gfServer port;
+    my $port = int(rand(5000)) + 8000;
+    while($gfServerPort{$port}){
+      $port = int(rand(5000)) + 8000;
+    }
+    $gfServerPort{$port} = 1;
+    $self->{gfport} = $port;
+      
 
     return $self;
 }
