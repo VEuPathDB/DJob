@@ -39,7 +39,7 @@ if(&testPort($port)){ ##returns true if port is not being used
   die "port $port in use by another process, can't start gfServer\n";
 }
 
-system("${path}/gfServer -canStop $translate start localhost $port *.nib > /dev/null 2>&1 &");
+system("${path}/gfServer -canStop -maxAaSize=15000 $translate start localhost $port *.nib > /dev/null 2>&1 &");
 
 system("${path}/gfServer status localhost $port > /dev/null 2>&1");
 
