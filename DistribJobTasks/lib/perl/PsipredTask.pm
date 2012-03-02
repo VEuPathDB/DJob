@@ -83,6 +83,7 @@ sub initSubTask {
     my ($newName) = $line =~ /\>([a-zA-Z0-9_\.]+) /;
 
     $newName = $newName . ".fsa";
+    $node->runCmd("touch $subTaskDir/seqsubset.fsa");
 
     $node->runCmd("cp -r $subTaskDir/seqsubset.fsa $nodeSlotDir/$newName");
 }
