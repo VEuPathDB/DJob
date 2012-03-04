@@ -71,7 +71,8 @@ sub initSubTask {
     if(!$subTask->getRedoSubtask()){
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
     }
-    $node->runCmd("touch $subTaskDir/seqsubset.fsa");
+    $node->runCmd("touch $subTaskDir/seqsubset.fsa.touch",1);
+    $node->runCmd("/bin/rm $subTaskDir/seqsubset.fsa.touch",1);
 
     $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
 }

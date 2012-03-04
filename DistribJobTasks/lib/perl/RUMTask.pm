@@ -259,7 +259,8 @@ sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
     my $subtaskNum = int($start / $self->{subTaskSize}) + 1;
-    $node->runCmd("touch $inputDir/subtasks/reads.$subtaskNum");
+    $node->runCmd("touch $inputDir/subtasks/reads.$subtaskNum.touch",1);
+    $node->runCmd("/bin/rm $inputDir/subtasks/reads.$subtaskNum.touch",1);
     $node->runCmd("cp $inputDir/subtasks/reads.$subtaskNum $nodeExecDir/seqSubset.fa");
     $node->runCmd("cp $inputDir/subtasks/quals.$subtaskNum $nodeExecDir/qualsSubset.fa") if $self->{quals};
 

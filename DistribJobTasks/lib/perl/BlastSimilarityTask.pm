@@ -137,7 +137,8 @@ sub initSubTask {
       &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
     }
-    $node->runCmd("touch $serverSubTaskDir/seqsubset.fsa");
+    $node->runCmd("touch $serverSubTaskDir/seqsubset.fsa.touch",1);
+    $node->runCmd("/bin/rm $serverSubTaskDir/seqsubset.fsa.touch",1);
 
     $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
 }

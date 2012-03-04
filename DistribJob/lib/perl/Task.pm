@@ -88,8 +88,8 @@ sub runNextSubtask {
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");
   ##also touch the serverSubtaskDir to refresh nfs mounts to node .. problem on rcluster
-  $node->runCmd("touch $serverSubTaskDir.touch");
-  $node->runCmd("/bin/rm $serverSubTaskDir.touch");
+  $node->runCmd("touch $serverSubTaskDir.touch",1);
+  $node->runCmd("/bin/rm $serverSubTaskDir.touch",1);
   $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
                      $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir, $nextSubTask);
   
