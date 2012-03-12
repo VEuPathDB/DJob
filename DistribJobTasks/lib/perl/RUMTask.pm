@@ -21,7 +21,7 @@ my @properties =
  ["bowtieBinDir",   "",     "bowtie bin directory"],
  ["blatExec",   "",     "blat executable, must be full path unless defined in your path"],
  ["mdustExec",   "",     "mdust executable, must be full path unless defined in your path"],
- ["perlScriptsDir",   "",     "directory for RUM scripts"],
+ ["perlScriptsDir",   "$ENV{GUS_HOME}/bin",     "directory for RUM scripts"],
  ["limitNU",   "30",     "Limits the number of ambiguous mappers to a max of [30]"],
  ["numInsertions",   "1",     "number of instertions to allow when parsing BLAT [1] (note, if paired end data the number of insertions is constrained to 0 or 1"],
  ["minBlatIdentity",   "93",     "run BLAT with minimum identity of [93]"],
