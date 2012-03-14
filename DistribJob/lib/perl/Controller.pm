@@ -25,7 +25,6 @@ my @properties =
  ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
  ["keepNodeForPostProcessing", "no",  "yes/no: keep a node for cleanup at end"],
  ["useTmpDir", "yes",  "[yes]/no: set the nodeDir to the tmpDir assigned by scheduler"],
- ["restart",      "",  "yes/no: restart a task"]
  );
 
 my @nodes;
@@ -46,36 +45,49 @@ sub new {
   $self->{queue} = $queue;
   $self->{propFile} = $propfile;
   $self->{kill} = $kill;
-  my $restart;
 
-  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $self->{useTmpDir}, $restart) = $self->readPropFile($propfile, \@properties);
+  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $self->{useTmpDir}) = $self->readPropFile($propfile, \@properties);
 
   return if ($self->kill($kill));
 
+  $self->{processIdFile} = "$self->{masterDir}/distribjobProcessId"; 
 
-### NOTE: hacking in a memortPerNode for blast tasks temporarily ... need to fix in the workflow and then remove here ###
-  $self->{memPerNode} = 9 if $self->{taskClass} =~ /BlastSimilarity/;
-#################
+  my $restart = 0;
 
-  if ($restart) {
-    die "masterDir $self->{masterDir} must exist to restart.\n" unless -e $self->{masterDir};
-    $self->resetKill();
-  } else {
-    my $restartInstructions = $self->getRestartInstructions();
-    die "
+  # restart case
+  if (-e $self->{masterDir}) {
+      
+      my $runningProcessId = $self->processAlreadyRunning();
+      die "This job is already running in process $runningProcessId (found in file $self->{processIdFile}).  \nExiting.\n" if $runningProcessId;
+
+      # remove existing running/ dir.  whatever was running is not any longer
+      &runCmd("rm -r $self->{masterDir}/running");
+      $restart = 1;
+
+      if (-e "$self->{masterDir}/failures" && scalar(glob("$self->{masterDir}/failures/*"))) {
+	  my $restartInstructions = $self->getRestartInstructions();
+	  die "
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-masterDir $self->{masterDir} already exists.
+Existing failures found in $self->{masterDir}/failures.
 
 Probably that is because you have run a job, had some failures, and are trying to restart.
 
 If so, then:
 $restartInstructions
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-"
-      if -e $self->{masterDir};
+";
+      } 
+
+  # regular case
+  } else {
     &runCmd("mkdir -p $self->{masterDir}");
   }
 
+  # make process id file
+  open(F, ">$self->{processIdFile}") || die "Can't open processIdFile '$self->{processIdFile}' for writing\n";
+  print F "$$\n";
+  close(F);
+ 
   my $taskPath = $self->{taskClass};
   $taskPath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$taskPath.pm";
@@ -474,10 +486,8 @@ Please look in $self->{masterDir}/failures/*/result
 
 After analyzing and correcting failures:
   1. mv $self->{masterDir}/failures $self->{masterDir}/failures.save
-  2. set restart=yes in $self->{propFile}
-  3. restart the job
+  2. restart the job
 
-If the masterDir does not contain any completed subtasks, an alternative is to delete it and start the job again with restart=no.
 ";
 }
 
