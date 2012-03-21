@@ -96,10 +96,6 @@ $restartInstructions
   $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
   require "$nodePath.pm";
 
-  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir});
-  print "Initializing server...\n\n";
-  $task->initServer($self->{inputDir});
-
 
   ##open socket to listen for active nodes...
   $self->{hostname} = `hostname -s` unless $self->{hostname};
@@ -141,6 +137,10 @@ $restartInstructions
       push(@nodes,$node);
     }
   }
+
+  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$nodes[0]);
+  print "Initializing server...\n\n";
+  $task->initServer($self->{inputDir});
 
   ##now start running....
   $self->run($task, $propfile, $sel, $sock);
@@ -395,12 +395,6 @@ sub readPropFile {
     die "\nError: property 'noceclass' must be set to the name of a subclass of Node\n"
 	unless $props->getProp('nodeclass');
 	
-    die "\nError: property 'restart' in $propfile must be 'yes' or 'no'\n" 
-	if ($props->getProp('restart') ne 'yes' 
-	    && $props->getProp('restart') ne 'no');
-
-    my $restart = $props->getProp('restart') eq "yes";
-
     print "Controller Properties\n".$props->toString()."\n";
 	
     return ($props->getProp('inputdir'), $props->getProp('masterdir'), 
@@ -408,7 +402,7 @@ sub readPropFile {
 	    $props->getProp('slotspernode'), $props->getProp('subtasksize'), 
 	    $props->getProp('taskclass'), 
 	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'), 
-            $props->getProp('useTmpDir'), $restart);
+            $props->getProp('useTmpDir') );
 }
 
 sub checkKill {
@@ -476,6 +470,21 @@ $restartInstructions
 ";
     }
     return $count;
+}
+
+sub processAlreadyRunning {
+  my $self = shift;
+  my $f = "$self->{processIdFile}";
+  return 0 unless -e "$f";
+  my $pid = `cat $f`;
+  chomp $pid;
+  my $status = 0;
+  if ($pid) {
+    system("ps -p $pid > /dev/null");
+    $status = $? >> 8;
+    return $pid if !$status;
+  }
+  return 0;
 }
 
 sub getRestartInstructions {

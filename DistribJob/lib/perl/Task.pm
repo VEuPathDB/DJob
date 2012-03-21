@@ -9,7 +9,7 @@ my $haveReadJobscript = 0;
 $| = 1;
 
 sub new {
-    my ($class, $inputDir, $subTaskSize, $restart, $masterDir, $props, $sizeAfterInitServer) = @_;
+    my ($class, $inputDir, $subTaskSize, $restart, $masterDir, $nodeForInit, $props, $sizeAfterInitServer) = @_;
 
     my $self = {};
     bless $self, $class;
@@ -21,6 +21,7 @@ sub new {
     $self->{start} = -$self->{subTaskSize};
     $self->{end} = 0;
     $self->{subTaskNum} = 0;
+    $self->{nodeForInit} = $nodeForInit;
 
     if($sizeAfterInitServer){
       print "Will find input set size after initializing server\n";
