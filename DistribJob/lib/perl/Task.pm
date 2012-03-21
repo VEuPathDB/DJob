@@ -187,13 +187,15 @@ sub _findCompletedFromLog {
     my %completed;
     if ($restart) {
 	print "Reading list of previously completed subtasks from $self->{completeLog}\n";
-	open(FILE,"$self->{completeLog}") || die "can't open log $self->{completeLog}";
-	while (<FILE>) {
-	    if (/(\d+)/) {
-		$completed{$1} = 1;
+	if (-e $self->{completeLog}) {
+	    open(FILE,"$self->{completeLog}") || die "can't open log $self->{completeLog}";
+	    while (<FILE>) {
+		if (/(\d+)/) {
+		    $completed{$1} = 1;
+		}
 	    }
+	    close(FILE);
 	}
-	close(FILE);
     }
     return \%completed;
 }
