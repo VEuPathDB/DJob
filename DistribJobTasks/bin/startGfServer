@@ -39,14 +39,18 @@ if(&testPort($port)){ ##returns true if port is not being used
   die "port $port in use by another process, can't start gfServer\n";
 }
 
-system("${path}/gfServer -canStop -maxAaSize=15000 $translate start localhost $port *.nib > /dev/null 2>&1 &");
+my $cmd = "${path}/gfServer -canStop -maxAaSize=15000 $translate start localhost $port *.nib > /dev/null 2>&1 &";
+
+print STDERR "\n$cmd\n\n";
+
+system($cmd);
 
 system("${path}/gfServer status localhost $port > /dev/null 2>&1");
 
 my $ct = 0;
 while($?){
   $ct++;
-  die "Unable to create gfServer on port $port\n" if $ct > 5;
+  die "Unable to create gfServer on port $port\n" if $ct > 120;  ##tries for 10 minutes
   sleep 5;
   system("${path}/gfServer status localhost $port > /dev/null 2>&1");
 }
