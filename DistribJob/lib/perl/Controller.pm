@@ -138,7 +138,23 @@ $restartInstructions
     }
   }
 
-  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$nodes[0]);
+  ##before create the task want to have node on which to do the work of initializing the server.
+  print "Waiting for init node\n";
+  my $initNode;
+  if(!$nodes[0]->getState()){
+    print "Submitting node to scheduler ";
+    $nodes[0]->queueNode();
+  }
+  until($initNode){
+    print ".";
+    $self->getNodeMsgs($sel,$sock);
+    if($nodes[0]->getState() >= $READYTORUN){
+      $initNode = $nodes[0];
+      print "\n";
+    }
+    sleep 1;
+  }
+  my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$initNode);
   print "Initializing server...\n\n";
   $task->initServer($self->{inputDir});
 
