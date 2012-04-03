@@ -32,7 +32,7 @@ my @properties =
  ["countMismatches",   "false",     "report in the last column the number of mismatches, ignoring insertions ([false] | true)"],
  ["SNPs",   "false",     "run snp finder ([false] | true)"], ##not currently supported
  ["variableLengthReads",   "false",     "reads have variable lengths [false] | true)"],
- ["postProcess",   "true",     "run Post Processing steps (false | [true])"],
+ ["postProcess",   "false",     "run Post Processing steps ([false] | true)"],
  ["saveIntermediateFiles",   "false",     "copy back all intermediate files to mainResultDir ([false] | true)"]
  );
 
@@ -67,6 +67,7 @@ sub initServer {
     
     die "readFilePath $readFilePath does not exist" unless -e "$readFilePath";
     die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath != 'none' && !(-e "$pairedReadFilePath");
+    die "transcriptFastaFile $transcriptFastaFile does not exist" if $transcriptFastaFile != 'none' && !(-e "$transcriptFastaFile");
     die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath != 'none' && $pairedReadFilePath eq $readFilePath;
     die "genomeFastaFile $genomeFastaFile does not exist" unless -e "$genomeFastaFile";
 #  die "--transcriptFastaFile or --transcriptBowtieIndex must be provided" unless -e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt";
