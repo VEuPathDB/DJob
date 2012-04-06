@@ -66,7 +66,7 @@ sub initServer {
     my $variableLengthReads = $self->getProperty("variableLengthReads");
     
     die "readFilePath $readFilePath does not exist" unless -e "$readFilePath";
-    die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath != 'none' && !(-e "$pairedReadFilePath");
+    die "pairedReadFilePath $pairedReadFilePath does not exist" if $pairedReadFilePath ne 'none' && !(-e "$pairedReadFilePath");
     die "transcriptFastaFile $transcriptFastaFile does not exist" if $transcriptFastaFile != 'none' && !(-e "$transcriptFastaFile");
     die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath != 'none' && $pairedReadFilePath eq $readFilePath;
     die "genomeFastaFile $genomeFastaFile does not exist" unless -e "$genomeFastaFile";
