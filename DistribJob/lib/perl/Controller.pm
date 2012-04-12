@@ -61,7 +61,7 @@ sub new {
       die "This job is already running in process $runningProcessId (found in file $self->{processIdFile}).  \nExiting.\n" if $runningProcessId;
 
       # remove existing running/ dir.  whatever was running is not any longer
-      &runCmd("rm -r $self->{masterDir}/running");
+      &runCmd("rm -r $self->{masterDir}/running") if (-e "$self->{masterDir}/running");
       $restart = 1;
 
       if (-e "$self->{masterDir}/failures" && scalar(glob("$self->{masterDir}/failures/*"))) {
