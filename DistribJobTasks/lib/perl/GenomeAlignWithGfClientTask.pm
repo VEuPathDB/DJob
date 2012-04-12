@@ -31,6 +31,10 @@ sub initServer {
     my ($self, $inputDir) = @_;
     my $gaBinPath = $self->getProperty("gaBinPath");
     die "gaBinPath $gaBinPath doesn't exist" unless -e $gaBinPath;
+    my $targetDirPath = $self->getProperty("targetDirPath");
+    die "targetDirPath $targetDirPath doesn't exist" unless -e $targetDirPath;
+    my @nibFiles = glob("$targetDirPath/*.nib");
+    die "There are no nib files in $targetDirPath" unless scalar(@nibFiles) >= 1;
 }
 
 sub initNode {
