@@ -263,7 +263,7 @@ sub run {
         $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
         if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
           $running = 0;
-          print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nSet restart=yes in the controller.prop file and rerun to run the remaining subtasks.\n\n";
+          print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
         }
         $ctLoops++;
         sleep(1);
@@ -300,8 +300,8 @@ sub run {
         print "subtask_".$subtask->getNum()."\n";
       }
       $failures = scalar(@redoSubtasks) unless $failures;   # added temporarily until we figure out the right way to do this.
-      print "Set restart=yes in the controller.prop file and re-run to run these failed subtasks.\n\n";
-      print "PLEASE CHECK THE running/ dir to be sure there are no left over subtasks in there.  they belong in failures/ if so.\n\n";
+      print "After diagnosing the problem, mv failures/ to failurs.sv/ and restart to run hese failed subtasks.\n\n";
+      print "PLEASE CHECK THE running/ dir to be sure there are no left over subtasks in there.  They belong in failures/ if so.\n\n";
     }
 
     ##delete the script file ...
