@@ -545,7 +545,7 @@ sub manageFailedNodes {
   my $time = time();
   foreach my $n (@failedNodes){
     if($n->[0] + 300 < $time){
-      print STDERR "  Releasing failed node ".$n->[1]->getJobId()."\n";
+      print STDERR "  Releasing failed node ".$n->[1]->getJobid()."\n";
       $n->[1]->cleanUp(1);
     }else{
       push(@tmp,$n);
