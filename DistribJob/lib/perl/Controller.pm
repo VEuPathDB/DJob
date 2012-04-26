@@ -120,7 +120,7 @@ $restartInstructions
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
     foreach my $nodenum (@$nodenumlist) {
-      my $node = $self->{nodeClass}->new($nodenum, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
+      my $node = $self->{nodeClass}->new($nodenum, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
         print "  Unable to create node $nodenum....skipping\n";
         next;
@@ -129,7 +129,7 @@ $restartInstructions
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
+      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;
@@ -149,8 +149,16 @@ $restartInstructions
     print ".";
     $self->getNodeMsgs($sel,$sock);
     if($nodes[0]->getState() >= $READYTORUN){
-      $initNode = $nodes[0];
-      print "\n";
+      if($nodes[0]->checkNode()){
+        $initNode = $nodes[0];
+        print "\n";
+      }else{
+        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir}); 
+        print "\nNew node created to replace failed node (".$nodes[0]->getJobid().")\n";
+        $nodes[0] = $tmpNode;
+        print "Submitting node to scheduler ";
+        $nodes[0]->queueNode();
+      }
     }
     sleep 1;
   }
@@ -164,6 +172,7 @@ $restartInstructions
 
 sub run {
     my ($self, $task, $propfile, $sel, $sock) = @_;
+
 
     my $running = 1;
     my $kill;
@@ -202,12 +211,13 @@ sub run {
             ### alternatively, could create a method to remove the node from the array... probably safer.
 
             ### cleanup this node
-            $node->cleanUp(1);
-            $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes';
+            ## $node->cleanUp(1);
+            ##don't want to cleanup now as don't want next node to get this one
+            $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes' && $node->getSaveForCleanup();
             ### remove from the array of @nodes
             $self->removeNode($node->getJobid());
             ### want to get a new node here and add to list of nodes but only do once!!
-            my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue});
+            my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
             if (!$tmpNode) {               ##failed to initialize so is null..
               print "Unable to create new node to replace failed node ".$node->getJobid()."\n";
               next;
@@ -251,7 +261,6 @@ sub run {
                     print "ERROR:  Node ".$node->getNum()." is no longer functional\n";
                     ##need to get all subtasks from this node and assign to another...
                     push(@redoSubtasks,$node->failedSoGetSubtasks());
-                    $node->cleanUp(1,$FAILEDNODE);
                     $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes';
                     last;
                   }
@@ -266,6 +275,7 @@ sub run {
           print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
         }
         $ctLoops++;
+        $self->manageFailedNodes() if $ctLoops % 20 == 0;
         sleep(1);
 
       } while ($running && $kill != $KILLNOW);
@@ -274,6 +284,9 @@ sub run {
     print "Average time to complete subtasks = ",(int($task->getSubtaskTime()*10)/10)." seconds\n";
     foreach my $node (@nodes) {
       $node->cleanUp(1) unless $node->getSaveForCleanup();
+    }
+    foreach my $n (@failedNodes) {
+      $n->[1]->cleanUp(1);
     }
 
     my $failures = $self->reportFailures($propfile);
@@ -524,6 +537,21 @@ sub removeNode {
   }
   @nodes = @tmp;
 
+}
+
+sub manageFailedNodes {
+  my($self) = @_;
+  my @tmp;
+  my $time = time();
+  foreach my $n (@failedNodes){
+    if($n->[0] + 300 < $time){
+      print STDERR "  Releasing failed node ".$n->[1]->getJobId()."\n";
+      $n->[1]->cleanUp(1);
+    }else{
+      push(@tmp,$n);
+    }
+  }
+  @failedNodes = @tmp;
 }
 
 1;

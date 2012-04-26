@@ -33,8 +33,8 @@ sub queueNode {
         print STDERR "done \n";
       }
     }
-#    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
-    my $qsubcmd = "qsub -V -cwd ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
+#    my $qsubcmd = "qsub -V -cwd ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
 #    print "$qsubcmd\n";
 #    my $qsubcmd = "qsub -V -cwd $runFile";
     my $tjid = `$qsubcmd`;

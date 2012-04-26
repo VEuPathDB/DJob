@@ -9,7 +9,7 @@ use IO::Socket;
 
 our @ISA = qw(Exporter);
 
-our %EXPORT_TAGS = ( 'states' => [ qw( $NOCONNECTION $QUEUED $READYTORUN $READYTOINITTASK $INITIALIZINGTASK $RUNNINGTASK $COMPLETE $FAILEDNODE ) ] ); 
+our %EXPORT_TAGS = ( 'states' => [ qw( $NOCONNECTION $QUEUED $READYTORUN $READYTOINITTASK $INITIALIZINGTASK $RUNNINGTASK $COMPLETE $FAILEDNODE @failedNodes) ] ); 
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'states'} } );
 
@@ -22,13 +22,14 @@ our $INITIALIZINGTASK = 4;
 our $RUNNINGTASK = 5;
 our $COMPLETE = 6;
 our $FAILEDNODE = 7;
+our @failedNodes;  ##put failed nodes here and let the controller clean them up so don't immediately get released back into circulation so get again.
 
 my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
 my %gfServerPort;
 
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue) = @_;
+    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue, $masterDir) = @_;
 
     my $self = {};
     bless($self, $class);
@@ -43,6 +44,7 @@ sub new {
     $self->{procsPerNode} = $procsPerNode;
     $self->{memPerNode} = $memPerNode;
     $self->{queue} = $queue if $queue;
+    $self->{masterDir} = $masterDir;
 
     $self->setState($NOCONNECTION);
 
@@ -102,10 +104,16 @@ sub _init {
   }
   if (!$self->checkNode()) {
     print "Node $self->{nodeNum} is not responding to commands....skipping\n";
-    $self->cleanUp(1, $FAILEDNODE);  
+    $self->failNode();
     return 0;
   }
   return $self->_initNodeDir(); 
+}
+
+sub failNode {
+  my($self) = @_;
+  $self->setState($FAILEDNODE);
+  push(@failedNodes,[time(),$self]);
 }
 
 sub _initNodeDir {
@@ -118,7 +126,7 @@ if ($self->_fileExists($self->{nodeDir})) {
   my $try = 0;
   do {
     if($try++ > 3){
-      $self->cleanUp(1, $FAILEDNODE);  
+      $self->failNode();
       return 0;
     }
 #    die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
@@ -133,7 +141,7 @@ sub runCmd {
   my $sock = $self->getPort();
   if(!$sock){
     print "Falied to get Sock for $self->{nodeNum}\n";
-    $self->cleanUp(1, $FAILEDNODE);
+    $self->failNode();
     return undef;
   }
   print $sock "$cmd\n";
@@ -143,7 +151,7 @@ sub runCmd {
       if($1 && !$ignoreErr){
         print "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n";
 #        sleep 200;  ##uncomment if need to test problems on the nodes
-        $self->cleanUp(1, $FAILEDNODE);  
+        $self->failNode();
       }
       last;
     }
@@ -168,7 +176,7 @@ sub getPort {
       unless($sock){
         if($ct++ > 5){
           print STDERR "Could not create socket: $!\nInactivating node".$self->getNum()."\n" ;
-          $self->cleanUp(1,$FAILEDNODE);
+          $self->failNode();
           last;
         }
         sleep 2;
@@ -346,7 +354,8 @@ sub DESTROY {
 
 sub checkNode {
   my($self) = @_;
-  return 1;  ##implement if there are problems..
+  $self->runCmd("ls $self->{masterDir}");
+  return $self->getState() == $FAILEDNODE ? 0 : 1;  
 }
 
 ## saving node for cleanup
