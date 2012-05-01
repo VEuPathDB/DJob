@@ -185,7 +185,8 @@ sub integrateSubTaskResults {
 	$node->runCmd ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
 }
 
-sub closeServer {
+sub cleanUpServer {
+  my($self, $inputDir, $mainResultDir, $node) = @_;
 }
 
 1;
