@@ -99,7 +99,7 @@ sub _init {
   my $ct = 0;
   while (1) {
     last if $self->getNodeAddress();
-    sleep $ct < 8 ? 15 : 120;
+    sleep $ct < 8 ? 5 : 60;
     $ct++;
   }
   if (!$self->checkNode()) {
@@ -112,6 +112,7 @@ sub _init {
 
 sub failNode {
   my($self) = @_;
+  return if $self->getState() == $FAILEDNODE; ##already failed so don't do again!
   $self->setState($FAILEDNODE);
   push(@failedNodes,[time(),$self]);
 }
@@ -137,27 +138,47 @@ if ($self->_fileExists($self->{nodeDir})) {
 
 sub runCmd {
   my ($self, $cmd, $ignoreErr) = @_;
-  return if $self->getState() >= $COMPLETE;
+  return if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
   if(!$sock){
-    print "Falied to get Sock for $self->{nodeNum}\n";
+    print "Failed to get Sock for $self->{nodeNum}\n";
     $self->failNode();
+    $self->setErr("No Socket");
     return undef;
   }
   print $sock "$cmd\n";
   my $res = "";
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
-      if($1 && !$ignoreErr){
-        print "Node ".$self->getNodeAddress().": Failed with status $1 running '$cmd' ... Inactivating Node\n";
-#        sleep 200;  ##uncomment if need to test problems on the nodes
-        $self->failNode();
+      my $err = $1;
+      $self->setErr($err);
+      if($err && !$ignoreErr){
+        print "Node ".$self->getNodeAddress().": Failed with status $err running '$cmd' ... ";
+        if($self->checkNode()){
+          print "node is OK so not inactivating\n";
+          return undef;
+        }else{
+          print "Inactivating Node\n";
+          $self->failNode();
+          return undef;
+        }
+        $self->setErr($err); ##need to set back to previous since checkNode will over-write
       }
       last;
     }
     $res .= $_;
   }
   return $res;
+}
+
+sub setErr {
+  my($self,$err) = @_;
+  $self->{cmdErr} = $err;
+}
+
+sub getErr {
+  my($self) = @_;
+  return $self->{cmdErr};
 }
 
 sub getPort {
@@ -354,8 +375,8 @@ sub DESTROY {
 
 sub checkNode {
   my($self) = @_;
-  $self->runCmd("ls $self->{masterDir}");
-  return $self->getState() == $FAILEDNODE ? 0 : 1;  
+  my $res = $self->runCmd("ls $self->{masterDir}",1);
+  return $res ? 1 : 0;  
 }
 
 ## saving node for cleanup

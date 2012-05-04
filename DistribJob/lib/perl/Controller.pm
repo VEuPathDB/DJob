@@ -148,7 +148,7 @@ $restartInstructions
   until($initNode){
     print ".";
     $self->getNodeMsgs($sel,$sock);
-    if($nodes[0]->getState() >= $READYTORUN){
+    if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
       if($nodes[0]->checkNode()){
         $initNode = $nodes[0];
         print "\n";
@@ -539,17 +539,17 @@ sub removeNode {
 
 sub manageFailedNodes {
   my($self,$force) = @_;
-  my @tmp;
+  my %tmp;
   my $time = time();
   foreach my $n (@failedNodes){
     if($n->[0] + 300 < $time || $force){
       print STDERR "  Releasing failed node ".$n->[1]->getJobid()."\n";
       $n->[1]->cleanUp(1);
     }else{
-      push(@tmp,$n);
+      $tmp{$n} = $n;
     }
   }
-  @failedNodes = @tmp;
+  @failedNodes = values(%tmp);
 }
 
 1;
