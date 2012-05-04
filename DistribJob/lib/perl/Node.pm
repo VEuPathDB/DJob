@@ -21,7 +21,7 @@ our $READYTOINITTASK = 3;
 our $INITIALIZINGTASK = 4;
 our $RUNNINGTASK = 5;
 our $COMPLETE = 6;
-our $FAILEDNODE = 7;
+our $FAILEDNODE = -1;
 our @failedNodes;  ##put failed nodes here and let the controller clean them up so don't immediately get released back into circulation so get again.
 
 my $endMatchString = 'FooCmdEnd';

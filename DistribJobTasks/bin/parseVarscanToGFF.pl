@@ -166,7 +166,7 @@ sub printGFF {
 
 sub getAllele {
   my($l) = @_;
-  die "ERROR: consensus symbol '$l->[3]' has > 2 possibilities (".join(",",@{$iupac{$l->[3]}}).")" if scalar(@{$iupac{$l->[3]}}) > 2;
+#  die "ERROR: consensus symbol '$l->[3]' has > 2 possibilities (".join(",",@{$iupac{$l->[3]}}).")" if scalar(@{$iupac{$l->[3]}}) > 2;
   foreach my $n (@{$iupac{$l->[3]}}){
     return $n if $n ne $l->[2];
   }

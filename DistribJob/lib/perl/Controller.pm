@@ -285,9 +285,7 @@ sub run {
     foreach my $node (@nodes) {
       $node->cleanUp(1) unless $node->getSaveForCleanup();
     }
-    foreach my $n (@failedNodes) {
-      $n->[1]->cleanUp(1);
-    }
+    $self->manageFailedNodes(1);
 
     my $failures = $self->reportFailures($propfile);
 
@@ -540,11 +538,11 @@ sub removeNode {
 }
 
 sub manageFailedNodes {
-  my($self) = @_;
+  my($self,$force) = @_;
   my @tmp;
   my $time = time();
   foreach my $n (@failedNodes){
-    if($n->[0] + 300 < $time){
+    if($n->[0] + 300 < $time || $force){
       print STDERR "  Releasing failed node ".$n->[1]->getJobid()."\n";
       $n->[1]->cleanUp(1);
     }else{
