@@ -242,6 +242,7 @@ sub run {
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
                 last if $node->getState() == $FAILEDNODE;  ##taskComplete can fail if results can't be integrated so need to stop processing if that happens.
+                last unless $node->checkNode(); ##make sure node is viable before processing
                 if(scalar(@redoSubtasks) > 0){
                   my $st = shift @redoSubtasks;
                   print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."\n";

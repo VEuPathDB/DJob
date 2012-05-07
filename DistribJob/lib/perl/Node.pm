@@ -81,7 +81,7 @@ sub initialize {
     print "Node $self->{nodeNum} initialized\n";
     $self->setState($READYTOINITTASK);
   }else{
-    print STDERR  "\nERROR: unable to initialize node $self->{nodeNum} ... marking FAILEDNODE\n";
+    print "\nERROR: unable to initialize node $self->{nodeNum} ... marking FAILEDNODE\n";
   }
 }
 
@@ -137,7 +137,7 @@ if ($self->_fileExists($self->{nodeDir})) {
 }
 
 sub runCmd {
-  my ($self, $cmd, $ignoreErr) = @_;
+  my ($self, $cmd, $ignoreErr,$doNotSetErr) = @_;
   return if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
   if(!$sock){
@@ -151,9 +151,9 @@ sub runCmd {
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       my $err = $1;
-      $self->setErr($err);
       if($err && !$ignoreErr){
-        print "Node ".$self->getNodeAddress().": Failed with status $err running '$cmd' ... ";
+        print "Node ".$self->getNodeAddress()." (".$self->getJobid()."): Failed with status $err running '$cmd' ... ";
+        $self->setErr($err) unless $doNotSetErr;
         if($self->checkNode()){
           print "node is OK so not inactivating\n";
           return undef;
@@ -162,10 +162,9 @@ sub runCmd {
           $self->failNode();
           return undef;
         }
-        $self->setErr($err); ##need to set back to previous since checkNode will over-write
-      }
+      } 
       last;
-    }
+    } 
     $res .= $_;
   }
   return $res;
@@ -196,7 +195,7 @@ sub getPort {
                                    );
       unless($sock){
         if($ct++ > 5){
-          print STDERR "Could not create socket: $!\nInactivating node".$self->getNum()."\n" ;
+          print "Could not create socket: $!\nInactivating node".$self->getNum()."\n" ;
           $self->failNode();
           last;
         }
@@ -332,7 +331,7 @@ sub initializeTask {
       $self->_initTask($task,$inputDir);
       exit;
     }elsif($! =~ /No more process/){
-      print STDERR "Forking failure: $!\n";
+      print "Forking failure: $!\n";
       sleep 1;
       redo FORK;
     } else {
@@ -375,7 +374,7 @@ sub DESTROY {
 
 sub checkNode {
   my($self) = @_;
-  my $res = $self->runCmd("ls $self->{masterDir}",1);
+  my $res = $self->runCmd("ls $self->{masterDir}",1,1);
   return $res ? 1 : 0;  
 }
 

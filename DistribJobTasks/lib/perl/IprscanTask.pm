@@ -178,11 +178,12 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-	my $outputfile = $self->getProperty ("outputfile");
-	my $output_part_file = $outputfile;
-	$output_part_file =~ s/\.xml$//i;
-	$output_part_file .= "_" . $subTaskNum . ".xml";
-	$node->runCmd ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
+    my $outputfile = $self->getProperty ("outputfile");
+    my $output_part_file = $outputfile;
+    $output_part_file =~ s/\.xml$//i;
+    $output_part_file .= "_" . $subTaskNum . ".xml";
+    $node->runCmd ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
+    return 1 if $node->getErr();
 }
 
 sub cleanUpServer {

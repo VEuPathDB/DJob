@@ -81,6 +81,7 @@ sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
     $node->runCmd("cat $nodeExecDir/blocked.seq >> $mainResultDir/blocked.seq");
+    return 1 if $node->getErr();
     $node->runCmd("cat $nodeExecDir/blocked.err >> $mainResultDir/blocked.err");
 }
 1;

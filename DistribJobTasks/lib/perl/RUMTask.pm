@@ -301,6 +301,7 @@ sub integrateSubTaskResults {
   if($self->getProperty("saveIntermediateFiles") =~ /true/i){
     mkdir("$mainResultDir/subtask.$subTaskNum");
     $node->runCmd("cp $nodeExecDir/* $mainResultDir/subtask.$subTaskNum");
+    return 1 if $node->getErr();
   }
 }
 

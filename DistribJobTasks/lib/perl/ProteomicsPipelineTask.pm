@@ -220,7 +220,7 @@ sub integrateSubTaskResults {
 
     my @files = $node->runCmd("ls $nodeExecDir/output");
     ##could check to make sure that the number of files is correct, otherwise throw an error.
-    ##need to go back and look at how to get this to copy into failures ...
+    ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
     foreach my $file (@files){
       chomp $file;
       $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir");

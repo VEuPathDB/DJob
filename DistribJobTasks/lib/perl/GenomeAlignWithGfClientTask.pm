@@ -103,6 +103,7 @@ sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
     $node->runCmd("cat $nodeExecDir/out.psl >> $mainResultDir/out.psl");
+    return 1 if $node->getErr();
 }
 
 sub cleanUpNode {

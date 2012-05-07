@@ -112,6 +112,7 @@ sub integrateSubTaskResults {
     return 1 unless $node->runCmd("ls $nodeExecDir/*.ss2",1);
 
     $node->runCmd("cp $nodeExecDir/*.ss2 $mainResultDir/");
+    return 1 if $node->getErr();
 }
 
 
