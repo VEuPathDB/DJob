@@ -245,7 +245,7 @@ sub run {
                 last unless $node->checkNode(); ##make sure node is viable before processing
                 if(scalar(@redoSubtasks) > 0){
                   my $st = shift @redoSubtasks;
-                  print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."\n";
+                  print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."(".$node->getJobid().") \n";
                   $st->resetStartTime();
                   $st->setNodeSlot($nodeSlot);
                   $nodeSlot->assignNewTask($st);
@@ -258,11 +258,9 @@ sub run {
               ##check to see if the node is still functional 
               if($ctLoops % 20 == 0 && $nodeSlot->isRunning()){
                 if($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()){
-                  if(!$node->runCmd("ls ".$nodeSlot->getDir(),1)){
-                    print "ERROR:  Node ".$node->getNum()." is no longer functional\n";
-                    ##need to get all subtasks from this node and assign to another...
-                    push(@redoSubtasks,$node->failedSoGetSubtasks());
-                    $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes';
+                  if(!$node->checkNode()){
+                    print "ERROR:  Node ".$node->getNum()." (".$node->getJobid().") is no longer functional\n";
+                    $node->failNode();  #just fail node ... will assign subtasks in next iteration
                     last;
                   }
                 }

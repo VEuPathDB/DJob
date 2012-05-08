@@ -110,10 +110,11 @@ sub failSubTask {
     my ($self, $subTask) = @_;
     my $subTaskNum = $subTask->getNum();
     my $subTaskDir = $subTask->getDir();
+    my $node = $subTask->getNodeSlot()->getNode();
 
     my $date = `date`;
     chomp $date;
-    print "\n[$date] subTask $subTaskNum failed\n";
+    print "\nNode: ".$node->getNum()." (".$node->getJobid().") [$date] subTask $subTaskNum failed\n";
     &runCmd("mv $subTaskDir $self->{failedDir}");
 }
 
@@ -136,7 +137,7 @@ sub passSubTask {
 
     my $date = `date`;
     chomp $date;
-    print "\nNode: ".$node->getNum()." [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
+    print "\nNode: ".$node->getNum()." (".$node->getJobid().") [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
 
     &runCmd("/bin/rm -rf $subTaskDir");
     &appendToLogFile($self->{completeLog}, "$subTaskNum\n");
