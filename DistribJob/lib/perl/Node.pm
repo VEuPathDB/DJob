@@ -141,9 +141,9 @@ sub runCmd {
   return if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
   if(!$sock){
-    print "Failed to get Sock for $self->{nodeNum}\n";
+    print "Failed to get Sock for $self->{nodeNum} ($self->{jobid}) running command '$cmd'\n";
     $self->failNode();
-    $self->setErr("No Socket");
+    $self->setErr(1);
     return undef;
   }
   print $sock "$cmd\n";
