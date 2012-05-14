@@ -1,5 +1,0 @@
-#!/bin/sh
-
-qstat -u '*' | perl -e '$totR = 0;$totQ=0;while(<STDIN>){chomp;$_ =~ s/^\s+//;my @tmp = split(/\s+/,$_);if($tmp[4] =~ /qw/){$ct++;$queue{$tmp[3]} += $tmp[-1];$d{$tmp[3]}->{minTime} = "$tmp[5]: $tmp[6]" unless $d{$tmp[3]}->{minTime};$d{$tmp[3]}->{maxP} = "$tmp[1] ($ct)" unless $d{$tmp[3]}->{maxP};}else{$user{$tmp[3]} += $tmp[8];}} print "Running:\n";foreach my $u (sort{$user{$b} <=> $user{$a}}keys%user){print "  $u: $user{$u}\n";$totR += $user{$u};} print "Total Running: $totR\n\nQueued:\n";print "  ".sprintf("%--10s %-10s %-25s %-12s", "User", "Num Q (R)", "minQueueTime", "maxPriority (pos)")."\n"; foreach my $u (sort{$queue{$b} <=> $queue{$a}}keys%queue){print "  ".sprintf("%--10s %-10s %-25s %-12s", "$u", "$queue{$u} ($user{$u})", $d{$u}->{minTime}, $d{$u}->{maxP})."\n";$totQ += $queue{$u}; }print "Total Queued: $totQ\n";'
-
-
