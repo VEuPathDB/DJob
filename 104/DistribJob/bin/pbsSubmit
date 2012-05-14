@@ -1,0 +1,137 @@
+#!/usr/bin/perl
+
+use strict;
+use Cwd;
+
+my ($nodecount, $minutes, $controllerPropFile) = &parseArgs(@ARGV);
+my @jidL;
+
+$SIG{INT} = \&handleInterrupt;
+$SIG{__DIE__} = \&handleDie;
+
+chomp( my $cwd = qx(pwd) );
+
+my $nodes = join(' ', &getNodes());
+
+my $cmd = "distribjob --propfile $controllerPropFile $nodes";
+
+print "starting distribjob with:\n  $cmd\n";
+
+system($cmd);
+&cleanUp();
+
+exit 0;
+
+
+###################################################
+# subroutines
+###################################################
+
+sub handleInterrupt() {
+    print "\nInterrupted by ctrl-c. Aborting...\n";
+    print "cancelling tasks...\n";
+    qx{distribjob $controllerPropFile -kill};
+    &cleanUp();
+    exit 1;
+}
+
+sub handleDie() {
+    print @_;
+    print "cancelling tasks...\n";
+    qx{distribjob $controllerPropFile -kill};
+    &cleanUp();
+    exit 1;
+}
+
+sub parseArgs {
+    my ($nodecount, $minutes, $controllerPropFile) = @ARGV;
+
+    &usage unless ($nodecount && $minutes && $controllerPropFile);
+
+    &usage if ($nodecount < 0 || $nodecount > 10000); 
+    &usage if ($minutes < 0 || $minutes > 100000); 
+    &usage unless $controllerPropFile =~ /^\//;
+
+    die "controller properties file $controllerPropFile does not exist"
+	unless -e $controllerPropFile;
+
+    return ($nodecount, $minutes, $controllerPropFile);
+}
+
+sub usage {
+
+    print "usage: $0 nodecount minutes controllerPropFileFullPath\n";
+    exit(1);
+}
+
+
+sub getNodes {
+
+    my $shellScrptF = $ENV{HOME} . "/distribjob_reserveNode.sh";
+    my $seconds = $minutes * 60;
+    # trap shell exit to kill everything so we don't run on a node we don't own
+   # my $shellCmd =  qq(trap 'kill -HUP -1; echo `date` > ~/distribjobQuit; exit 0' SIGINT SIGTERM SIGKILL EXIT; hostname > ~/distribjob_hostname_\\\${PBS_JOBID}.out; /bin/sleep $seconds;);
+     my $shellCmd =  qq(trap 'kill -HUP -1; echo `date` > ~/distribjobQuit; exit 0' 0 2 9 15; hostname > ~/distribjob_hostname_\\\${PBS_JOBID}.out; /bin/sleep $seconds; exit 0;);
+  # my $qsubCmd  = qq(/usr/local/pbs/bin/qsub -o /dev/null -e /dev/null -N  distribjob -l nodes=1:compute,walltime=00:$minutes:00);
+   my $qsubCmd  = qq(/usr/local/pbs/bin/qsub -N  distribjob -l nodes=1:compute,walltime=00:$minutes:00);
+
+    print "qsubCmd " . $qsubCmd . "\n";
+    my @nodeL;
+    
+    # create the temporary shell script to be submitted to the pbs queue
+    qx {echo \"$shellCmd\" > $shellScrptF};
+
+    # send sleep script through queue to get a quick lock on all nodes needed
+    my $i;
+    for ($i=0; $i<$nodecount; $i++) {
+        my $jobid = qx {$qsubCmd $shellScrptF};
+        chomp($jobid);
+        if ($jobid eq '') {
+            print "There was a problem reserving a node. qsub did not return properly. Aborting...\n";
+            &cleanUp();
+            exit 1;
+        }
+        print "jobid: $jobid\n";
+        push(@jidL, $jobid);
+    }
+
+    unlink($shellScrptF);
+    
+    # now the slower process of waiting for the nodes to report back
+    # who they are
+    foreach my $jid (@jidL) {
+        
+        # now read the hostname file to get the node name
+        my $hostnameF = $ENV{HOME} . "/distribjob_hostname_${jid}.out";
+        my $node;
+        while (1) {
+          if (-e $hostnameF) {
+            open(F,"<$hostnameF") or die "can not open $hostnameF";
+            
+            while (<F>) {
+              if (/(mnode\d+)/) {
+                $node = "$1";
+                print "acquired node $node\n";
+              }
+            }
+            close F;
+            unlink($hostnameF);
+            last;
+          }
+          sleep 3;
+        } # while
+        die "unable to determine node\n" unless $node;
+        push(@nodeL, $node);
+    } # foreach
+    
+    return @nodeL;
+} # getNodes
+
+
+sub cleanUp {
+    print "cleaning up jobs...\n";
+    foreach my $j (@jidL) {
+        print "removing job $j\n";
+        qx{qdel $j};
+    }
+}
