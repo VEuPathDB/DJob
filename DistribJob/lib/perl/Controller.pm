@@ -257,7 +257,7 @@ sub run {
               $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
               ##check to see if the node is still functional 
               if($ctLoops % 20 == 0 && $nodeSlot->isRunning()){
-                if($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()){
+                if(($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()) || $ctLoops % 1000 == 0){
                   if(!$node->checkNode()){
                     print "ERROR:  Node ".$node->getNum()." (".$node->getJobid().") is no longer functional\n";
                     $node->failNode();  #just fail node ... will assign subtasks in next iteration
