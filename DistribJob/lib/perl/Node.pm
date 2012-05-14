@@ -137,7 +137,7 @@ if ($self->_fileExists($self->{nodeDir})) {
 }
 
 sub runCmd {
-  my ($self, $cmd, $ignoreErr,$doNotSetErr) = @_;
+  my ($self, $cmd, $ignoreErr,$checkingNode) = @_;
   return if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
   if(!$sock){
@@ -153,7 +153,7 @@ sub runCmd {
       my $err = $1;
       if($err && !$ignoreErr){
         print "Node ".$self->getNodeAddress()." (".$self->getJobid()."): Failed with status $err running '$cmd' ... ";
-        $self->setErr($err) unless $doNotSetErr;
+        $self->setErr($err) unless $checkingNode;
         if($self->checkNode()){
           print "node is OK so not inactivating\n";
           return undef;
@@ -195,7 +195,7 @@ sub getPort {
                                    );
       unless($sock){
         if($ct++ > 5){
-          print "Could not create socket: $!\nInactivating node".$self->getNum()."\n" ;
+          print "Could not create socket: $!\nInactivating node: ".$self->getNum()."\n" ;
           $self->failNode();
           last;
         }
@@ -375,7 +375,12 @@ sub DESTROY {
 sub checkNode {
   my($self) = @_;
   my $res = $self->runCmd("ls $self->{masterDir}",1,1);
-  return $res ? 1 : 0;  
+  if($res){
+    return 1;
+  }else{
+    $self->failNode();
+    return 0;
+  }
 }
 
 ## saving node for cleanup

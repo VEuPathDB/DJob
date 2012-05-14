@@ -207,12 +207,7 @@ sub run {
           }elsif($node->getState() == $FAILEDNODE){
 
             push(@redoSubtasks,$node->failedSoGetSubtasks());
-            ### may make sense to store nodes in a hash rather than array so can remove failed nodes.
-            ### alternatively, could create a method to remove the node from the array... probably safer.
 
-            ### cleanup this node
-            ## $node->cleanUp(1);
-            ##don't want to cleanup now as don't want next node to get this one
             $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes' && $node->getSaveForCleanup();
             ### remove from the array of @nodes
             $self->removeNode($node->getJobid());
@@ -271,7 +266,7 @@ sub run {
         $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
         if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
           $running = 0;
-          print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
+          print "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
         }
         $ctLoops++;
         $self->manageFailedNodes() if $ctLoops % 20 == 0;
@@ -325,7 +320,7 @@ sub run {
       if($n->{script}){
         my $errBase = basename($n->{script});
         my $delCmd = "/bin/rm $errBase.* > /dev/null 2>&1";
-#        print STDERR "$delCmd\n";
+#        print "$delCmd\n";
         system("$delCmd"); 
         last;
       }else{
@@ -340,7 +335,7 @@ sub getNodeMsgs {
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
     if(!$fh){
-      print STDERR "ERROR: getNodeMsgs: There is no file handle from socket\n";
+      print "ERROR: getNodeMsgs: There is no file handle from socket\n";
       next;
     }
     my $s = <$fh>;
@@ -542,10 +537,10 @@ sub manageFailedNodes {
   my $time = time();
   foreach my $n (@failedNodes){
     if($n->[0] + 300 < $time || $force){
-      print STDERR "  Releasing failed node ".$n->[1]->getJobid()."\n";
+      print "  Releasing failed node ".$n->[1]->getJobid()."\n";
       $n->[1]->cleanUp(1);
     }else{
-      $tmp{$n} = $n;
+      $tmp{$n->[1]->getJobid()} = $n;
     }
   }
   @failedNodes = values(%tmp);
