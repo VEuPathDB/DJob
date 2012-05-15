@@ -78,7 +78,7 @@ while(<F>){
       if($pos < $seqLen{$id}){
         $cons .= &fillInNs($seqLen{$id} - $pos);
       }
-      print O CBIL::Bio::SequenceUtils::makeFastaFormattedSequence($id,$cons);  
+      print O CBIL::Bio::SequenceUtils::makeFastaFormattedSequence("$id.$strain",$cons);  
 #      print STDERR "$id has $ctGaps{$id} gaps\n";
     }
     $cons = "";
