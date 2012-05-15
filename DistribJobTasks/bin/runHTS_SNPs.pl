@@ -138,7 +138,7 @@ print L &getDate().": run COMPLETE\n";
 &runCmd("echo complete > $workingDir/complete");
 
 ##should cleanup unneeded files before exiting so don't transfer too much back
-
+## can delete all $tmpOut* files for starters.
 
 close L;
 
