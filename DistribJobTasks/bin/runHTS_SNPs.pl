@@ -140,6 +140,10 @@ if(!$snpsOnly){
   }else{ &runCmd($cmd); print "\n"; }
 
   ##now parse to generate the consensus fasta file and gff file of inserts.
+  $cmd = "parseVarscanToConsensus.pl --file $workingDir/$out.varscan.cons --strain $strain --referenceFasta $fastaFile --fastaOutput $workingDir/$out.consensus.fa --indelOutput $workingDir/$out.insertions.GFF >& parseToConsensus.stderr";
+  print L &getDate().": $cmd\n\n";
+  if(-e "$workingDir/complete"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print "\n"; }
 }
 
 print L &getDate().": run COMPLETE\n";
