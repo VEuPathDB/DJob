@@ -114,7 +114,7 @@ if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.snps"){ print L "  
 my $pc = $consPercentCutoff / 100;
 my $mpc = $snpPercentCutoff / 100;
 
-$cmd = "(java -Xmx2g -jar $varscan pileup2snp $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.snps ) >& $workingDir/$out.varscan_snps.log";
+$cmd = "(java -Xmx2g -jar $varscan mpileup2snp $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.snps ) >& $workingDir/$out.varscan_snps.log";
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.SNPs.gff"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
@@ -127,17 +127,19 @@ if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.indels"){ print L "
 if(!$snpsOnly){
   
   if($includeIndels){
-    $cmd = "(java -Xmx2g -jar $varscan pileup2indel $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.indels ) >& $workingDir/$out.varscan_indels.log";
+    $cmd = "(java -Xmx2g -jar $varscan mpileup2indel $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.indels ) >& $workingDir/$out.varscan_indels.log";
     print L &getDate().": $cmd\n";
     if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.cons"){ print L "  succeeded in previous run\n\n";
     }else{ &runCmd($cmd); print L "\n"; }
   }
   
 
-  $cmd = "(java -Xmx2g -jar $varscan pileup2cns $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.cons ) >& $workingDir/$out.varscan_cons.log";
+  $cmd = "(java -Xmx2g -jar $varscan mpileup2cns $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.cons ) >& $workingDir/$out.varscan_cons.log";
   print L &getDate().": $cmd\n\n";
   if(-e "$workingDir/complete"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print "\n"; }
+
+  ##now parse to generate the consensus fasta file and gff file of inserts.
 }
 
 print L &getDate().": run COMPLETE\n";
