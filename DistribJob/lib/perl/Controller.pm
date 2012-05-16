@@ -145,8 +145,10 @@ $restartInstructions
     print "Submitting node to scheduler ";
     $nodes[0]->queueNode();
   }
+  my $ctInitNode = 0;
   until($initNode){
-    print ".";
+    print "." if $ctInitNode % 10 == 0;
+    $ctInitNode++;
     $self->getNodeMsgs($sel,$sock);
     if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
       if($nodes[0]->checkNode()){
@@ -182,7 +184,7 @@ sub run {
 
     do {
 	
-	print  ($kill ? "!" : ".");
+	print  ($kill ? "!" : ".") if $ctLoops % 10 == 0;
 
 	$kill = $self->checkKill($kill);
 
