@@ -141,12 +141,12 @@ print L &getDate().": run COMPLETE\n\n";
 ## can delete all $tmpOut* and .err files for starters.
 
 print L "deleting extra files\n";
-system("/bin/rm $tmpOut.*");
-system("/bin/rm *.err");
-unlink("result.pileup");
-unlink("result.varscan.snps");
-unlink("result.varscan.cons");
-unlink("forIndelRealigner.intervals");
+system("/bin/rm $workingDir/$tmpOut.*");
+system("/bin/rm $workingDir/*.err");
+unlink("$workingDir/result.pileup");
+unlink("$workingDir/result.varscan.snps");
+unlink("$workingDir/result.varscan.cons");
+unlink("$workingDir/forIndelRealigner.intervals");
 
 close L;
 
