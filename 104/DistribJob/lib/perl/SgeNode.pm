@@ -50,7 +50,7 @@ sub queueNode {
       }
     }else{
       print STDERR "\nERROR: unable to determine jobid, scheduler returns '$tjid' ... marking FAILEDNODE\n";
-      $self->cleanUp(1, $FAILEDNODE);  
+      $self->failNode();
     }
   } 
   $self->setState($QUEUED);
@@ -71,6 +71,7 @@ sub cleanUp {
   }
 
 
+
 #  my $host = $self->runCmd("hostname");
 #  chomp $host;
   
@@ -79,12 +80,18 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  $self->setState($state ? $state : $COMPLETE); ##complete
+  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
+    $state = $state ? $state : $FAILEDNODE;
+  }else{
+    $self->setState($state ? $state : $COMPLETE); ##complete
+  }
 
   ## if saving this one so don't clean up further and release
   return if($self->getSaveForCleanup() && !$force);  
+
+
     
-  print ($state == $FAILEDNODE ? "FAILEDNODE: " : "") . "Cleaning up node $self->{nodeNum}...\n";
+  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
   
 
