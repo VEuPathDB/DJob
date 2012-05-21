@@ -1,0 +1,8 @@
+masterdir=$ENV{GUS_HOME}/test/DJob/master
+inputdir=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/bsinput
+nodedir=$ENV{GUS_HOME}/test/DJob
+slotspernode=1
+subtasksize=3
+taskclass=DJob::DistribJobTasks::BlastSimilarityTask
+nodeclass=DJob::DistribJob::LocalNode
+restart=no
