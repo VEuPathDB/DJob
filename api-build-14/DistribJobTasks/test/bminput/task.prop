@@ -1,0 +1,6 @@
+blastBinDir=/usr/local/pkg/bio/wu-blast/latest
+#blastBinDir=/genomics/share/pkg/bio/wu-blast/current
+dbFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/bminput/seqs.fsa
+inputFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/bminput/seqs.fsa
+
+
