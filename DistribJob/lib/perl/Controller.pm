@@ -28,7 +28,6 @@ my @properties =
  );
 
 my @nodes;
-my @redoSubtasks;  ##make global variable so can add to it in the getNodeMsgs method
 
 sub new {
   my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $queue) = @_;
@@ -145,8 +144,10 @@ $restartInstructions
     print "Submitting node to scheduler ";
     $nodes[0]->queueNode();
   }
+  my $ctInitNode = 0;
   until($initNode){
-    print ".";
+    print "." if $ctInitNode % 10 == 0;
+    $ctInitNode++;
     $self->getNodeMsgs($sel,$sock);
     if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
       if($nodes[0]->checkNode()){
@@ -182,7 +183,7 @@ sub run {
 
     do {
 	
-	print  ($kill ? "!" : ".");
+	print  ($kill ? "!" : ".") if $ctLoops % 10 == 0;
 
 	$kill = $self->checkKill($kill);
 
@@ -206,13 +207,8 @@ sub run {
             $node->queueNode();
           }elsif($node->getState() == $FAILEDNODE){
 
-            push(@redoSubtasks,$node->failedSoGetSubtasks());
-            ### may make sense to store nodes in a hash rather than array so can remove failed nodes.
-            ### alternatively, could create a method to remove the node from the array... probably safer.
+            # print "NODE (".$node->getJobid().") FAILED: getting subtasks so can reassign\n";
 
-            ### cleanup this node
-            ## $node->cleanUp(1);
-            ##don't want to cleanup now as don't want next node to get this one
             $self->{haveCleanupNode} = 0 if $self->{keepNodeForPostProcessing} eq 'yes' && $node->getSaveForCleanup();
             ### remove from the array of @nodes
             $self->removeNode($node->getJobid());
@@ -242,17 +238,8 @@ sub run {
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
                 last if $node->getState() == $FAILEDNODE;  ##taskComplete can fail if results can't be integrated so need to stop processing if that happens.
-                last unless $node->checkNode(); ##make sure node is viable before processing
-                if(scalar(@redoSubtasks) > 0){
-                  my $st = shift @redoSubtasks;
-                  print "Reassigning subtask_".$st->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."(".$node->getJobid().") \n";
-                  $st->resetStartTime();
-                  $st->setNodeSlot($nodeSlot);
-                  $nodeSlot->assignNewTask($st);
-                  $task->runNextSubtask($st);
-                }else{
-                  $nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
-                }
+#                $task->nextSubTask($nodeSlot);
+                $nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
               }
               $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
               ##check to see if the node is still functional 
@@ -260,7 +247,6 @@ sub run {
                 if(($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()) || $ctLoops % 1000 == 0){
                   if(!$node->checkNode()){
                     print "ERROR:  Node ".$node->getNum()." (".$node->getJobid().") is no longer functional\n";
-                    $node->failNode();  #just fail node ... will assign subtasks in next iteration
                     last;
                   }
                 }
@@ -271,7 +257,7 @@ sub run {
         $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
         if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
           $running = 0;
-          print STDERR "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
+          print "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
         }
         $ctLoops++;
         $self->manageFailedNodes() if $ctLoops % 20 == 0;
@@ -302,18 +288,6 @@ sub run {
     
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
-
-    if(scalar(@redoSubtasks) > 0){
-      print "\nNodes running the following subtasks failed\n";
-      foreach my $subtask (@redoSubtasks){
-        next unless defined $subtask;
-        print "subtask_".$subtask->getNum()."\n";
-      }
-      $failures = scalar(@redoSubtasks) unless $failures;   # added temporarily until we figure out the right way to do this.
-      print "After diagnosing the problem, mv failures/ to failurs.sv/ and restart to run hese failed subtasks.\n\n";
-      print "PLEASE CHECK THE running/ dir to be sure there are no left over subtasks in there.  They belong in failures/ if so.\n\n";
-    }
-
     ##delete the script file ...
     print "Cleaning up files on server\n";
     my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
@@ -325,7 +299,7 @@ sub run {
       if($n->{script}){
         my $errBase = basename($n->{script});
         my $delCmd = "/bin/rm $errBase.* > /dev/null 2>&1";
-#        print STDERR "$delCmd\n";
+#        print "$delCmd\n";
         system("$delCmd"); 
         last;
       }else{
@@ -340,24 +314,16 @@ sub getNodeMsgs {
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
     if(!$fh){
-      print STDERR "ERROR: getNodeMsgs: There is no file handle from socket\n";
+      print "ERROR: getNodeMsgs: There is no file handle from socket\n";
       next;
     }
     my $s = <$fh>;
     chomp $s;
+#    print "getNodeMsgs: ($s)\n"; ## unless $subtask;
     my ($jobid,$slot,$status,$tmpDir) = split(" ",$s);
     close($fh);
     if($slot =~ /slot_/){ ##subtask has completed in this slot...setState
       my $subtask =  $self->{nodes}->{$jobid}->getSlot($slot)->getTask();
-      ## having problems with cluster nodes missing perl modules ....
-      ## if status is failed and the subtask time is very short then could inactivate this node?
-#      if($subtask->getRunningTime() < 10 && $status eq 'failed'){
-#        my $node =  $self->{nodes}->{$jobid};
-#        print "ERROR:  Node ".$node->getNum()." can not run task ... inactivating.\n";
-#        ##need to get all subtasks from this node and assign to another...
-#        push(@redoSubtasks,$node->failedSoGetSubtasks());
-#        $node->cleanUp(1,$FAILEDNODE);
-#      }
       $subtask->setState($status);
     }else{ ##node is ready to run...
       foreach my $n (@nodes){
@@ -538,17 +504,21 @@ sub removeNode {
 
 sub manageFailedNodes {
   my($self,$force) = @_;
+#  return unless $force;
+#  print "--- manageFailedNodes($force) ---\n";
   my %tmp;
   my $time = time();
   foreach my $n (@failedNodes){
+#    print "  ".$n->[1]->getJobid().": $time -> nodeTime = $n->[0]\n";
     if($n->[0] + 300 < $time || $force){
-      print STDERR "  Releasing failed node ".$n->[1]->getJobid()."\n";
+      print "  Releasing failed node ".$n->[1]->getJobid()."\n";
       $n->[1]->cleanUp(1);
     }else{
-      $tmp{$n} = $n;
+      $tmp{$n->[1]->getJobid()} = $n;
     }
   }
   @failedNodes = values(%tmp);
+#  print "  Remaining failed nodes: ".scalar(@failedNodes)."\n";
 }
 
 1;
