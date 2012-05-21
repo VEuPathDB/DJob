@@ -50,7 +50,7 @@ sub queueNode {
       }
     }else{
       print STDERR "\nERROR: unable to determine jobid, scheduler returns '$tjid' ... marking FAILEDNODE\n";
-      $self->cleanUp(1, $FAILEDNODE);  
+      $self->failNode();
     }
   } 
   $self->setState($QUEUED);

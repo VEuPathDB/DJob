@@ -113,6 +113,8 @@ sub _init {
 sub failNode {
   my($self) = @_;
   return if $self->getState() == $FAILEDNODE; ##already failed so don't do again!
+  print "ERROR: node ".$self->getJobid()." is no longer functional ... failing node\n";
+  $self->getTask()->addRedoSubtasks($self->failedSoGetSubtasks()) if $self->getTask();
   $self->setState($FAILEDNODE);
   push(@failedNodes,[time(),$self]);
 }
@@ -138,7 +140,8 @@ if ($self->_fileExists($self->{nodeDir})) {
 
 sub runCmd {
   my ($self, $cmd, $ignoreErr,$checkingNode) = @_;
-  return if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
+#  print "runCmd: '$cmd',$ignoreErr,$checkingNode\n";
+  return undef if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
   if(!$sock){
     print "Failed to get Sock for $self->{nodeNum} ($self->{jobid}) running command '$cmd'\n";
@@ -151,9 +154,9 @@ sub runCmd {
   while(<$sock>){
     if(/^(\d+)\.$endMatchString/){
       my $err = $1;
+      $self->setErr($err) unless $checkingNode;
       if($err && !$ignoreErr){
         print "Node ".$self->getNodeAddress()." (".$self->getJobid()."): Failed with status $err running '$cmd' ... ";
-        $self->setErr($err) unless $checkingNode;
         if($self->checkNode()){
           print "node is OK so not inactivating\n";
           return undef;
@@ -364,6 +367,7 @@ sub failedSoGetSubtasks {
     }
   }
   $self->{retrievedFailedSubtasks} = 1;
+  print "$self->{jobid}: Failed so retrieving ".scalar(@st)." subtasks\n";
   return @st;
 }
 

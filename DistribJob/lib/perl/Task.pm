@@ -47,28 +47,54 @@ sub new {
 
     $self->_initMasterDir();
     $self->{completedInPastRun} = $self->_findCompletedFromLog($restart);
-    
+
     return $self;
 }
 
 sub nextSubTask {
-    my ($self, $nodeSlot) = @_;
+  my ($self, $nodeSlot) = @_;
+  
+  my $nextSubTask;
+  
+  if($self->haveRedoSubtasks()){
+    $nextSubTask = $self->getNextRedoSubtask();
+    my $node = $nodeSlot->getNode();
+    print "Reassigning subTask ".$nextSubTask->getNum()." to node ".$node->getNum().".".$nodeSlot->getNum()."(".$node->getJobid().") \n";
+    $nextSubTask->resetStartTime();
+    $nextSubTask->setNodeSlot($nodeSlot);
+    $nodeSlot->assignNewTask($nextSubTask);
+    $self->runNextSubtask($nextSubTask);
+  }elsif ($self->_subTaskAvailable()) {
+    
+    my $serverSubTaskDir = $self->_newSubTaskDir($nodeSlot->getNodeNum(),
+                                                 $nodeSlot->getNum());
+    
+    $nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $serverSubTaskDir, $nodeSlot, $self);
+    
+    $self->runNextSubtask($nextSubTask);
+    
+  }else{
+    $nodeSlot->cleanUp(); ##clean up node here as will release it if using SGE
+  }
+  return $nextSubTask;
+}
 
-    my $nextSubTask;
+sub haveRedoSubtasks {
+  my $self = shift;
+  return defined($self->{redoSubtasks}) ? scalar(@{$self->{redoSubtasks}}) : 0;
+}
 
-    if ($self->_subTaskAvailable()) {
+sub addRedoSubtasks {
+  my($self,@st) = @_;
+  foreach my $st (@st){
+    push(@{$self->{redoSubtasks}},$st);
+  }
+}
 
-	my $serverSubTaskDir = $self->_newSubTaskDir($nodeSlot->getNodeNum(),
-					       $nodeSlot->getNum());
-
-	$nextSubTask = DJob::DistribJob::SubTask->new($self->{subTaskNum}, $serverSubTaskDir, $nodeSlot, $self);
-
-        $self->runNextSubtask($nextSubTask);
-
-    }else{
-	$nodeSlot->cleanUp(); ##clean up node here as will release it if using SGE
-    }
-    return $nextSubTask;
+sub getNextRedoSubtask {
+  my($self) = @_;
+  my $st = shift @{$self->{redoSubtasks}};
+  return $st;  
 }
 
 sub runNextSubtask {
@@ -126,6 +152,12 @@ sub passSubTask {
     my $node = $subTask->getNodeSlot()->getNode();
     my $nodeSlotDir = $subTask->getNodeSlot()->getDir();
 
+    
+    if(!$node->checkNode()){
+#      $self->failSubTask($subTask);  ## don't fail here ... rather the node is bad so will get assigned to another node
+#      print "passSubTask (".$node->getJobid()."): Failed node so will reassign\n";
+      return undef;
+    }
 
     my $integRes = $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
                                                   $self->{mainResultDir});
