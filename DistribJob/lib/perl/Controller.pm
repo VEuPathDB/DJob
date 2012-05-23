@@ -274,6 +274,19 @@ sub run {
 
     my $failures = $self->reportFailures($propfile);
 
+    my $numRedoRemaining = $task->haveRedoSubtasks();
+    $failures += $numRedoRemaining;
+    if($numRedoRemaining){  ##there are still tasks from failed nodes that didn't get assigned
+      print "
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ERROR: the following subtasks were not run\n";
+      while(my $st = $task->getNextRedoSubtask()){
+        last unless $st;
+        print "  subTask ",$st->getNum()," did not get reassigned to a new node\n";
+      }
+      print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+    }
+
     ##get node that have been saved for cleanup here so can pass to cleanUpServer method
     my $cNode;
     foreach my $node (@nodes){
