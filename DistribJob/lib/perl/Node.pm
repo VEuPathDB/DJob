@@ -403,9 +403,7 @@ sub getSaveForCleanup {
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
-    return if $self->getState() >= $COMPLETE && !$force; ##already cleaned up
-  }
+  return if $self->{cleanedUp}; #already cleaned up
     
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
@@ -422,6 +420,8 @@ sub cleanUp {
 
   ## if saving this one so don't clean up further and release
   return if($self->getSaveForCleanup() && !$force);  
+
+  $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
 
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
 

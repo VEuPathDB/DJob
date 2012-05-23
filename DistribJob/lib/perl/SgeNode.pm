@@ -60,9 +60,7 @@ sub queueNode {
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
-  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
-    return if $self->getState() >= $COMPLETE; #already cleaned up
-  }
+  return if $self->{cleanedUp}; #already cleaned up
 
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
@@ -81,15 +79,15 @@ sub cleanUp {
   }
 
   if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $state ? $state : $FAILEDNODE;
+    $state = $FAILEDNODE;
   }else{
-    $self->setState($state ? $state : $COMPLETE); ##complete
+    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
   }
 
   ## if saving this one so don't clean up further and release
   return if($self->getSaveForCleanup() && !$force);  
 
-
+  $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
     
   print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
