@@ -102,7 +102,7 @@ sub runNextSubtask {
 
   my $nodeSlot = $nextSubTask->getNodeSlot();
   my $node = $nodeSlot->getNode();
-  my $nodeNum = $nodeSlot->getNodeNum();
+  my $nodeNum = $node->getNum();
   my $slotNum = $nodeSlot->getNum();
   my $nodeSlotDir = $nodeSlot->getDir();
   my $serverSubTaskDir = $nextSubTask->getDir();
@@ -110,7 +110,7 @@ sub runNextSubtask {
   
   my $date = `date`;
   chomp $date;
-  print "\n[$date] subTask $subtaskNumber dispatching to node $nodeNum.$slotNum ($node->{jobid})\n";
+  print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\tsubTask $subtaskNumber dispatching to node\n";
   
   $node->runCmd("/bin/rm -rf $nodeSlotDir");
   $node->runCmd("mkdir $nodeSlotDir");
@@ -137,10 +137,11 @@ sub failSubTask {
     my $subTaskNum = $subTask->getNum();
     my $subTaskDir = $subTask->getDir();
     my $node = $subTask->getNodeSlot()->getNode();
-
+    my $slotNum = $subTask->getNodeSlot()->getNum();
+    my $nodeNum = $node->getNum();
     my $date = `date`;
     chomp $date;
-    print "\nNode: ".$node->getNum()." (".$node->getJobid().") [$date] subTask $subTaskNum failed\n";
+    print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\t subTask $subTaskNum FAILED.\n";
     &runCmd("mv $subTaskDir $self->{failedDir}");
 }
 
@@ -149,9 +150,11 @@ sub passSubTask {
     my $subTaskNum = $subTask->getNum();
     my $subTaskDir = $subTask->getDir();
     my $subTaskResultDir = $subTask->getResultDir();
-    my $node = $subTask->getNodeSlot()->getNode();
-    my $nodeSlotDir = $subTask->getNodeSlot()->getDir();
-
+    my $nodeSlot = $subTask->getNodeSlot();
+    my $node = $nodeSlot()->getNode();
+    my $nodeSlotDir = $nodeSlot()->getDir();
+    my $nodeNum = $node->getNum();
+    my $slotNum = $nodeSlot->getNum();
     
     if(!$node->checkNode()){
 #      $self->failSubTask($subTask);  ## don't fail here ... rather the node is bad so will get assigned to another node
@@ -169,7 +172,7 @@ sub passSubTask {
 
     my $date = `date`;
     chomp $date;
-    print "\nNode: ".$node->getNum()." (".$node->getJobid().") [$date] subTask $subTaskNum succeeded...".$subTask->getRunningTime()." seconds\n";
+    print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\tsubTask $subTaskNum succeeded in ".$subTask->getRunningTime()." seconds\n";
 
     &runCmd("/bin/rm -rf $subTaskDir");
     &appendToLogFile($self->{completeLog}, "$subTaskNum\n");
