@@ -15,7 +15,7 @@ my @properties =
 (
 	["fastaFile", "", "full path of fastaFile for genome"],
 	["mateA", "", "full path to file of reads"],
-	["mateB", "", "full path to file of paired ends reads"],
+	["mateB", "none", "full path to file of paired ends reads"],
 	["outputPrefix", "result", "prefix of output files"],
 	["bwaIndex", "", "full path of the bwa indices .. likely same as fasta file"],
 	["varscan", "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar", "full path to the varscan jar file"],
@@ -70,7 +70,7 @@ sub makeSubTaskCommand {
     my $wDir = "$node->{masterDir}/mainresult";
     
     
-    my $cmd .= "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".($mateB ? " --mateB $mateB" : "");
+    my $cmd .= "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".($mateB ne "none" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --bwaIndex $bwaIndex --varscan $varscan";
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
