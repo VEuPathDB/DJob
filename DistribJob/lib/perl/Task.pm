@@ -151,8 +151,8 @@ sub passSubTask {
     my $subTaskDir = $subTask->getDir();
     my $subTaskResultDir = $subTask->getResultDir();
     my $nodeSlot = $subTask->getNodeSlot();
-    my $node = $nodeSlot()->getNode();
-    my $nodeSlotDir = $nodeSlot()->getDir();
+    my $node = $nodeSlot->getNode();
+    my $nodeSlotDir = $nodeSlot->getDir();
     my $nodeNum = $node->getNum();
     my $slotNum = $nodeSlot->getNum();
     
