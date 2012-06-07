@@ -24,7 +24,6 @@ my @properties =
 	["consPercentCutoff", "60", "minimum allele percent for calling consensus base"],
 	["snpPercentCutoff", "20", "minimum allele percent for calling SNPs"],
 	["editDistance", "0.04", "mismatch in bwa"],
-	["includeIndels", "false", "if true then runs varscan to compute indels"],
 	["snpsOnly", "false", "if true then doesn't compute consensus or indels"]
 );
 
@@ -66,7 +65,6 @@ sub makeSubTaskCommand {
     my $snpPercentCutoff = $self->getProperty ("snpPercentCutoff");
     my $editDistance = $self->getProperty ("editDistance");
     my $snpsOnly = $self->getProperty ("snpsOnly");
-    my $includeIndels = $self->getProperty ("includeIndels");
     my $wDir = "$node->{masterDir}/mainresult";
     
     
@@ -74,7 +72,7 @@ sub makeSubTaskCommand {
     $cmd .= " --outputPrefix $outputPrefix --bwaIndex $bwaIndex --varscan $varscan";
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
-    $cmd .= " --workingDir $wDir".($includeIndels eq 'false' ? "" : " --includeIndels");
+    $cmd .= " --workingDir $wDir";
       
     # print "Returning command: $cmd\n";
     return $cmd;
