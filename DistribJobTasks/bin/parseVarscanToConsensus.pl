@@ -142,7 +142,7 @@ sub generateGffInsert {
   my $perc = $l->[6];
   my $pvalue = $l->[11];
   my $qual = $l->[10];
-  print G "$l->[0]\tinsertion\tindel\t$l->[1]\t$l->[1]\t.\t.\t.\tID $id; Allele \"$strain:$allele:$cov:$perc:$pvalue:$qual\"\n";
+  print G "$l->[0]\tinsertion\tindel\t$l->[1]\t$l->[1]\t.\t+\t.\tID $id; Allele \"$strain:$allele:$cov:$perc:$pvalue:$qual\"\n";
 
 }
 
