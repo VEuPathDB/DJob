@@ -4,6 +4,7 @@
 
 use strict;
 use Getopt::Long;
+use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Bio::SequenceUtils;
 
 my $file; 
@@ -104,7 +105,7 @@ while(<F>){
       &generateGffInsert(\@tmp);
       ##need to add to gff file here
     }else{
-      die "ERROR: not dealing with indel properly\n$_\n\n";
+      print STDERR "\nERROR: not dealing with putative indel properly ... appending '$tmp[2]'\n$_\n\n";
     }
     $cons .= $tmp[2];
   }else{
