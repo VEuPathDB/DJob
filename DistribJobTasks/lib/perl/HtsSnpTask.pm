@@ -96,8 +96,8 @@ sub makeSubTaskCommand {
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
     $cmd .= " --workingDir $wDir";
       
-    print "Returning command: $cmd\n";
-    exit(0);
+#    print "Returning command: $cmd\n";
+#    exit(0);  ##for testing
     return $cmd;
 }
 
