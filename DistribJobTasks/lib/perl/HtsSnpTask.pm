@@ -108,6 +108,10 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
+  my $mateA = $self->getProperty('mateA');
+  my $mateB = $self->getProperty('mateB');
+  unlink($mateA) if -e "$mateA";
+  unlink($mateB) if -e "$mateB";
 }
 
 1;
