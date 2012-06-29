@@ -183,6 +183,11 @@ sub getProperty {
   return $self->{props}->getProp($prop);
 }
 
+sub setProperty {
+  my($self,$prop,$value) = @_;
+  $self->{props}->setProp($prop,$value);
+}
+
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir) = @_;
   return 1;

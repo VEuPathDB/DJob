@@ -14,8 +14,9 @@ use strict;
 my @properties = 
 (
 	["fastaFile", "", "full path of fastaFile for genome"],
-	["mateA", "", "full path to file of reads"],
+	["mateA", "none", "full path to file of reads"],
 	["mateB", "none", "full path to file of paired ends reads"],
+	["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
 	["outputPrefix", "result", "prefix of output files"],
 	["bwaIndex", "", "full path of the bwa indices .. likely same as fasta file"],
 	["varscan", "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar", "full path to the varscan jar file"],
@@ -34,7 +35,28 @@ sub new {
 
 # called once 
 sub initServer {
-    my ($self, $inputDir) = @_;
+  my ($self, $inputDir) = @_;
+  ##need to download fastq from sra if sample ids passed in.
+  my $sidlist = $self->getProperty('sraSampleIdQueryList');
+  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+    my $mateA = $self->getProperty('mateA');
+    if(-e "$mateA"){
+      print "reads file $mateA already present so not retrieving from SRA\n";
+    }else{  ##need to retrieve here
+      my $mateB;
+      if(!$mateA || $mateA eq 'none'){
+        $mateA = "reads_1.fastq";
+        $self->setProperty('mateA',"$inputDir/$mateA");
+        $mateB = "reads_2.fastq";
+        $self->setProperty('mateB',"$inputDir/$mateB");
+      }
+      if(-e "$inputDir/$mateA"){
+        print "Already retrieved fastq file from SRA from $sidlist\n";
+        return 1;
+      }
+      $self->{nodeForInit}->runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+    }
+  } 
 }
 
 sub initNode {
@@ -68,13 +90,14 @@ sub makeSubTaskCommand {
     my $wDir = "$node->{masterDir}/mainresult";
     
     
-    my $cmd .= "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".($mateB ne "none" ? " --mateB $mateB" : "");
+    my $cmd .= "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --bwaIndex $bwaIndex --varscan $varscan";
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
     $cmd .= " --workingDir $wDir";
       
-    # print "Returning command: $cmd\n";
+    print "Returning command: $cmd\n";
+    exit(0);
     return $cmd;
 }
 
