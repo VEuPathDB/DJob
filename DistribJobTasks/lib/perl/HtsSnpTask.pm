@@ -25,7 +25,8 @@ my @properties =
 	["consPercentCutoff", "60", "minimum allele percent for calling consensus base"],
 	["snpPercentCutoff", "20", "minimum allele percent for calling SNPs"],
 	["editDistance", "0.04", "mismatch in bwa"],
-	["snpsOnly", "false", "if true then doesn't compute consensus or indels"]
+	["snpsOnly", "false", "if true then doesn't compute consensus or indels"],
+	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"]
 );
 
 sub new {
@@ -90,11 +91,11 @@ sub makeSubTaskCommand {
     my $wDir = "$node->{masterDir}/mainresult";
     
     
-    my $cmd .= "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
+    my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --bwaIndex $bwaIndex --varscan $varscan";
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
-    $cmd .= " --workingDir $wDir";
+    $cmd .= " --workingDir $wDir" . ($self->getProperty('deleteIntermediateFiles') eq 'true' ? " --deleteIntermediateFiles" : "");
       
 #    print "Returning command: $cmd\n";
 #    exit(0);  ##for testing
@@ -108,10 +109,13 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
-  my $mateA = $self->getProperty('mateA');
-  my $mateB = $self->getProperty('mateB');
-  unlink($mateA) if -e "$mateA";
-  unlink($mateB) if -e "$mateB";
+  my $sidlist = $self->getProperty('sraSampleIdQueryList');
+  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default so reads were retrieved from sra
+    my $mateA = $self->getProperty('mateA');
+    my $mateB = $self->getProperty('mateB');
+    unlink($mateA) if -e "$mateA";
+    unlink($mateB) if -e "$mateB";
+  }
 }
 
 1;

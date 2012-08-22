@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my($fastaFile,$mateA,$mateB,$bwaIndex,$strain);
+my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles);
 my $out = "result";
 my $varscan = "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar";
 my $gatk = "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar";
@@ -25,6 +25,7 @@ my $workingDir = ".";
             "snpPercentCutoff|spc=s" => \$snpPercentCutoff,
             "editDistance|ed=s" => \$editDistance,
             "workingDir|w=s" => \$workingDir,
+            "deleteIntermediateFiles!" => \$delIntFiles,
             );
 
 die "varscan jar file not found\n".&getParams() unless -e "$varscan";
@@ -104,7 +105,7 @@ if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succee
 
 ## I wonder if would be good to sort again here?
 
-$cmd = "(samtools mpileup -f $fastaFile $workingDir/$out.bam > $workingDir/$out.pileup) &> $workingDir/$out.pileup.err";
+$cmd = "(samtools mpileup -f $fastaFile -B $workingDir/$out.bam > $workingDir/$out.pileup) &> $workingDir/$out.pileup.err";
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.snps"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
@@ -140,13 +141,15 @@ print L &getDate().": run COMPLETE\n\n";
 ##should cleanup unneeded files before exiting so don't transfer too much back
 ## can delete all $tmpOut* and .err files for starters.
 
-print L "deleting extra files\n";
-system("/bin/rm $workingDir/$tmpOut.*");
-system("/bin/rm $workingDir/*.err");
-unlink("$workingDir/result.pileup");
-unlink("$workingDir/result.varscan.snps");
-unlink("$workingDir/result.varscan.cons");
-unlink("$workingDir/forIndelRealigner.intervals");
+if($delIntFiles){
+  print L "deleting extra files\n";
+  system("/bin/rm $workingDir/$tmpOut.*");
+  system("/bin/rm $workingDir/*.err");
+  unlink("$workingDir/result.pileup");
+  unlink("$workingDir/result.varscan.snps");
+  unlink("$workingDir/result.varscan.cons");
+  unlink("$workingDir/forIndelRealigner.intervals");
+}
 
 close L;
 
