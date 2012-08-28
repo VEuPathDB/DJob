@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles);
+my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles,$bowtieIndex);
 my $out = "result";
 my $varscan = "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar";
 my $gatk = "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar";
@@ -18,6 +18,7 @@ my $workingDir = ".";
             "mateB|mb=s" => \$mateB,
             "outputPrefix|o=s" => \$out,
             "bwaIndex|b=s" => \$bwaIndex,
+            "bowtieIndex|x=s" => \$bowtieIndex,
             "varscan|v=s" => \$varscan,
             "gatk|g=s" => \$gatk,
             "strain|s=s" => \$strain,
@@ -32,9 +33,11 @@ die "varscan jar file not found\n".&getParams() unless -e "$varscan";
 die "mateA file not found\n".&getParams() unless -e "$mateA";
 die "mateB file not found\n".&getParams() if ($mateB && !-e "$mateB");
 die "fasta file not found\n".&getParams() unless -e "$fastaFile";
-die "bwa indices not found\n".&getParams() unless -e "$bwaIndex.amb";
+die "either bwa or bowtie2 indices must be specified\n".&getParams() unless (-e "$bwaIndex.amb" || -e "$bowtieIndex.1.bt2");
 die "you must provide a strain\n".&getParams() unless $strain;
 ##should add in usage
+
+$ENV{_JAVA_OPTIONS}="-Xmx2g";
 
 $snpPercentCutoff = $consPercentCutoff unless $snpPercentCutoff;
 
@@ -54,28 +57,38 @@ print L "runHTS_SNPs.pl run starting ".&getDate()."\n\n";
 
 my $tmpOut = $out . "_tmp";
 
-my $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateA > $workingDir/$tmpOut.mate1.sai) >& $workingDir/$tmpOut.bwa_aln_mate1.err";
-print L &getDate().": $cmd\n";
-if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.sam"){ print L "  succeeded in previous run\n\n";
-}else{ &runCmd($cmd); print L "\n"; }
+my $cmd;
 
-if(-e "$mateB"){
-  $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateB > $workingDir/$tmpOut.mate2.sai) >& $workingDir/$tmpOut.bwa_aln_mate2.err";
+if( -e "$bowtieIndex.1.bt2"){  ##aligning with Bowtie2
+  ##NOTE: need to remove path to my install once mark puts into place
+  $cmd = "(~brunkb/software/bowtie/bowtie2-2.0.0-beta7/bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.err";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
+}elsif(-e "$bwaIndex.amb"){  ##aligning with BWA
+  $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateA > $workingDir/$tmpOut.mate1.sai) >& $workingDir/$tmpOut.bwa_aln_mate1.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.sam"){ print L "  succeeded in previous run\n\n";
-  }else{ &runCmd($cmd); print L "\n"; }
-
-  $cmd = "(bwa sampe -r '\@RG\tID:EuP\tSM:$strain\tPL:Illumina' $bwaIndex $workingDir/$tmpOut.mate1.sai $workingDir/$tmpOut.mate2.sai $mateA $mateB > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bwa_sampe.err";
-  print L &getDate().": $cmd\n";
-  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
-  }else{ &runCmd($cmd); print L "\n"; }
-}else{
-  print L &getDate().": Aligning in single end mode only\n";
+   }else{ &runCmd($cmd); print L "\n"; }
   
-  $cmd = "(bwa samse -r '\@RG\tID:EuP\tSM:$strain\tPL:Illumina' $bwaIndex $workingDir/$tmpOut.mate1.sai $mateA > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bwa_samse.err";
-  print L &getDate().": $cmd\n";
-  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
-  }else{ &runCmd($cmd); print L "\n"; }
+  if(-e "$mateB"){
+    $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateB > $workingDir/$tmpOut.mate2.sai) >& $workingDir/$tmpOut.bwa_aln_mate2.err";
+    print L &getDate().": $cmd\n";
+    if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.sam"){ print L "  succeeded in previous run\n\n";
+   }else{ &runCmd($cmd); print L "\n"; }
+    
+    $cmd = "(bwa sampe -r '\@RG\tID:EuP\tSM:$strain\tPL:Illumina' $bwaIndex $workingDir/$tmpOut.mate1.sai $workingDir/$tmpOut.mate2.sai $mateA $mateB > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bwa_sampe.err";
+    print L &getDate().": $cmd\n";
+    if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
+    }else{ &runCmd($cmd); print L "\n"; }
+  }else{
+    print L &getDate().": Aligning in single end mode only\n";
+    
+    $cmd = "(bwa samse -r '\@RG\tID:EuP\tSM:$strain\tPL:Illumina' $bwaIndex $workingDir/$tmpOut.mate1.sai $mateA > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bwa_samse.err";
+    print L &getDate().": $cmd\n";
+    if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
+    }else{ &runCmd($cmd); print L "\n"; }
+  }
 }
 
 $cmd = "samtools faidx $fastaFile";
@@ -154,7 +167,7 @@ if($delIntFiles){
 close L;
 
 sub getParams {
-  return &getDate().": runBWA_HTS.pl ... parameter values:\n\tfastaFile=$fastaFile\n\tbwaIndex=$bwaIndex\n\tmateA=$mateA\n\tmateB=$mateB\n\toutputPrefix=$out\n\tstrain=$strain\n\tconsPercentCutoff=$consPercentCutoff\n\tsnpPercentCutoff=$snpPercentCutoff\n\teditDistance=$editDistance\n\tvarscan=$varscan\n\tgatk=$gatk\n\tworkingDir=$workingDir\n\n";
+  return &getDate().": runBWA_HTS.pl ... parameter values:\n\tfastaFile=$fastaFile\n\tbwaIndex=$bwaIndex\n\t\tOR\n\tbowtieIndex=$bowtieIndex\n\tmateA=$mateA\n\tmateB=$mateB\n\toutputPrefix=$out\n\tstrain=$strain\n\tconsPercentCutoff=$consPercentCutoff\n\tsnpPercentCutoff=$snpPercentCutoff\n\teditDistance=$editDistance\n\tvarscan=$varscan\n\tgatk=$gatk\n\tworkingDir=$workingDir\n\n";
 }
 
 sub getDate {
