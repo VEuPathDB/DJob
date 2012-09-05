@@ -20,6 +20,7 @@ my @properties =
 	["outputPrefix", "result", "prefix of output files"],
 	["bwaIndex", "none", "full path of the bwa indices .. likely same as fasta file"],
 	["bowtieIndex", "none", "full path of the bowtie indices .. likely same as fasta file"],
+	["isColorspace", "false", "input sequence reads are in SOLiD colorspace.  Quality files must be exactly matename.qual"],
 	["varscan", "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar", "full path to the varscan jar file"],
 	["gatk", "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar", "full path to the GATK jar file"],
 	["strain", "", "strain to be put into the GFF file"],
@@ -95,7 +96,9 @@ sub makeSubTaskCommand {
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --varscan $varscan";
-    $cmd .= -e "$bowtieIndex.1.bt2" ? " --bowtieIndex $bowtieIndex" : " --bwaIndex $bwaIndex";
+    if($self->getProperty('isColorspace') eq 'true'){
+      $cmd .= " --bowtieIndex $bowtieIndex --isColorspace";
+    }
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
     $cmd .= " --workingDir $wDir" . ($self->getProperty('deleteIntermediateFiles') eq 'true' ? " --deleteIntermediateFiles" : "");

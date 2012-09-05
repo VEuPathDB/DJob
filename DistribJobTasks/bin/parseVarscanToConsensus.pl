@@ -119,7 +119,7 @@ if($id){
   if($pos < $seqLen{$id}){
     $cons .= &fillInNs($seqLen{$id} - $pos);
   }
-  print O CBIL::Bio::SequenceUtils::makeFastaFormattedSequence($id,$cons);  
+  print O CBIL::Bio::SequenceUtils::makeFastaFormattedSequence("$id.$strain",$cons);  
 }
 
 close F;

@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles,$bowtieIndex);
+my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles,$bowtieIndex,$isColorspace);
 my $out = "result";
 my $varscan = "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar";
 my $gatk = "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar";
@@ -27,13 +27,14 @@ my $workingDir = ".";
             "editDistance|ed=s" => \$editDistance,
             "workingDir|w=s" => \$workingDir,
             "deleteIntermediateFiles!" => \$delIntFiles,
+            "isColorspace!" => \$isColorspace,
             );
 
 die "varscan jar file not found\n".&getParams() unless -e "$varscan";
 die "mateA file not found\n".&getParams() unless -e "$mateA";
 die "mateB file not found\n".&getParams() if ($mateB && !-e "$mateB");
 die "fasta file not found\n".&getParams() unless -e "$fastaFile";
-die "either bwa or bowtie2 indices must be specified\n".&getParams() unless (-e "$bwaIndex.amb" || -e "$bowtieIndex.1.bt2");
+die "either bwa or bowtie2 indices must be specified\n".&getParams() unless (-e "$bwaIndex.amb" || -e "$bowtieIndex.1.bt2" || ($isColorspace && -e "$bowtieIndex.1.ebwt")); 
 die "you must provide a strain\n".&getParams() unless $strain;
 ##should add in usage
 
@@ -59,13 +60,28 @@ my $tmpOut = $out . "_tmp";
 
 my $cmd;
 
-if( -e "$bowtieIndex.1.bt2"){  ##aligning with Bowtie2
+##aligning with Bowtie2
+if( -e "$bowtieIndex.1.bt2"){  
   ##NOTE: need to remove path to my install once mark puts into place
-  $cmd = "(~brunkb/software/bowtie/bowtie2-2.0.0-beta7/bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.err";
+  $cmd = "(~brunkb/software/bowtie/bowtie2-2.0.0-beta7/bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
-}elsif(-e "$bwaIndex.amb"){  ##aligning with BWA
+
+### aligning with bowtie 1 if colorspace
+}elsif($isColorspace && -e "$bowtieIndex.1.ebwt"){  
+  die "if isColorspace=true you must provide qual files that are named exactly like the reads files but with .qual appended to the read file name" unless -e "$mateA.qual";
+  if(-e "$mateB"){  ## pairedEnd
+    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex -1 $mateA --Q1 $mateA.qual -2 $mateB --Q2 $mateB.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  }else{  ##single end
+    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex $mateA -Q $mateA.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  }
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
+
+##aligning with BWA
+}elsif(-e "$bwaIndex.amb"){  
   $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateA > $workingDir/$tmpOut.mate1.sai) >& $workingDir/$tmpOut.bwa_aln_mate1.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.sam"){ print L "  succeeded in previous run\n\n";
