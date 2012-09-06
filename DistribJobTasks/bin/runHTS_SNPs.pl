@@ -72,9 +72,9 @@ if( -e "$bowtieIndex.1.bt2"){
 }elsif($isColorspace && -e "$bowtieIndex.1.ebwt"){  
   die "if isColorspace=true you must provide qual files that are named exactly like the reads files but with .qual appended to the read file name" unless -e "$mateA.qual";
   if(-e "$mateB"){  ## pairedEnd
-    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex -1 $mateA --Q1 $mateA.qual -2 $mateB --Q2 $mateB.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'ID:EuP' --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex -1 $mateA --Q1 $mateA.qual -2 $mateB --Q2 $mateB.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   }else{  ##single end
-    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex $mateA -Q $mateA.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+    $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'ID:EuP' --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex $mateA -Q $mateA.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   }
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
