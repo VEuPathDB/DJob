@@ -122,17 +122,24 @@ print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/forIndelRealigner.intervals"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
 
-$cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
-print L &getDate().": $cmd\n";
-if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
-}else{ &runCmd($cmd); print L "\n"; }
+##if colorspace and aligned with bowtie there are no gaps so no help to run indelrealigner
+if($isColorspace){  ##need to mv the bam file
+  $cmd = "mv $workingDir/$tmpOut.bam $workingDir/$out.bam";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
 
-$cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
-print L &getDate().": $cmd\n";
-if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
-}else{ &runCmd($cmd); print L "\n"; }
+}else{
+  $cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
 
-## I wonder if would be good to sort again here?
+  $cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
+}
 
 $cmd = "(samtools mpileup -f $fastaFile -B $workingDir/$out.bam > $workingDir/$out.pileup) &> $workingDir/$out.pileup.err";
 print L &getDate().": $cmd\n";
