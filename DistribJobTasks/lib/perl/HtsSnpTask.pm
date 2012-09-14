@@ -95,9 +95,9 @@ sub makeSubTaskCommand {
     
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
-    $cmd .= " --outputPrefix $outputPrefix --varscan $varscan";
+    $cmd .= " --outputPrefix $outputPrefix --varscan $varscan --bowtieIndex $bowtieIndex";
     if($self->getProperty('isColorspace') eq 'true'){
-      $cmd .= " --bowtieIndex $bowtieIndex --isColorspace";
+      $cmd .= " --isColorspace";
     }
     $cmd .= " --strain $strain --consPercentCutoff $consPercentCutoff --snpPercentCutoff $snpPercentCutoff";
     $cmd .= " --editDistance $editDistance".($snpsOnly eq 'false' ? "" : " --snpsOnly");
