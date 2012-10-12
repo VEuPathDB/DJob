@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+my ($propFile, $logFile, $processIdFile, $numNodes, $time, $queue, $ppn, $maxMemoryGigs) = @ARGV;
+
+my $p = $ppn ? "--ppn $ppn " : "";
+
+open(F, ">$processIdFile") || die "can't open processIdFile '$processIdFile' for writing";
+print F "$$\n";
+close(F);
+
+my $cmd = "liniacsubmit $numNodes $time $propFile --memoryPerNode $maxMemoryGigs --queue $queue $p>& $logFile";
+
+print STDERR "\nRunning command: $cmd\n\n";
+
+system($cmd);
+
+
