@@ -21,8 +21,9 @@ my @properties =
 	["bwaIndex", "none", "full path of the bwa indices .. likely same as fasta file"],
 	["bowtieIndex", "none", "full path of the bowtie indices .. likely same as fasta file"],
 	["isColorspace", "false", "input sequence reads are in SOLiD colorspace.  Quality files must be exactly matename.qual"],
-	["varscan", "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar", "full path to the varscan jar file"],
-	["gatk", "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar", "full path to the GATK jar file"],
+	["varscan", "", "full path to the varscan jar file"],
+	["gatk", "", "full path to the GATK jar file"],
+	["bowtie2", "", "full path to the bowtie2 bin dir"],
 	["strain", "", "strain to be put into the GFF file"],
 	["consPercentCutoff", "60", "minimum allele percent for calling consensus base"],
 	["snpPercentCutoff", "20", "minimum allele percent for calling SNPs"],
@@ -96,6 +97,7 @@ sub makeSubTaskCommand {
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --varscan $varscan --bowtieIndex $bowtieIndex";
+    $cmd .= " --gatk $gatk --bowtie2 $bowtie2";
     if($self->getProperty('isColorspace') eq 'true'){
       $cmd .= " --isColorspace";
     }

@@ -4,10 +4,8 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles,$bowtieIndex,$isColorspace);
+my($fastaFile,$mateA,$mateB,$bwaIndex,$strain,$delIntFiles,$bowtieIndex,$isColorspace,$varscan,$gatk,$bowtie2);
 my $out = "result";
-my $varscan = "/genomics/eupath/eupath-tmp/software/VarScan/2.2.10/VarScan.jar";
-my $gatk = "/genomics/eupath/eupath-tmp/software/gatk/1.5.31/GenomeAnalysisTK.jar";
 my $consPercentCutoff = 60; ## use to generate consensus
 my $snpPercentCutoff = 20; ## use for snps and indels
 my $editDistance = 0.04;
@@ -18,6 +16,7 @@ my $workingDir = ".";
             "mateB|mb=s" => \$mateB,
             "outputPrefix|o=s" => \$out,
             "bwaIndex|b=s" => \$bwaIndex,
+            "bowtie2|bowtie2=s" => \$bowtie2,
             "bowtieIndex|x=s" => \$bowtieIndex,
             "varscan|v=s" => \$varscan,
             "gatk|g=s" => \$gatk,
@@ -63,7 +62,7 @@ my $cmd;
 ##aligning with Bowtie2
 if( -e "$bowtieIndex.1.bt2"){  
   ##NOTE: need to remove path to my install once mark puts into place
-  $cmd = "(~brunkb/software/bowtie/bowtie2-2.0.0-beta7/bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
