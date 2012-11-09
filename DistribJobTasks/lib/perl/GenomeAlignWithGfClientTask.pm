@@ -14,7 +14,7 @@ use strict;
 my @properties = 
 (
  ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
- ["targetDirPath",      "",     "full path to directory containing *.nib files"],
+ ["targetDirPath",      "",     "full path to directory containing *.2bit file"],
  ["queryPath",   "",     "full path to input file"],
  ["queryType", "dna", "type of query ([dna]|prot)"],
  ["blatParams", "none", "additional params to be passed to blat"],
@@ -33,8 +33,8 @@ sub initServer {
     die "gaBinPath $gaBinPath doesn't exist" unless -e $gaBinPath;
     my $targetDirPath = $self->getProperty("targetDirPath");
     die "targetDirPath $targetDirPath doesn't exist" unless -e $targetDirPath;
-    my @nibFiles = glob("$targetDirPath/*.nib");
-    die "There are no nib files in $targetDirPath" unless scalar(@nibFiles) >= 1;
+    my $twoBitFile = "$targetDirPath/*.2bit";
+    die "There is no 2bit file in $targetDirPath" unless -e  $twoBitFile;
 }
 
 sub initNode {
@@ -85,7 +85,7 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
-    my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .nib files
+    my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .2bit file
     my $port = $node->{gfport};
     my $nodeDir = $node->getDir();
     my $maxIntron = $self->getProperty("maxIntron");
