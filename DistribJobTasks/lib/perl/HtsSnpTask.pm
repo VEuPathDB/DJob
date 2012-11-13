@@ -93,7 +93,7 @@ sub makeSubTaskCommand {
     my $editDistance = $self->getProperty ("editDistance");
     my $snpsOnly = $self->getProperty ("snpsOnly");
     my $wDir = "$node->{masterDir}/mainresult";
-    
+    my $bowtie2 = $self->getProperty ("bowtie2");
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --varscan $varscan --bowtieIndex $bowtieIndex";
