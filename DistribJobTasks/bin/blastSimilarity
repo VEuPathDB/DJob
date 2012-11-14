@@ -5,6 +5,7 @@
 
 use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Bio::Blast::BlastAnal;
+use CBIL::Util::Utils;
 use strict;
 use Getopt::Long;
 use File::Basename;
@@ -20,7 +21,9 @@ $| = 1;
 my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsblast,
     $database,$seqFile,$blast_version,$startNumber,$stopNumber,$dataFile,$remMaskedRes,
     $saveAllBlastFiles,$blastFileDir,$saveGoodBlastFiles,$doNotParse,$fileExtension,
-    $blastParamsFile, $blastBinDir,$doNotExitOnBlastFailure, $blastVendor, $printSimSeqsFile);
+    $blastParamsFile, $doNotExitOnBlastFailure, $blastVendor, $printSimSeqsFile);
+
+my $blastBinDir = 'default';
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -43,7 +46,7 @@ my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$outputType,$program,$rpsbla
 	    "blastBinDir=s" => \$blastBinDir,
 	    "printSimSeqsFile!" => \$printSimSeqsFile
             );
-die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (entire release)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure! --printSimSeqsFile!\n" unless ( $program && $database && $seqFile && $blastParamsFile);
+die "Usage: generateBlastSimilarity.perl --regex=<regular expression following ^\> of defline...ie '(\S+)'> --pValCutoff=<float> --lengthCutoff=<int> --percentCutoff=<int> --outputType=(summary|span|both) --blastBinDir=<directory containing blast binaries (if 'default' then must be in \$PATH)> --blastProgram=<blastprogram> --database=<blast database> --seqFile=<sequenceFile>  --trackingFile=<filename to track progress> --blastParams 'extra blast parameters' --adjustMatchLength! --saveAllBlastFiles! --blastFileDir <directory on server to put the blast files> --saveGoodBlastFiles! --fileExtension [.database_blastProgram] --doNotParse! --doNotExitOnBlastFailure! --printSimSeqsFile!\n" unless ( $program && $database && $seqFile && $blastParamsFile);
 
 ###set the defaullts...
 $pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
@@ -73,8 +76,10 @@ if($saveAllBlastFiles || $saveGoodBlastFiles){
   }
 }
 
-$ENV{BLASTFILTER} = "$blastBinDir/filter" unless $ENV{BLASTFILTER};
-$ENV{BLASTMAT} = "$blastBinDir/matrix" unless $ENV{BLASTMAT};
+my $blastDir = getProgramDir($program);
+
+$ENV{BLASTFILTER} = "$blastDir/filter" unless -e $ENV{BLASTFILTER};
+$ENV{BLASTMAT} = "$blastDir/matrix" unless -e $ENV{BLASTMAT};
 
 open(OUT, ">$dataFile") or &error("cannot open output file $dataFile for writing");
 select OUT; $| = 1;
@@ -98,9 +103,9 @@ if($program =~ /rpsblast/){
   $cmd = "$program -d $database -i $tempfile $blastParams 2> blast.stderr";
 }elsif($blastVendor eq 'ncbi'){
   my $pgm = basename($program);
-  $cmd = "$blastBinDir/blastall -p $pgm -d $database -i $tempfile $blastParams 2> blast.stderr";
+  $cmd = ($blastBinDir eq 'default' ? "" : "$blastBinDir/") . "blastall -p $pgm -d $database -i $tempfile $blastParams 2> blast.stderr";
 }else{
-  $cmd= "$blastBinDir/$program $database $tempfile $blastParams 2> blast.stderr";
+  $cmd= ($blastBinDir eq 'default' ? "" : "$blastBinDir/") . "$program $database $tempfile $blastParams 2> blast.stderr";
 }
 print LOG "$cmd\n\n"; 
 

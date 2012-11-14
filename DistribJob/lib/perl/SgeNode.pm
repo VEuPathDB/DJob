@@ -24,7 +24,7 @@ sub queueNode {
       my $host = `hostname`;
       chomp $host;
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
-      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
+      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n\n";
       close R;
       system("chmod +x $runFile");
       if($host =~ /cluster/){

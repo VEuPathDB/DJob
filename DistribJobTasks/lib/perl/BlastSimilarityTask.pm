@@ -14,7 +14,7 @@ use strict;
 my @properties = 
 (
  ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
- ["blastBinDir",   "",   "eg, /genomics/share/bin"],
+ ["blastBinDir",   "default",   "eg, /genomics/share/bin"],
  ["dbFilePath",      "",     "full path to database file"],
  ["inputFilePath",   "",     "full path to input file"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
@@ -61,7 +61,7 @@ sub initServer {
 	&runCmd("gunzip $dbFilePath.gz");
     }
 
-    die "blastBinDir $blastBin doesn't exist" unless -e $blastBin;
+    die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
     die "dbFilePath $dbFilePath doesn't exist" unless -e "$dbFilePath";
 
     # run if we don't have indexed files or they are older than seq file
@@ -71,13 +71,13 @@ sub initServer {
       my @ls = `ls -rt $dbFilePath.mn $dbFilePath.rps`;
       map { chomp } @ls;
       if (scalar(@ls) != 2 || $ls[0] ne "$dbFilePath.mn") {
-        &runCmd("$blastBin/copymat -r T -P $dbFilePath");
+        &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "copymat -r T -P $dbFilePath");
       }
       
       @ls = `ls -rt $dbFilePath $dbFilePath.p*`;
       map { chomp } @ls;
       if (scalar(@ls) != 6 || $ls[0] ne $dbFilePath) {
-        &runCmd("$blastBin/formatdb -o T -i $dbFilePath");
+        &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "formatdb -o T -i $dbFilePath");
       }
       chdir $cwd;
       
@@ -85,7 +85,7 @@ sub initServer {
      my @ls = `ls -rt $dbFilePath $dbFilePath.$dbType*`;
      map { chomp } @ls;
      if (scalar(@ls) < 4 || $ls[0] ne $dbFilePath) {
-       &runCmd("$blastBin/formatdb -i $dbFilePath -p ".($dbType eq 'p' ? 'T' : 'F'));
+       &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "formatdb -i $dbFilePath -p ".($dbType eq 'p' ? 'T' : 'F'));
      }
    } else {
      my @ls = `ls -rt $dbFilePath $dbFilePath.x$dbType*`;
@@ -95,7 +95,7 @@ sub initServer {
        &runCmd("rm -fr $dbFilePath");
        &runCmd("cat ${dbFilePath}.replaceJ | perl -pe 'unless (/^>/){s/O/X/g;}' > $dbFilePath");
        &runCmd("rm -fr ${dbFilePath}.replaceJ");
-       &runCmd("$blastBin/xdformat -$dbType $dbFilePath");
+       &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "xdformat -$dbType $dbFilePath");
      }
    } 
 }
