@@ -94,6 +94,8 @@ sub makeSubTaskCommand {
     my $snpsOnly = $self->getProperty ("snpsOnly");
     my $wDir = "$node->{masterDir}/mainresult";
     my $bowtie2 = $self->getProperty ("bowtie2");
+
+    $consPercentCutoff = $snpPercentCutoff if $snpPercentCutoff > 60;
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --varscan $varscan --bowtieIndex $bowtieIndex";
