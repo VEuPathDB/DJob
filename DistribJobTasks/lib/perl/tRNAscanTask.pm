@@ -13,7 +13,7 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["tRNAscanDir",   "",   "path to directory that contains the tRNAscan script"],
+ ["tRNAscanDir",   "default",   "path to directory that contains the tRNAscan script"],
  ["inputFilePath",   "",     "full path to input file"],
  ["trainingOption", "", "training set used, eg. -G (general) or -C (covariance only)"]
  );
@@ -64,6 +64,7 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $tRNAscanDir = $self->{props}->getProp("tRNAscanDir");
+    $tRNAscanDir = $tRNAscanDir eq 'default' ? getProgramDir("tRNAscan-SE") : $tRNAscanDir;
 
     my $trainingOption = $self->{props}->getProp("trainingOption"); 
 

@@ -13,7 +13,7 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["gaBinPath",   "",   "eg, /genomics/share/bin/blat"],
+ ["gaBinPath",   "default",   "eg, /genomics/share/bin/blat"],
  ["targetDirPath",      "",     "full path to directory containing *.2bit file"],
  ["queryPath",   "",     "full path to input file"],
  ["queryType", "dna", "type of query ([dna]|prot)"],
@@ -30,7 +30,7 @@ sub new {
 sub initServer {
     my ($self, $inputDir) = @_;
     my $gaBinPath = $self->getProperty("gaBinPath");
-    die "gaBinPath $gaBinPath doesn't exist" unless -e $gaBinPath;
+    die "gaBinPath $gaBinPath doesn't exist" unless ($gaBinPath eq 'default' || -e $gaBinPath);
     my $targetDirPath = $self->getProperty("targetDirPath");
     die "targetDirPath $targetDirPath doesn't exist" unless -e $targetDirPath;
     my $twoBitFile = "$targetDirPath/*.2bit";
@@ -94,7 +94,7 @@ sub makeSubTaskCommand {
     my $tmpBlatParams = $self->getProperty('blatParams');
     my $blatParams = $tmpBlatParams eq 'none' ? "" : $tmpBlatParams;
 
-    my $cmd = "${gaBinPath}/gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 $blatParams localhost $port $targetPath seqsubset.fsa out.psl";
+    my $cmd = ($gaBinPath eq 'default' ? "" : "$gaBinPath/")."gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 $blatParams localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
 }
@@ -110,8 +110,9 @@ sub cleanUpNode {
     my ($self,$node) = @_;
 
     my $port = $node->{gfport};
+    my $gaBinPath = $self->getProperty('gaBinPath');
 
-    $node->runCmd($self->getProperty('gaBinPath')."/gfServer stop localhost $port");
+    $node->runCmd(($gaBinPath eq 'default' ? "" : "$gaBinPath/")."gfServer stop localhost $port");
 }
 
 

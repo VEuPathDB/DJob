@@ -12,7 +12,7 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["rmPath",        "",  "eg: /export/Bioinformatics/usr/local/src/bio/RepeatMasker/latest"],
+ ["rmPath",        "default",  "eg: /export/Bioinformatics/usr/local/src/bio/RepeatMasker/latest"],
  ["inputFilePath", "",  "full path to input file"],
  ["trimDangling",  "",  "y or n"],
  ["rmParamsFile",     "",  "full path to file containing RepeatMasker command line options. Can be all on one line or one line / option."],
@@ -68,6 +68,7 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $rmPath = $self->getProperty("rmPath");
+    $rmPath = $rmPath eq 'default' ? getProgramDir("RepeatMasker") : $rmPath;
     my $rmParamsFile = $self->getProperty("rmParamsFile");
     my $trimDangling = $self->getProperty("trimDangling") eq "y"? "--trimDangling" : "";
     my $dangleMax = $self->getProperty("dangleMax");

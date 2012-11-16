@@ -2,6 +2,7 @@ package DJob::DistribJobTasks::PsipredTask;
 
 use CBIL::Util::Utils;
 use CBIL::Bio::FastaFileSequential;
+use CBIL::Util::Utils;
 
 use File::Basename;
 
@@ -11,7 +12,7 @@ use DJob::DistribJob::Task;
 
 use strict;
 
-my @properties = (["psipredDir", "", "full path to the psipred dir"],
+my @properties = (["psipredDir", "default", "full path to the psipred dir"],
                   [ "dbFilePath", "", "subject file path"],
                   [ "inputFilePath", "", "query file path"],
 		  [ "ncbiBinDir", "", "fullpath to the ncbi bin dir"],
@@ -19,6 +20,7 @@ my @properties = (["psipredDir", "", "full path to the psipred dir"],
 		  );
 
 sub new {
+use CBIL::Util::Utils;
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
     return $self;
 }
@@ -92,7 +94,10 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $runpsipred = $self->{props}->getProp("psipredDir") . "/runpsipred_single";
+    my $dir = $self->{props}->getProp("psipredDir");
+    $dir = $dir eq 'default' ? getProgramDir("runpsipred_single") : $dir;
+    
+    my $runpsipred =  "$dir/runpsipred_single";
     my $nrFilt = $self->{props}->getProp("dbFilePath");
 
     my $dbFile = $self->getProperty("copyDbToNode") eq 'no' ? $nrFilt : $node->getDir() . "/" . basename($nrFilt);
