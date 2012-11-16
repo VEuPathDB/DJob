@@ -12,7 +12,7 @@ use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
- ["blastBinDir",   "",   "eg, /genomics/share/pkg/bio/ncbi-blast/latest"],
+ ["blastBinDir",   "default",   "eg, /genomics/share/pkg/bio/ncbi-blast/latest"],
  ["dbFilePath",    "",   "full path to database file"],
  ["inputFilePath", "",   "full path to input file"],
  ["lengthCutoff",  "40",   ""],
@@ -40,13 +40,13 @@ sub initServer {
 	&runCmd("gunzip $dbFilePath.gz");
     }
 
-    die "blastBinDir $blastBin doesn't exist" unless -e $blastBin;
+    die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
     die "dbFilePath $dbFilePath doesn't exist" unless -e $dbFilePath;
 
     my @ls = `ls -rt $dbFilePath $dbFilePath.xn*`;
     map { chomp } @ls;  
     if (scalar(@ls) != 4 || $ls[0] ne $dbFilePath) {
-	&runCmd("$blastBin/xdformat -n $dbFilePath");
+	&runCmd(($blastBin eq 'default' ? "" : "$blastBin/") ."xdformat -n $dbFilePath");
     }
 }
 

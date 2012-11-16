@@ -23,7 +23,7 @@ my @properties =
 	["isColorspace", "false", "input sequence reads are in SOLiD colorspace.  Quality files must be exactly matename.qual"],
 	["varscan", "", "full path to the varscan jar file"],
 	["gatk", "", "full path to the GATK jar file"],
-	["bowtie2", "", "full path to the bowtie2 bin dir"],
+	["bowtie2", "default", "full path to the bowtie2 bin dir"],
 	["strain", "", "strain to be put into the GFF file"],
 	["consPercentCutoff", "60", "minimum allele percent for calling consensus base"],
 	["snpPercentCutoff", "20", "minimum allele percent for calling SNPs"],

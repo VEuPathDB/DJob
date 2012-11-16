@@ -16,7 +16,7 @@ my $workingDir = ".";
             "mateB|mb=s" => \$mateB,
             "outputPrefix|o=s" => \$out,
             "bwaIndex|b=s" => \$bwaIndex,
-            "bowtie2|bowtie2=s" => \$bowtie2,
+            "bowtie2=s" => \$bowtie2,
             "bowtieIndex|x=s" => \$bowtieIndex,
             "varscan|v=s" => \$varscan,
             "gatk|g=s" => \$gatk,
@@ -36,6 +36,7 @@ die "fasta file not found\n".&getParams() unless -e "$fastaFile";
 die "either bwa or bowtie2 indices must be specified\n".&getParams() unless (-e "$bwaIndex.amb" || -e "$bowtieIndex.1.bt2" || ($isColorspace && -e "$bowtieIndex.1.ebwt")); 
 die "you must provide a strain\n".&getParams() unless $strain;
 ##should add in usage
+$bowtie2 = $bowtie2 eq 'default' ? 'bowtie2' : $bowtie2;  ##if not specified then bowtie2 must be in path.
 
 $ENV{_JAVA_OPTIONS}="-Xmx2g";
 

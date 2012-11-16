@@ -18,7 +18,7 @@ my @properties =
  ["transcriptFastaFile",   "none",     "transcript file in fasta format"],
  ["transcriptBowtieIndex",   "none",     "transcript bowtie index files"],
  ["geneAnnotationFile",   "none",     "geneAnnotationFile in Greg's format (ucsc format)"],
- ["bowtieBinDir",   "",     "bowtie bin directory"],
+ ["bowtieBinDir",   "default",     "bowtie bin directory"],
  ["blatExec",   "",     "blat executable, must be full path unless defined in your path"],
  ["mdustExec",   "",     "mdust executable, must be full path unless defined in your path"],
  ["perlScriptsDir",   "$ENV{GUS_HOME}/bin",     "directory for RUM scripts"],
@@ -71,7 +71,11 @@ sub initServer {
     die "readFilePath equals pairedReadFilePath" if $pairedReadFilePath != 'none' && $pairedReadFilePath eq $readFilePath;
     die "genomeFastaFile $genomeFastaFile does not exist" unless -e "$genomeFastaFile";
 #  die "--transcriptFastaFile or --transcriptBowtieIndex must be provided" unless -e "$transcriptFastaFile" || -e "$transcriptBowtieIndex.1.ebwt";
-    die "bowtieBinDir $bowtieBinDir does not exist" unless -e "$bowtieBinDir";
+
+    if($bowtieBinDir ne 'default'){
+      die "bowtieBinDir $bowtieBinDir does not exist" unless -e "$bowtieBinDir";
+      $ENV{PATH} .= ":$bowtieBinDir";
+    }
     die "perlScriptsDir $perlScriptsDir does not exist" unless -e "$perlScriptsDir";
     
     ##if aren't creating SAM file then don't need to create qual file
@@ -181,7 +185,7 @@ sub initServer {
 	if (scalar(@lsg) != 2 || $lsg[0] ne $genomeFastaFile) { 
           $date = `date`; chomp $date;
 	    print "$date: Building bowtie index for genome\n";
-	    $self->{nodeForInit}->runCmd("$bowtieBinDir/bowtie-build $genomeFastaFile $self->{bowtie_genome}");
+	    $self->{nodeForInit}->runCmd("bowtie-build $genomeFastaFile $self->{bowtie_genome}");
 	}
     }
     
@@ -200,7 +204,7 @@ sub initServer {
 	    if (scalar(@lst) != 2 || $lst[0] ne $transcriptFastaFile) { 
               $date = `date`; chomp $date;
 		print "$date: Building bowtie index for transcriptome\n";
-		$self->{nodeForInit}->runCmd("$bowtieBinDir/bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
+		$self->{nodeForInit}->runCmd("bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
 	    }
 	}
     }
@@ -273,6 +277,7 @@ sub makeSubTaskCommand {
   if(!$self->{subtaskCmd}){
     my $genomeFastaFile = $self->getProperty("genomeFastaFile");
     my $bowtieBinDir = $self->getProperty("bowtieBinDir");
+    $bowtieBinDir = $bowtieBinDir eq 'default' ? "" : "$bowtieBinDir/";
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
     my $genomeBowtieIndex =  $self->{bowtie_genome};
     my $transcriptBowtieIndex = $self->{bowtie_transcript};
@@ -289,7 +294,7 @@ sub makeSubTaskCommand {
     my $readlength = $self->{"readLength"};
     my $strandspecific = $self->getProperty("strandSpecific");
 
-    my $cmd =  "runRUMOnNode.pl --readlength $readlength --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "").($geneAnnotationFile =~ /none$/ ? "" : " --geneAnnotationFile $geneAnnotationFile")." --bowtieExec $bowtieBinDir/bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minlength $minlength --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --mainResultDir $mainResultDir --matchLengthCutoff $matchLengthCutoff --strandSpecific $strandspecific";
+    my $cmd =  "runRUMOnNode.pl --readlength $readlength --readsFile seqSubset.fa --qualFile ".($self->{quals} ? "qualsSubset.fa" : "none")." --genomeFastaFile $genomeFastaFile --genomeBowtieIndex $genomeBowtieIndex".($self->{bowtie_transcript} ? " --transcriptBowtieIndex $transcriptBowtieIndex" : "").($geneAnnotationFile =~ /none$/ ? "" : " --geneAnnotationFile $geneAnnotationFile")." --bowtieExec $bowtieBinDir"."bowtie --blatExec $blatExec --mdustExec $mdustExec --perlScriptsDir $perlScriptsDir --limitNU $limitNU --pairedEnd $self->{pairedEnd} --minlength $minlength --minBlatIdentity $minBlatIdentity --numInsertions $numInsertions --createSAMFile ".($createSAMFile =~ /true/i ? "1" : "0")." --countMismatches ".($countMismatches =~ /true/i ? "1" : "0")." --mainResultDir $mainResultDir --matchLengthCutoff $matchLengthCutoff --strandSpecific $strandspecific";
 
     $self->{subtaskCmd} = $cmd;
   }

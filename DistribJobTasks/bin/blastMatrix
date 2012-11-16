@@ -8,6 +8,7 @@ BEGIN {
 
 use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Bio::Blast::BlastAnal;
+use CBIL::Util::Utils;
 use strict;
 use Getopt::Long;
 use File::Basename;
@@ -27,7 +28,7 @@ my $tempfile = "seqTmp";
 my $seqFile;
 my $db;
 my $maskRepeats;
-my $blastBinDir;
+my $blastBinDir = 'default';
 my $pValCutoff = 1e-5;
 my $lengthCutoff = 40;
 my $percentCutoff = 92; 
@@ -50,9 +51,11 @@ my $parsePVal = $pValCutoff > 1e-5 ? $pValCutoff : 1e-5;
 my $parseLength = int($lengthCutoff * 0.75);
 my $parsePercent = int($percentCutoff * 0.95);
 
-$ENV{BLASTFILTER} =  "$blastBinDir/filter";
-$ENV{BLASTMAT} = "$blastBinDir/matrix";
-$ENV{PATH} .= ":$blastBinDir";
+my $blastDir = getProgramDir($program);
+
+$ENV{BLASTFILTER} = "$blastDir/filter";
+$ENV{BLASTMAT} = "$blastDir/matrix";
+$ENV{PATH} .= ":$blastDir";
 
 open(CHIM, ">chimera.list") || die "Can't open chimera.list for writing";
 select CHIM; $| = 1; select STDOUT;
