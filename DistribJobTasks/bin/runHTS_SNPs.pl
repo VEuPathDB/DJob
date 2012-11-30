@@ -38,7 +38,7 @@ die "you must provide a strain\n".&getParams() unless $strain;
 ##should add in usage
 $bowtie2 = $bowtie2 eq 'default' ? 'bowtie2' : $bowtie2;  ##if not specified then bowtie2 must be in path.
 
-$ENV{_JAVA_OPTIONS}="-Xmx2g";
+$ENV{_JAVA_OPTIONS}="-Xms512m -Xmx2g";
 
 $snpPercentCutoff = $consPercentCutoff unless $snpPercentCutoff;
 
@@ -130,12 +130,12 @@ if($isColorspace){  ##need to mv the bam file
   }else{ &runCmd($cmd); print L "\n"; }
 
 }else{
-  $cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
+  $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
 
-  $cmd = "java -Xmx2g -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
+  $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
@@ -149,7 +149,7 @@ if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.snps"){ print L "  
 my $pc = $consPercentCutoff / 100;
 my $mpc = $snpPercentCutoff / 100;
 
-$cmd = "(java -Xmx2g -jar $varscan pileup2snp $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.snps ) >& $workingDir/$out.varscan_snps.err";
+$cmd = "(java -jar $varscan pileup2snp $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.snps ) >& $workingDir/$out.varscan_snps.err";
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.SNPs.gff"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
@@ -159,7 +159,7 @@ print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.cons"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
 
-$cmd = "(java -Xmx2g -jar $varscan pileup2cns $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.cons ) >& $workingDir/$out.varscan_cons.err";
+$cmd = "(java -jar $varscan pileup2cns $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.cons ) >& $workingDir/$out.varscan_cons.err";
 print L &getDate().": $cmd\n\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.consensus.fa"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print "\n"; }
