@@ -60,16 +60,10 @@ my $tmpOut = $out . "_tmp";
 
 my $cmd;
 
-##aligning with Bowtie2
-if( -e "$bowtieIndex.1.bt2"){  
-  ##NOTE: need to remove path to my install once mark puts into place
-  $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
-  print L &getDate().": $cmd\n";
-  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
-  }else{ &runCmd($cmd); print L "\n"; }
+
 
 ### aligning with bowtie 1 if colorspace
-}elsif($isColorspace && -e "$bowtieIndex.1.ebwt"){  
+if($isColorspace && -e "$bowtieIndex.1.ebwt"){  
   die "if isColorspace=true you must provide qual files that are named exactly like the reads files but with .qual appended to the read file name" unless -e "$mateA.qual";
   if(-e "$mateB"){  ## pairedEnd
     $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'ID:EuP' --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' $bowtieIndex -1 $mateA --Q1 $mateA.qual -2 $mateB --Q2 $mateB.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
@@ -79,7 +73,13 @@ if( -e "$bowtieIndex.1.bt2"){
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
-
+##aligning with Bowtie2
+}elsif( -e "$bowtieIndex.1.bt2"){  
+  ##NOTE: need to remove path to my install once mark puts into place
+  $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
 ##aligning with BWA
 }elsif(-e "$bwaIndex.amb"){  
   $cmd = "(bwa aln -t 4 -n $editDistance $bwaIndex $mateA > $workingDir/$tmpOut.mate1.sai) >& $workingDir/$tmpOut.bwa_aln_mate1.err";
@@ -105,6 +105,8 @@ if( -e "$bowtieIndex.1.bt2"){
     if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
     }else{ &runCmd($cmd); print L "\n"; }
   }
+}else{
+  die "ERROR: indices for short read aligner (bowtie2 / bowtie / bwa) not found\n";
 }
 
 $cmd = "samtools faidx $fastaFile";
