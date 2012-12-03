@@ -128,6 +128,11 @@ if($isColorspace){  ##need to mv the bam file
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
+	## need to also mv the index ... or else create
+  $cmd = "mv $workingDir/$tmpOut.bam.bai $workingDir/$out.bai";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
 
 }else{
   $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
