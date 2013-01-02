@@ -77,6 +77,7 @@ if($isColorspace && -e "$bowtieIndex.1.ebwt"){
 }elsif( -e "$bowtieIndex.1.bt2"){  
   ##NOTE: need to remove path to my install once mark puts into place
   $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex -1 $mateA ".(-e "$mateB" ? "-2 $mateB " : "")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' -x $bowtieIndex ".(-e "$mateB" ? "-1 $mateA -2 $mateB " : "-U $mateA ")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
