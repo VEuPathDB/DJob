@@ -90,7 +90,7 @@ sub initServer {
       `rm -rf $DJobInputBaseDir/preprocess/*`; 
   }    
 
-  my $cmd = "craigPreprocess.py --pre-config $inputDir/preconfig --out-dir $outputDir --annot-fmt $inputAnnotFmt --contig-fmt $inputContigFmt --transcript-tag $transcriptTag --cds-tag $cdsTag --gc-classes $gcClasses --model $modelType --num-permutations $numPerms --block-length $blockLen ".($coverageDensity eq "-1" ? "" : "--coverage-density=".$coverageDensity)." --djob-num-nodes $numDJobNodes --djob-node-class "+$djobNodeClass+" --djob-input $DJobInputBaseDir/preprocess $species $inputAnnotFile $inputContigFile config";
+  my $cmd = "craigPreprocess.py --pre-config $inputDir/preconfig --out-dir $outputDir --annot-fmt $inputAnnotFmt --contig-fmt $inputContigFmt --transcript-tag $transcriptTag --cds-tag $cdsTag --gc-classes $gcClasses --model $modelType --num-permutations $numPerms --block-length $blockLen --coverage-density $coverageDensity --djob-num-nodes $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/preprocess $species $inputAnnotFile $inputContigFile config";
   
   $self->{nodeForInit}->runCmd($cmd);
   
@@ -129,7 +129,7 @@ sub makeSubTaskCommand {
 	`rm -rf $DJobInputBaseDir/model/*`; 
     }    
 
-    my $cmd = "craig4eupath.py --force-train --out-dir $modelDirOutput --model $geneModelType --min-perc-junc-aligns $minPercJunctionAlignments --djob-num-nodes  $numDJobNodes --djob-node-class "+$djobNodeClass+" --djob-input $DJobInputBaseDir/model";
+    my $cmd = "craig4eupath.py --force-train --out-dir $modelDirOutput --model $geneModelType --min-perc-junc-aligns $minPercJunctionAlignments --djob-num-nodes  $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/model";
     
     if($genUTROnlyModel == "yes") {
 	$cmd = $cmd." --utr-only-model";
