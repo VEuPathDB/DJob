@@ -91,7 +91,7 @@ sub initServer {
   }    
 
   my $cmd = "craigPreprocess.py --pre-config $inputDir/preconfig --out-dir $outputDir --annot-fmt $inputAnnotFmt --contig-fmt $inputContigFmt --transcript-tag $transcriptTag --cds-tag $cdsTag --gc-classes $gcClasses --model $modelType --num-permutations $numPerms --block-length $blockLen --coverage-density $coverageDensity --djob-num-nodes $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/preprocess $species $inputAnnotFile $inputContigFile config";
-  
+  print "Initialization command: $cmd\n";
   $self->{nodeForInit}->runCmd($cmd);
   
 }
@@ -140,7 +140,7 @@ sub makeSubTaskCommand {
     }
     
     $cmd = $cmd." $species $dataDirOutput/config";
-#    print "Returning command: $cmd\n";
+    print "Training and Prediction command: $cmd\n";
 #    exit(0);  ##for testing
     return $cmd;
 }
