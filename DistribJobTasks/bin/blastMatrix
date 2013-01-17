@@ -51,7 +51,7 @@ my $parsePVal = $pValCutoff > 1e-5 ? $pValCutoff : 1e-5;
 my $parseLength = int($lengthCutoff * 0.75);
 my $parsePercent = int($percentCutoff * 0.95);
 
-my $blastDir = getProgramDir($program);
+my $blastDir = $blastBinDir eq 'default'? getProgramDir($program) : $blastBinDir;
 
 $ENV{BLASTFILTER} = "$blastDir/filter";
 $ENV{BLASTMAT} = "$blastDir/matrix";

@@ -76,7 +76,7 @@ if($saveAllBlastFiles || $saveGoodBlastFiles){
   }
 }
 
-my $blastDir = getProgramDir($program);
+my $blastDir = $blastBinDir eq 'default'? getProgramDir($program) : $blastBinDir;
 
 $ENV{BLASTFILTER} = "$blastDir/filter" unless -e $ENV{BLASTFILTER};
 $ENV{BLASTMAT} = "$blastDir/matrix" unless -e $ENV{BLASTMAT};
