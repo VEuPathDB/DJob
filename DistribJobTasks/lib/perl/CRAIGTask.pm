@@ -29,7 +29,7 @@ my @properties =
  ["CDSTag", "CDS", "Tag for recognizing coding regions in InputAnnotFile"],
  ["gcClasses", "100", "gc isochores present in the genome. f.e. human would be 43,51,57"],
  ["species", "", "name of species tgondii|plasmo"],
- ["coverageDensity", "5", "Sample's coverage density. A number between 1(very sparse, like gregory datasets) to 9(very dense, like reid day4 dataset)."],
+ ["coverageDensity", "5", "Sample's coverage density. A number between 1(very sparse, like gregory datasets) to 9(very dense, like reid day4 dataset). This is roughyl a linear factor, but most datasets with good mapping should always be above 4 or 5. For example, reid3 should around 7, sibley around 5, oocyst(the bottom line for good datasets) around 4. Gregory data sets should all be 1 or 2. This can be extracted from the mapping_stats.txt file in rum. Just check the number of total mapped reads, consider paired reads to be better than single reads and land in a number. This estimated number is not so much important as long as it's a relatively good guess"],
  ["geneModelType", "ngscraig", "model type ngscraig/ecraig/craig"],
  ["blockLen", "20",  "block length used in discarding permutations"],
  ["numPermutations", "1000", "number of permutations for computing change points"],
@@ -49,51 +49,78 @@ sub new {
 
 # called once 
 sub initServer {
-  my ($self, $inputDir) = @_;
+    my ($self, $inputDir) = @_;
   # creating preconfig file
-  open(PRECONFIG,">$inputDir/preconfig");
-  my $rsqType = $self->getProperty('RSqType');
-  my $rsqDataSetId = $self->getProperty('RSqDataSetID');
-  my $rsqSampleId = $self->getProperty('RSqSampleID');
-  my $rsqInputDir = $self->getProperty('RSqInputDir');
-  my $rsqStranded = $self->getProperty('RSqStranded');
-  my $rsqWrapperIn = $self->getProperty('RSqWrapperIn');
-  print PRECONFIG "rnaseq\t$rsqType\t$rsqDataSetId\t$rsqSampleId\t$rsqInputDir\t$rsqStranded\t$rsqWrapperIn\n";
-  close(PRECONFIG);
+    open(PRECONFIG,">$inputDir/preconfig");
+    my $rsqType = $self->getProperty('RSqType');
+    my $rsqDataSetId = $self->getProperty('RSqDataSetID');
+    my $rsqSampleId = $self->getProperty('RSqSampleID');
+    my $rsqInputDir = $self->getProperty('RSqInputDir');
+    my $rsqStranded = $self->getProperty('RSqStranded');
+    my $rsqWrapperIn = $self->getProperty('RSqWrapperIn');
+    print PRECONFIG "rnaseq\t$rsqType\t$rsqDataSetId\t$rsqSampleId\t$rsqInputDir\t$rsqStranded\t$rsqWrapperIn\n";
+    close(PRECONFIG);
+    
+    my $dataDirOutput = $self->getProperty('dataDirOutput');
+    my $inputAnnotFmt = $self->getProperty('InputAnnotFormat');
+    my $inputContig = $self->getProperty('InputContigFile');
+    my $inputContigFmt = $self->getProperty('InputContigFormat');
+    my $transcriptTag = $self->getProperty('transcriptTag');
+    my $cdsTag = $self->getProperty('CDSTag');
+    my $coverageDensity = $self->getProperty('coverageDensity');
+    my $gcClasses = $self->getProperty('gcClasses');
+    my $geneModelType = $self->getProperty('geneModelType');
+    my $numPerms = $self->getProperty('numPermutations');
+    my $blockLen = $self->getProperty('blockLen');
+    my $numDJobNodes = $self->getProperty('numDJobNodes');
+    my $djobNodeClass = $self->getProperty('DJobNodeClass'); 
+    my $DJobInputBaseDir = $self->getProperty('DJobInputBaseDir');
+    my $species = $self->getProperty('species');
+    my $inputAnnotFile = $self->getProperty('InputAnnotFile');
+    my $inputContigFile = $self->getProperty('InputContigFile');
+    
+    if (!-e $DJobInputBaseDir) {
+	`mkdir $DJobInputBaseDir`;
+    }
+    
+    if (!-e "$DJobInputBaseDir/preprocess") {
+	`mkdir $DJobInputBaseDir/preprocess`;
+    }
+    else {
+	`rm -rf $DJobInputBaseDir/preprocess/*`; 
+    }    
+    
+    my $cmd1 = "craigPreprocess.py --pre-config $inputDir/preconfig --out-dir $dataDirOutput --annot-fmt $inputAnnotFmt --contig-fmt $inputContigFmt --transcript-tag $transcriptTag --cds-tag $cdsTag --gc-classes $gcClasses --model $geneModelType --num-permutations $numPerms --block-length $blockLen ".($coverageDensity eq "-1" ? "" : "--coverage-density=".$coverageDensity)." --djob-num-nodes $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/preprocess $species $inputAnnotFile $inputContigFile config";
 
-  my $outputDir = $self->getProperty('dataDirOutput');
-  my $inputAnnotFmt = $self->getProperty('InputAnnotFormat');
-  my $inputContig = $self->getProperty('InputContigFile');
-  my $inputContigFmt = $self->getProperty('InputContigFormat');
-  my $transcriptTag = $self->getProperty('transcriptTag');
-  my $cdsTag = $self->getProperty('CDSTag');
-  my $coverageDensity = $self->getProperty('coverageDensity');
-  my $gcClasses = $self->getProperty('gcClasses');
-  my $modelType = $self->getProperty('geneModelType');
-  my $numPerms = $self->getProperty('numPermutations');
-  my $blockLen = $self->getProperty('blockLen');
-  my $numDJobNodes = $self->getProperty('numDJobNodes');
-  my $djobNodeClass = $self->getProperty('DJobNodeClass'); 
-  my $DJobInputBaseDir = $self->getProperty('DJobInputBaseDir');
-  my $species = $self->getProperty('species');
-  my $inputAnnotFile = $self->getProperty('InputAnnotFile');
-  my $inputContigFile = $self->getProperty('InputContigFile');
+    my $modelDirOutput = $self->getProperty('modelDirOutput');
+    my $minPercJunctionAlignments = $self->getProperty('minPercJunctionAlignments');
 
-  if (!-e $DJobInputBaseDir) {
-      `mkdir $DJobInputBaseDir`;
-  }
-
-  if (!-e "$DJobInputBaseDir/preprocess") {
-      `mkdir $DJobInputBaseDir/preprocess`;
-  }
-  else {
-      `rm -rf $DJobInputBaseDir/preprocess/*`; 
-  }    
-
-  my $cmd = "craigPreprocess.py --pre-config $inputDir/preconfig --out-dir $outputDir --annot-fmt $inputAnnotFmt --contig-fmt $inputContigFmt --transcript-tag $transcriptTag --cds-tag $cdsTag --gc-classes $gcClasses --model $modelType --num-permutations $numPerms --block-length $blockLen --coverage-density $coverageDensity --djob-num-nodes $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/preprocess $species $inputAnnotFile $inputContigFile config";
-  print "Initialization command: $cmd\n";
-  $self->{nodeForInit}->runCmd($cmd);
+    my $genUTROnlyModel = $self->getProperty('genUTROnlyModel');
+    my $modelUTRs = $self->getProperty('modelUTRs');
+    my $dataDirOutput = $self->getProperty('dataDirOutput');
   
+    
+    if (!-e "$DJobInputBaseDir/model") {
+	`mkdir $DJobInputBaseDir/model`;
+    }
+    else {
+	`rm -rf $DJobInputBaseDir/model/*`; 
+    }    
+    
+    my $cmd2 = "craig4eupath.py --force-train --out-dir $modelDirOutput --model $geneModelType --min-perc-junc-aligns $minPercJunctionAlignments --djob-num-nodes  $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/model";
+    
+    if($genUTROnlyModel == "yes") {
+	$cmd2 = $cmd2." --utr-only-model";
+    }
+    
+    if($modelUTRs == "yes") {
+	$cmd2 = $cmd2." --model-utrs";
+    }
+    
+    $cmd2 = $cmd2." $species $dataDirOutput/config";
+#    exit(0);  ##for testin
+    print "CRAIG Run Command: $cmd1 && $cmd2\n";
+    $self->{nodeForInit}->runCmd($cmd1." && ".$cmd2);
 }
 
 sub initNode {
@@ -111,37 +138,7 @@ sub initSubTask {
 
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
-    my $modelDirOutput = $self->getProperty('modelDirOutput');
-    my $geneModelType = $self->getProperty('geneModelType');
-    my $minPercJunctionAlignments = $self->getProperty('minPercJunctionAlignments');
-    my $numDJobNodes = $self->getProperty('numDJobNodes');
-    my $djobNodeClass = $self->getProperty('DJobNodeClass'); 
-    my $DJobInputBaseDir = $self->getProperty('DJobInputBaseDir');
-    my $genUTROnlyModel = $self->getProperty('genUTROnlyModel');
-    my $modelUTRs = $self->getProperty('modelUTRs');
-    my $species = $self->getProperty('species');
-    my $dataDirOutput = $self->getProperty('dataDirOutput');
-
-    if (!-e "$DJobInputBaseDir/model") {
-	`mkdir $DJobInputBaseDir/model`;
-    }
-    else {
-	`rm -rf $DJobInputBaseDir/model/*`; 
-    }    
-
-    my $cmd = "craig4eupath.py --force-train --out-dir $modelDirOutput --model $geneModelType --min-perc-junc-aligns $minPercJunctionAlignments --djob-num-nodes  $numDJobNodes --djob-node-class $djobNodeClass --djob-input $DJobInputBaseDir/model";
-    
-    if($genUTROnlyModel == "yes") {
-	$cmd = $cmd." --utr-only-model";
-    }
-    
-    if($modelUTRs == "yes") {
-	$cmd = $cmd." --model-utrs";
-    }
-    
-    $cmd = $cmd." $species $dataDirOutput/config";
-    print "Training and Prediction command: $cmd\n";
-#    exit(0);  ##for testing
+    my $cmd = "echo hola";
     return $cmd;
 }
 

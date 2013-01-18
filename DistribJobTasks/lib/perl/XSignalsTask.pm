@@ -65,7 +65,7 @@ sub makeSubTaskCommand {
 
     my $blockLen = $self->getProperty("blockLen");
     my $prefixFilesPath = $self->getProperty("prefixFilesPath");
-    my $stranded = ($self->getProperty("stranded") == "no" ? "" : "--stranded");
+    my $stranded = ($self->getProperty("stranded") eq "no" ? "" : "--stranded");
     my $num_perms = $self->getProperty("numPermutations");
     my $cmd = "get_covxsignals $stranded --block-len=$blockLen --prefix-files=$prefixFilesPath --prefix-output=seqsubset --num-permutations=$num_perms seqsubset.fa";
 
