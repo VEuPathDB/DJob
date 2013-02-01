@@ -131,7 +131,7 @@ if($isColorspace){  ##need to mv the bam file
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
 	## need to also mv the index ... or else create
-  $cmd = "mv $workingDir/$tmpOut.bam.bai $workingDir/$out.bai";
+  $cmd = "mv $workingDir/$tmpOut.bam.bai $workingDir/$out.bam.bai";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
