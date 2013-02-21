@@ -35,6 +35,7 @@ my @properties =
      ["mgfDir", "", "file containing the mgf files"],
      ["inputParamFile", "", "file of search parameters"],
      ["parserParamFile", "", "file of parser parameters"],
+     ##add parameter for PIPELINE_HOOME and set in new method
      );
 
 # Construct a new instance of your task.  This method should be copied 
@@ -68,6 +69,7 @@ sub new {
 #
 sub initServer {
     my ($self, $inputDir) = @_;
+    ##here we should split up the mgf file into as many subparts 
 
 }
 
