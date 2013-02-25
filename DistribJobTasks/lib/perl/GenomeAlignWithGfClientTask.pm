@@ -33,8 +33,8 @@ sub initServer {
     die "gaBinPath $gaBinPath doesn't exist" unless ($gaBinPath eq 'default' || -e $gaBinPath);
     my $targetDirPath = $self->getProperty("targetDirPath");
     die "targetDirPath $targetDirPath doesn't exist" unless -e $targetDirPath;
-    my $twoBitFile = "$targetDirPath/genomicSeqs.2bit";
-    die "There is no 2bit file in $targetDirPath" unless -e  $twoBitFile;
+    my $twoBitFile = "$targetDirPath.2bit";
+    die "There is no 2bit file: $twoBitFile" unless -e  $twoBitFile;
 }
 
 sub initNode {
