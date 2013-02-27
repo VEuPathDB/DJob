@@ -33,7 +33,7 @@ sub initServer {
     die "gaBinPath $gaBinPath doesn't exist" unless ($gaBinPath eq 'default' || -e $gaBinPath);
     my $targetDirPath = $self->getProperty("targetDirPath");
     die "targetDirPath $targetDirPath doesn't exist" unless -e $targetDirPath;
-    my $twoBitFile = "$targetDirPath.2bit";
+    my $twoBitFile = "$targetDirPath/genomicSeqs.2bit";
     die "There is no 2bit file: $twoBitFile" unless -e  $twoBitFile;
 }
 
@@ -50,7 +50,7 @@ sub initNode {
 
     my $cmd = "startGfServer --binPath $gaBinPath --nodePort $node->{gfport} --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : "");
 
-#    print STDERR "$cmd\n";
+    print STDERR "$cmd\n";
     print $node->runCmd($cmd)."\n";
 }
 
