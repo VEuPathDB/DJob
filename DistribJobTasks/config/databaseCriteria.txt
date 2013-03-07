@@ -1,0 +1,4 @@
+user_name = jcade
+decoy_regex = Rnd
+decoy_ratio = 3 
+rank_threshold = 3
