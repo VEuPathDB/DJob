@@ -44,20 +44,16 @@ sub initServer {
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
   if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
     my $mateA = $self->getProperty('mateA');
+    my $mateB = $self->getProperty('mateB');
+    if(!$mateA || $mateA eq 'none'){
+      $mateA = "$inputDir/reads_1.fastq";
+      $self->setProperty('mateA',"$mateA");
+      $mateB = "$inputDir/reads_2.fastq";
+      $self->setProperty('mateB',"$mateB");
+    }
     if(-e "$mateA"){
       print "reads file $mateA already present so not retrieving from SRA\n";
     }else{  ##need to retrieve here
-      my $mateB;
-      if(!$mateA || $mateA eq 'none'){
-        $mateA = "reads_1.fastq";
-        $self->setProperty('mateA',"$inputDir/$mateA");
-        $mateB = "reads_2.fastq";
-        $self->setProperty('mateB',"$inputDir/$mateB");
-      }
-      if(-e "$inputDir/$mateA"){
-        print "Already retrieved fastq file from SRA from $sidlist\n";
-        return 1;
-      }
       $self->{nodeForInit}->runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
     }
   } 

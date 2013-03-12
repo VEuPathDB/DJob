@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-## parses varscan output to generate a gff file that can be loaded with InsertSNPs plugin
+## parses varscan output to generate a fasta file for loading into the database
 
 use strict;
 use Getopt::Long;
