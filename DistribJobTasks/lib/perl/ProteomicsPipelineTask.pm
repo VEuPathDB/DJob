@@ -35,7 +35,8 @@ my @properties =
      ["mgfDir", "", "file containing the mgf files"],
      ["inputParamFile", "", "file of search parameters"],
      ["parserParamFile", "", "file of parser parameters"],
-     ##add parameter for PIPELINE_HOOME and set in new method
+     ["perlScriptsDir",   "$ENV{GUS_HOME}/bin",     "directory for RUM scripts"],
+     ["pipelineHomeDir", "", "dir that contains proteoAnnotator files"],
      );
 
 # Construct a new instance of your task.  This method should be copied 
@@ -47,8 +48,10 @@ sub new {
     die("inputParamFile does not exist\n") unless (-e $self->getProperty("inputParamFile"));
     die("parserParamFile does not exist\n") unless (-e $self->getProperty("parserParamFile"));
     die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
-    my $ls = `ls $ENV{PIPELINE_HOME}/pipelineForCluster.jar`;
-    die("ERROR: PIPELINE_HOME environment variable must be set and valid\n" unless $ls =~ /pipelineForCluster/;
+    die("pipelineHomeDir does not exist\n") unless (-d $self->getProperty("pipelineHomeDir"));
+    $ENV{PIPELINE_HOME} = $self->getProperty("pipelineHomeDir");
+    #my $ls = `ls $ENV{PIPELINE_HOME}/pipelineForCluster.jar`;
+    #die("ERROR: PIPELINE_HOME environment variable must be set and valid\n" unless $ls =~ /pipelineForCluster/;
 
     return $self;
 }
@@ -69,8 +72,23 @@ sub new {
 #
 sub initServer {
     my ($self, $inputDir) = @_;
-    ##here we should split up the mgf file into as many subparts 
+    my $perlScriptsDir = $self->getProperty("perlScriptsDir");
 
+    die "perlScriptsDir $perlScriptsDir does not exist" unless -e "$perlScriptsDir";
+    ##here we should split up the mgf file into as many subparts
+    if(!(-d "$inputDir/subtasks")){
+	mkdir("$inputDir/subtasks");
+    }
+    #check if Successful (make a status file that can be checked)
+    ##split file
+    my $mgfDir = $self->getProperty("mgfDir");
+
+    $self->{nodeForInit}->runCmd("perl $perlScriptsDir/mgfSplitter.pl $mgfDir $inputDir/subtasks") unless -e "$inputDir/subtasks/success.txt";
+
+    my @files = glob("$inputDir/subtasks/*.mgf");
+    $self->{"files"} = \@files;
+    $self->{"inputSetSize"} = scalar(@files);
+    system("echo $self->{'inputSetSize'} >$inputDir/subtasks/success.txt");
 }
 
 # Initialize the local disk on a node.  This method is called once per node
@@ -99,7 +117,7 @@ sub initServer {
 #
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-
+    #do nothing
 }
 
 # Provide the size of the input set.  The controller needs to know this so
@@ -109,12 +127,7 @@ sub initNode {
 #
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
-
-    my $mgfDir = $self->getProperty("mgfDir");
-    my @files = glob("$mgfDir/*.mgf");
-    $self->{"files"} = \@files;
-    $self->{"inputSetSize"} = scalar(@files);
-    return scalar(@files);
+    return $self->{"inputSetSize"};
 }
 
 # Initialize subtask-specific directories on the server and/or the node for use
@@ -163,7 +176,7 @@ sub initSubTask {
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
     $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles");
 
-    $node->runCmd("mkdir $nodeExecDir/output");
+    #$node->runCmd("mkdir $nodeExecDir/output");
 }
 
 # Actually run the subtask by issuing a command on a node. This method
@@ -190,16 +203,16 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $inputParam = $self->getProperty("inputParamFile");
-    my $parserParam = $self->getProperty("parserParamFile");
+##    my $parserParam = $self->getProperty("parserParamFile");
 
-    my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
-    die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
+     my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
+     die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
     my $mgfFile = @tmpFiles[0];
     chomp $mgfFile;
 
-    my $cmd = "runPipelineForEachMgf.sh $inputParam $mgfFile $nodeExecDir/output $parserParam";
+    my $cmd = " $inputParam $mgfFile $nodeExecDir/output";
 
-    return $cmd;
+    return $cmd;ejaculatory prayers
 
 }
 
@@ -225,7 +238,8 @@ sub integrateSubTaskResults {
     ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
     foreach my $file (@files){
       chomp $file;
-      $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir");
+      my $uniqueFileName = "$subTaskNum\_$file";
+      $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir/$uniqueFileName");
     }
 }
 
@@ -241,7 +255,11 @@ sub cleanUpNode {
 # on the server that may clean up or further analyze the combined  results of
 # the run.
 sub cleanUpServer {
-  my($self, $inputDir, $mainResultDir) = @_;
+  my($self, $inputDir, $mainResultDir,$node) = @_;
+  my $PipelineJarHome =  $ENV{GUS_HOME}."/lib/java";
+  $node->runCmd("java -jar $PipelineJarHome/proteoannotator.jar create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
+  
+  #generate summary
   return 1;
 }
 
