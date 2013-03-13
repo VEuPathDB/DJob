@@ -33,9 +33,9 @@ use strict;
 my @properties =
     (
      ["configDir", "$ENV{GUS_HOME}/config/ProteoAnnotator", "directory containing config files for proteoAnnotator"],
-     ["mgfDir", "", "directory containing the mgf file"],
-     ["searchConfigFilename", "searchCriteria.txt", "name of the search criteria file to be used" ],
-     ["databaseConfigFilename", "databaseCriteria.txt", "name of the database criteria file to be used" ],
+     ["mgfFile", "", "directory containing the mgf file"],
+     ["searchConfigFile", "/inputFiles/searchCriteria.txt", "name of the search criteria file to be used" ],
+     ["databaseConfigFile", "/inputFiles/databaseCriteria.txt", "name of the database criteria file to be used" ],
      ["mgfSpitterSizeLimit", "1000000", "number of lines to use for each split mgf file"],
      );
 
@@ -47,11 +47,11 @@ sub new {
     ##would be good here to check to see that all files exist .. die if not ...
     die("configFileDir does not exist\n") unless (-d $self->getProperty("configFileDir"));
     my $configFileDir =  $self->getProperty("configFileDir");
-    die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
-    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFilename");
-    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFilename");
-    die("searchConfigFileName does not exist in the folder \n") unless (-d $searchConfigFile);
-    die("databaseConfigFileName does not exist in the folder \n") unless (-d $databaseConfigFile);
+    die("mgfFile does not exist\n") unless (-e $self->getProperty("mgfDir"));
+    my $searchConfigFile =$configFileDir.$self->getProperty("searchConfigFile");
+    my $databaseConfigFile =$configFileDir.$self->getProperty("databaseConfigFile");
+    die("searchConfigFileName does not exist in the folder \n") unless (-e $searchConfigFile);
+    die("databaseConfigFileName does not exist in the folder \n") unless (-e $databaseConfigFile);
     return $self;
 }
 
@@ -78,9 +78,9 @@ sub initServer {
     }
     #check if Successful (make a status file that can be checked)
     ##split file
-    my $mgfDir = $self->getProperty("mgfDir");
+    my $mgfFile = $self->getProperty("mgfFile");
     my $limit = $self->getProperty("mgfSpitterSizeLimit");
-    $self->{nodeForInit}->runCmd("mgfSplitter.pl --inputMgfFile $mgfDir --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt";
+    $self->{nodeForInit}->runCmd("mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt";
 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
@@ -202,8 +202,8 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $configFileDir =  $self->getProperty("configFileDir");
-    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFilename");
-    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFilename");
+    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFile");
+    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFile");
 
 
      my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
@@ -239,7 +239,7 @@ sub integrateSubTaskResults {
     foreach my $file (@files){
       chomp $file;
       my $uniqueFileName = undef;;
-      if ( $file=~m/^Summary_.*\.txt/ || $file=~m/^FinalOutput_.*\.txt/)
+      if ( $file=~m/^Summary(_\d+)?\.txt/ || $file=~m/^FinalOutput(_\d+)\.txt/ || $file=~m/^FinalOutput_Verbose(_\d+)\.txt/)
         {
           $uniqueFileName=$file;
           $uniqueFileName=~s/_\d*/_$subTaskNum/;
