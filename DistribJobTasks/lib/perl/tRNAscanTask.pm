@@ -1,4 +1,4 @@
-   package DJob::DistribJobTasks::tRNAscanTask;
+package DJob::DistribJobTasks::tRNAscanTask;
 
 use DJob::DistribJob::Task;
 use CBIL::Bio::FastaFileSequential;

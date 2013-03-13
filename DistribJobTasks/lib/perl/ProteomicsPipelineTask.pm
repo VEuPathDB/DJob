@@ -32,10 +32,8 @@ use strict;
 #
 my @properties = 
     (
-     ["mgfDir", "", "file containing the mgf files"],
+     ["mgfDir", "", "directory containing the mgf file"],
      ["inputParamFile", "", "file of search parameters"],
-     ["parserParamFile", "", "file of parser parameters"],
-     ["perlScriptsDir",   "$ENV{GUS_HOME}/bin",     "directory for RUM scripts"],
      ["pipelineHomeDir", "", "dir that contains proteoAnnotator files"],
      );
 
@@ -46,7 +44,6 @@ sub new {
 
     ##would be good here to check to see that all files exist .. die if not ...
     die("inputParamFile does not exist\n") unless (-e $self->getProperty("inputParamFile"));
-    die("parserParamFile does not exist\n") unless (-e $self->getProperty("parserParamFile"));
     die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
     die("pipelineHomeDir does not exist\n") unless (-d $self->getProperty("pipelineHomeDir"));
     $ENV{PIPELINE_HOME} = $self->getProperty("pipelineHomeDir");
@@ -72,9 +69,7 @@ sub new {
 #
 sub initServer {
     my ($self, $inputDir) = @_;
-    my $perlScriptsDir = $self->getProperty("perlScriptsDir");
 
-    die "perlScriptsDir $perlScriptsDir does not exist" unless -e "$perlScriptsDir";
     ##here we should split up the mgf file into as many subparts
     if(!(-d "$inputDir/subtasks")){
 	mkdir("$inputDir/subtasks");
@@ -83,7 +78,7 @@ sub initServer {
     ##split file
     my $mgfDir = $self->getProperty("mgfDir");
 
-    $self->{nodeForInit}->runCmd("perl $perlScriptsDir/mgfSplitter.pl $mgfDir $inputDir/subtasks") unless -e "$inputDir/subtasks/success.txt";
+    $self->{nodeForInit}->runCmd("mgfSplitter.pl $mgfDir $inputDir/subtasks") unless -e "$inputDir/subtasks/success.txt";
 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
@@ -176,7 +171,6 @@ sub initSubTask {
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
     $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles");
 
-    #$node->runCmd("mkdir $nodeExecDir/output");
 }
 
 # Actually run the subtask by issuing a command on a node. This method
@@ -203,16 +197,16 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $inputParam = $self->getProperty("inputParamFile");
-##    my $parserParam = $self->getProperty("parserParamFile");
+    my $pipelineHomeDir = $self->getProperty("pipelineHomeDir");
 
      my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
      die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
     my $mgfFile = @tmpFiles[0];
     chomp $mgfFile;
 
-    my $cmd = " $inputParam $mgfFile $nodeExecDir/output";
+    my $cmd = "runPipeline.sh $pipelineHomeDir $inputParam $mgfFile $nodeExecDir/output";
 
-    return $cmd;ejaculatory prayers
+    return $cmd;
 
 }
 
