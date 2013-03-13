@@ -142,6 +142,8 @@ $restartInstructions
   my $initNode;
   if(!$nodes[0]->getState()){
     print "Submitting node to scheduler ";
+    ##NOTE: need to set the memory of the init node here iif differet than rest.
+
     $nodes[0]->queueNode();
   }
   my $ctInitNode = 0;

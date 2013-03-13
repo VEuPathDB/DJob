@@ -107,10 +107,17 @@ sub cleanUp {
 
   ##now want to get stats and print them:
   my @stats = `qstat -f -j $self->{jobid}`;
-  foreach my $line (@stats){
-    if($line =~ /^usage.*?(cpu.*)$/){
-      print "  qstat -f -j $self->{jobid}: $1\n";
-      last;
+  if($?){  ##node no longer running .... use qacct
+    @stats = `qacct -j $self->{jobid}`;
+    while(@stats){
+      print if (/maxvmem/i || /failed/i);
+    }
+  }else{
+    foreach my $line (@stats){
+      if($line =~ /^usage.*?(cpu.*)$/){
+        print "  qstat -f -j $self->{jobid}: $1\n";
+        last;
+      }
     }
   }
 

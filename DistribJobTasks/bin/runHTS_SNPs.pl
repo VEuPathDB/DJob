@@ -191,7 +191,7 @@ if($delIntFiles){
   unlink("$workingDir/result.pileup");
   unlink("$workingDir/result.varscan.snps");
 ##  unlink("$workingDir/result.varscan.cons"); ##note: want to keep this
-  system("gzip $workingDir/result.varscan.snps"); ##compress to make smaller
+  system("gzip $workingDir/result.varscan.cons"); ##compress to make smaller
   unlink("$workingDir/forIndelRealigner.intervals");
 }
 
