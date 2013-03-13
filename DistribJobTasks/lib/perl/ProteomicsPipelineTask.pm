@@ -30,11 +30,13 @@ use strict;
 # object in $self->{props}.  Access a property by calling the getProperty() method:
 #   $self->getProperty('name_of_property');
 #
-my @properties = 
+my @properties =
     (
+     ["configDir", "$ENV{GUS_HOME}/config/ProteoAnnotator", "directory containing config files for proteoAnnotator"],
      ["mgfDir", "", "directory containing the mgf file"],
-     ["inputParamFile", "", "file of search parameters"],
-     ["pipelineHomeDir", "", "dir that contains proteoAnnotator files"],
+     ["searchConfigFilename", "searchCriteria.txt", "name of the search criteria file to be used" ],
+     ["databaseConfigFilename", "databaseCriteria.txt", "name of the database criteria file to be used" ],
+     ["mgfSpitterSizeLimit", "1000000", "number of lines to use for each split mgf file"],
      );
 
 # Construct a new instance of your task.  This method should be copied 
@@ -43,13 +45,13 @@ sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
 
     ##would be good here to check to see that all files exist .. die if not ...
-    die("inputParamFile does not exist\n") unless (-e $self->getProperty("inputParamFile"));
+    die("configFileDir does not exist\n") unless (-d $self->getProperty("configFileDir"));
+    my $configFileDir =  $self->getProperty("configFileDir");
     die("mgfDir does not exist\n") unless (-d $self->getProperty("mgfDir"));
-    die("pipelineHomeDir does not exist\n") unless (-d $self->getProperty("pipelineHomeDir"));
-    $ENV{PIPELINE_HOME} = $self->getProperty("pipelineHomeDir");
-    #my $ls = `ls $ENV{PIPELINE_HOME}/pipelineForCluster.jar`;
-    #die("ERROR: PIPELINE_HOME environment variable must be set and valid\n" unless $ls =~ /pipelineForCluster/;
-
+    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFilename");
+    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFilename");
+    die("searchConfigFileName does not exist in the folder \n") unless (-d $searchConfigFile);
+    die("databaseConfigFileName does not exist in the folder \n") unless (-d $databaseConfigFile);
     return $self;
 }
 
@@ -77,13 +79,16 @@ sub initServer {
     #check if Successful (make a status file that can be checked)
     ##split file
     my $mgfDir = $self->getProperty("mgfDir");
-
-    $self->{nodeForInit}->runCmd("mgfSplitter.pl $mgfDir $inputDir/subtasks") unless -e "$inputDir/subtasks/success.txt";
+    my $limit = $self->getProperty("mgfSpitterSizeLimit");
+    $self->{nodeForInit}->runCmd("mgfSplitter.pl --inputMgfFile $mgfDir --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt";
 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
     $self->{"inputSetSize"} = scalar(@files);
-    system("echo $self->{'inputSetSize'} >$inputDir/subtasks/success.txt");
+    if(system("echo $self->{'inputSetSize'} >$inputDir/subtasks/success.txt") !=0)
+      {
+        die "unable to create file $inputDir/subtasks/success.txt";
+      }
 }
 
 # Initialize the local disk on a node.  This method is called once per node
@@ -196,16 +201,17 @@ sub initSubTask {
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $inputParam = $self->getProperty("inputParamFile");
-    my $pipelineHomeDir = $self->getProperty("pipelineHomeDir");
+    my $configFileDir =  $self->getProperty("configFileDir");
+    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFilename");
+    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFilename");
+
 
      my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
      die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
     my $mgfFile = @tmpFiles[0];
     chomp $mgfFile;
 
-    my $cmd = "runPipeline.sh $pipelineHomeDir $inputParam $mgfFile $nodeExecDir/output";
-
+    my $cmd = "java -jar $ENV{GUS_HOME}/lib/java/proteoannotator.jar single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output";
     return $cmd;
 
 }
@@ -232,8 +238,13 @@ sub integrateSubTaskResults {
     ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
     foreach my $file (@files){
       chomp $file;
-      my $uniqueFileName = "$subTaskNum\_$file";
-      $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir/$uniqueFileName");
+      my $uniqueFileName = undef;;
+      if ( $file=~m/^Summary_.*\.txt/ || $file=~m/^FinalOutput_.*\.txt/)
+        {
+          $uniqueFileName=$file;
+          $uniqueFileName=~s/_\d*/_$subTaskNum/;
+        }
+      $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir/$uniqueFileName") if $uniqueFileName;
     }
 }
 
