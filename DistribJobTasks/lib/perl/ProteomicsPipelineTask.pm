@@ -1,13 +1,12 @@
-package DJob::DistribJobTasks::ProteomicsPipelineTask;
+package DJob::DistribJobTasks::ProteomicsPipelineTask; 
 
 use CBIL::Util::Utils;
-use DJob::DistribJob::Task;
 
-@ISA = (DJob::DistribJob::Task);
+use DJob::DistribJob::Task; 
+@ISA = (DJob::DistribJob::Task); 
+use strict; 
 
-use strict;
-
-# Declare the properties that will be passed to your task in the task.prop 
+# Declare the properties that will be passed to your task in the task.prop
 # properties file.  This file is the only way for the user to pass parameters 
 # to your task.  
 #
@@ -38,20 +37,19 @@ my @properties =
      ["databaseConfigFile", "/inputFiles/databaseCriteria.txt", "name of the database criteria file to be used" ],
      ["mgfSpitterSizeLimit", "1000000", "number of lines to use for each split mgf file"],
      );
-
 # Construct a new instance of your task.  This method should be copied 
 # verbatim into your task.
 sub new {
-    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties,1);
 
     ##would be good here to check to see that all files exist .. die if not ...
-    die("configFileDir does not exist\n") unless (-d $self->getProperty("configFileDir"));
-    my $configFileDir =  $self->getProperty("configFileDir");
-    die("mgfFile does not exist\n") unless (-e $self->getProperty("mgfDir"));
-    my $searchConfigFile =$configFileDir.$self->getProperty("searchConfigFile");
-    my $databaseConfigFile =$configFileDir.$self->getProperty("databaseConfigFile");
-    die("searchConfigFileName does not exist in the folder \n") unless (-e $searchConfigFile);
-    die("databaseConfigFileName does not exist in the folder \n") unless (-e $databaseConfigFile);
+    die("configDir does not exist\n:$!") unless (-d $self->getProperty("configDir"));
+    my $configDir =  $self->getProperty("configDir");
+    die("mgfFile does not exist\n") unless (-e $self->getProperty("mgfFile"));
+    my $searchConfigFile =$configDir.$self->getProperty("searchConfigFile");
+    my $databaseConfigFile =$configDir.$self->getProperty("databaseConfigFile");
+    die("searchConfigFileName does not exist in the folder \n :$!") unless (-e $searchConfigFile);
+    die("databaseConfigFileName does not exist in the folder \n :$!") unless (-e $databaseConfigFile); 
     return $self;
 }
 
@@ -69,28 +67,28 @@ sub new {
 #
 # param inputDir The input directory where you may expect the user to place resources.
 #
+
 sub initServer {
     my ($self, $inputDir) = @_;
-
-    ##here we should split up the mgf file into as many subparts
-    if(!(-d "$inputDir/subtasks")){
-	mkdir("$inputDir/subtasks");
-    }
-    #check if Successful (make a status file that can be checked)
+    ##here we should split up the mgf file into as many subparts 
+#    unless(-d "$inputDir/subtasks") {
+#	mkdir("$inputDir/subtasks") || die "unable to make dir $inputDir/subtasks" ;    
+#    }
+#check if Successful (make a status file that can be checked)
     ##split file
     my $mgfFile = $self->getProperty("mgfFile");
     my $limit = $self->getProperty("mgfSpitterSizeLimit");
-    $self->{nodeForInit}->runCmd("mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt";
-
+    $self->{nodeForInit}->runCmd("perl gus_home/bin/mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt"; 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
     $self->{"inputSetSize"} = scalar(@files);
+    $self->{size}=$self->getInputSetSize();
     if(system("echo $self->{'inputSetSize'} >$inputDir/subtasks/success.txt") !=0)
       {
         die "unable to create file $inputDir/subtasks/success.txt";
       }
 }
-
+ 
 # Initialize the local disk on a node.  This method is called once per node
 # by the controller, before any processing on the nodes begins.  
 # Use this method to copy data to the node from the server, and to initialize
@@ -115,16 +113,18 @@ sub initServer {
 # param node The node object.
 # param inputDir The input directory where you may expect the user to place resources.
 #
+
 sub initNode {
     my ($self, $node, $inputDir) = @_;
     #do nothing
 }
-
+ 
 # Provide the size of the input set.  The controller needs to know this so
 # it knows when the task is complete.
 #
 # param inputDir The input directory where you may find the input file.
 #
+
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
     return $self->{"inputSetSize"};
@@ -165,18 +165,19 @@ sub getInputSetSize {
 # param serverSubTaskDir The subtask specific input dir on the server.
 # param nodeSubTaskDir The subtask specific input dir on the node.
 # 
+
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
-
-    ##check here to make certain that subtask size = 1
-    die "You must set the subtask size to 1\n" unless $start == $end;
+     ##check here to make certain that subtask size = 1
+    die "You must set the subtask size to 1\n" unless $start == $end-1;
     
     my $mgfFile = $self->{"files"}->[$start];
-    
+    my $configFileDir =  $self->getProperty("configDir");
     $node->runCmd("mkdir $nodeExecDir/mgfFiles");
-    $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles");
+    $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles/");
 
-}
+    $node->runCmd("find $configFileDir -maxdepth 1 -exec ln -s {} $nodeExecDir \\;");
+} 
 
 # Actually run the subtask by issuing a command on a node. This method
 # is called once by the controller for each subtask, after the subtask
@@ -198,23 +199,22 @@ sub initSubTask {
 # param $inputDir The input dir on the server where the task's input is found.
 # param nodeExecDir The subtask specific dir on the node where the command will be run.
 # 
+
 sub makeSubTaskCommand { 
-    my ($self, $node, $inputDir, $nodeExecDir) = @_;
-
-    my $configFileDir =  $self->getProperty("configFileDir");
-    my $searchConfigFile =$configFileDir."/inputFiles/".$self->getProperty("searchConfigFile");
-    my $databaseConfigFile =$configFileDir."/inputFiles/".$self->getProperty("databaseConfigFile");
-
-
-     my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
-     die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
+    my ($self, $node, $inputDir, $nodeExecDir) = @_;    
+    my $configFileDir =  $self->getProperty("configDir");
+    my $searchConfigFile =$configFileDir.$self->getProperty("searchConfigFile");
+    my $databaseConfigFile =$configFileDir.$self->getProperty("databaseConfigFile");
+    my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
+    die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
     my $mgfFile = @tmpFiles[0];
     chomp $mgfFile;
+    my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
+    
+    my $cmd = "java -jar $jarFile single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output";
 
-    my $cmd = "java -jar $ENV{GUS_HOME}/lib/java/proteoannotator.jar single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output";
-    return $cmd;
-
-}
+    return $cmd; 
+} 
 
 # Merge subTask results from $nodeExecDir into the main result in
 # $mainResultDir as needed.  This method is called once by the controller
@@ -230,15 +230,16 @@ sub makeSubTaskCommand {
 # param nodeExecDir subtask specific dir on node where command was executed...result files here
 # param mainResultDir The directory in which the main result is stored.
 #
+
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-
     my @files = $node->runCmd("ls $nodeExecDir/output");
     ##could check to make sure that the number of files is correct, otherwise throw an error.
     ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
     foreach my $file (@files){
       chomp $file;
-      my $uniqueFileName = undef;;
+      my $uniqueFileName = undef;
+      print STDERR $file;
       if ( $file=~m/^Summary(_\d+)?\.txt/ || $file=~m/^FinalOutput(_\d+)\.txt/ || $file=~m/^FinalOutput_Verbose(_\d+)\.txt/)
         {
           $uniqueFileName=$file;
@@ -251,21 +252,21 @@ sub integrateSubTaskResults {
 # cleanUpNode is an optional method that is called when the node has completed
 # to allow the user to stop processes that they may have started on the node.
 # the files and directory structure on the nodes are already cleaned up.
+
 sub cleanUpNode {
-  my($self,$node) = @_;
-}
+   my($self,$node) = @_;
+} 
 
 # cleanUpServer is an optional method that is called by the controller after
 # all nodes have completed.  This allows users to run some additional analysis
 # on the server that may clean up or further analyze the combined  results of
 # the run.
+
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir,$node) = @_;
-  my $PipelineJarHome =  $ENV{GUS_HOME}."/lib/java";
-  $node->runCmd("java -jar $PipelineJarHome/proteoannotator.jar create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
+  my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
+  $node->runCmd("java -jar $jarFile create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
   
   #generate summary
   return 1;
-}
-
-1;
+} 1;
