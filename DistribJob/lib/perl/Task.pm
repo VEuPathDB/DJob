@@ -29,13 +29,13 @@ sub new {
       print "Finding input set size\n";
       $self->{size} = $self->getInputSetSize($inputDir);
       if ($self->{size} == 0) {
-	print "Error: Input set size is 0\n";
-	exit 1;
+	print "Input set size is 0 .... it must either be calculated in the getInputSetSize() method or in the initServer() method\n";
+      }else{
+        print "Input set size is $self->{size}\n";
+        my $c = int($self->{size} / $self->{subTaskSize});
+        $c += 1 if $self->{size} % $self->{subTaskSize};
+        print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
       }
-      print "Input set size is $self->{size}\n";
-      my $c = int($self->{size} / $self->{subTaskSize});
-      $c += 1 if $self->{size} % $self->{subTaskSize};
-      print "Subtask set size is $self->{subTaskSize} ($c subtasks)\n";
     }
 
     $self->{inputDir} = $inputDir;

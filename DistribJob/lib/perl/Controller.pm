@@ -137,7 +137,7 @@ $restartInstructions
     }
   }
 
-  ##before create the task want to have node on which to do the work of initializing the server.
+  ## get an init node before initializing the task so this can be done on a node
   print "Waiting for init node\n";
   my $initNode;
   if(!$nodes[0]->getState()){
@@ -146,6 +146,7 @@ $restartInstructions
 
     $nodes[0]->queueNode();
   }
+
   my $ctInitNode = 0;
   until($initNode){
     print "." if $ctInitNode % 10 == 0;
@@ -165,9 +166,15 @@ $restartInstructions
     }
     sleep 1;
   }
+
   my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$initNode);
+
   print "Initializing server...\n\n";
   $task->initServer($self->{inputDir});
+  ##add a bit of code here to print an error statement if the size is not properly set.
+  if(!$task->{size}){
+    die "ERROR: the inputSetSize is not properly set. This must either be computed in the getInputSetSize() method or in the initServer() method.  If  you compute it in the initServer() method, you must set the variable\n\n \$self->{size} = <your computed set size>;\n\nin that same method.\n\n";
+  }
 
   ##now start running....
   $self->run($task, $propfile, $sel, $sock);

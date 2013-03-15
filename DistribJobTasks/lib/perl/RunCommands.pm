@@ -34,6 +34,16 @@ sub new {
 # called once
 sub initServer {
     my ($self, $inputDir) = @_;
+    my $ct = 0;
+    open(F, $self->getProperty("inputFile"));
+    while(<F>){
+      next if /^\s*\#/;
+      $ct++;
+      push(@commands,$_);
+    }
+    $self->{commands} =  \@commands;
+    $self->{size} = scalar(@commands);
+    print "Running ".$self->getInputSetSize()." commands from input file\n\n";
     # do nothing
 }
 
@@ -49,16 +59,7 @@ sub initNode {
 
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
-    my $ct = 0;
-    open(F, $self->{props}->getProp("inputFile"));
-    while(<F>){
-      next if /^\s*\#/;
-      $ct++;
-      push(@commands,$_);
-    }
-    $self->{commands} =  \@commands;
-
-    return scalar(@{$self->{commands}});
+    return $self->{size};
 }
 
 sub initSubTask {
