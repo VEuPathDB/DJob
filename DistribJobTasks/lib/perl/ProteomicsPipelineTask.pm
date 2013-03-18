@@ -1,9 +1,12 @@
 package DJob::DistribJobTasks::ProteomicsPipelineTask; 
 
 use CBIL::Util::Utils;
+use Data::Dumper;
+use File::Basename;
 
 use DJob::DistribJob::Task; 
 @ISA = (DJob::DistribJob::Task); 
+
 use strict; 
 
 # Declare the properties that will be passed to your task in the task.prop
@@ -35,7 +38,7 @@ my @properties =
      ["mgfFile", "", "directory containing the mgf file"],
      ["searchConfigFile", "/inputFiles/searchCriteria.txt", "name of the search criteria file to be used" ],
      ["databaseConfigFile", "/inputFiles/databaseCriteria.txt", "name of the database criteria file to be used" ],
-     ["mgfSpitterSizeLimit", "1000000", "number of lines to use for each split mgf file"],
+     ["mgfSplitterSizeLimit", "1000000", "number of lines to use for each split mgf file"],
      );
 # Construct a new instance of your task.  This method should be copied 
 # verbatim into your task.
@@ -77,12 +80,14 @@ sub initServer {
 #check if Successful (make a status file that can be checked)
     ##split file
     my $mgfFile = $self->getProperty("mgfFile");
-    my $limit = $self->getProperty("mgfSpitterSizeLimit");
+    my $limit = $self->getProperty("mgfSplitterSizeLimit");
     $self->{nodeForInit}->runCmd("perl gus_home/bin/mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt"; 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
+#    print STDERR "My File List is ".join(',',@files)."\n";
     $self->{"inputSetSize"} = scalar(@files);
     $self->{size}=$self->getInputSetSize();
+#    print STDERR $self->getInputSetSize();
     if(system("echo $self->{'inputSetSize'} >$inputDir/subtasks/success.txt") !=0)
       {
         die "unable to create file $inputDir/subtasks/success.txt";
@@ -173,10 +178,12 @@ sub initSubTask {
     
     my $mgfFile = $self->{"files"}->[$start];
     my $configFileDir =  $self->getProperty("configDir");
-    $node->runCmd("mkdir $nodeExecDir/mgfFiles");
-    $node->runCmd("cp $mgfFile $nodeExecDir/mgfFiles/");
-
-    $node->runCmd("find $configFileDir -maxdepth 1 -exec ln -s {} $nodeExecDir \\;");
+    $node->runCmd("mkdir $nodeExecDir/mgfFiles/");
+    my $cmd = "cp $mgfFile $nodeExecDir/mgfFiles/subtaskMgf.mgf";
+#    print STDERR "initSubTask : my command is :".$cmd."\n";
+    $node->runCmd("$cmd");
+    my $cmdLine = "find $configFileDir/ -maxdepth 1 -exec ln -s {} $nodeExecDir \\;";
+    $node->runCmd("$cmdLine");
 } 
 
 # Actually run the subtask by issuing a command on a node. This method
@@ -205,13 +212,18 @@ sub makeSubTaskCommand {
     my $configFileDir =  $self->getProperty("configDir");
     my $searchConfigFile =$configFileDir.$self->getProperty("searchConfigFile");
     my $databaseConfigFile =$configFileDir.$self->getProperty("databaseConfigFile");
-    my @tmpFiles = $node->runCmd("ls $nodeExecDir/mgfFiles/*.mgf");
-    die "ERROR: there must be just one file in the mgfFiles directory\n" if scalar(@tmpFiles) != 1;
-    my $mgfFile = @tmpFiles[0];
-    chomp $mgfFile;
+    my $mgfFile = "$nodeExecDir/mgfFiles/subtaskMgf.mgf";
+    my $fileSuccess = $node->runCmd("ls -la $nodeExecDir/mgfFiles/subtaskMgf.mgf");
+    $node->runCmd("source /gpfs/fs121/h/jcade/setenv");
+    if($fileSuccess)
+    {
+#	print STDERR "my ls :". $fileSuccess."\n";
+    }
     my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
+   
+    $node->runCmd("rm $nodeExecDir/output -r"); 
     
-    my $cmd = "java -jar $jarFile single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output";
+    my $cmd = "java -jar $jarFile single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output/";
 
     return $cmd; 
 } 
@@ -223,7 +235,7 @@ sub makeSubTaskCommand {
 # Each subtask produces results in $nodeExecDir.   These
 # results must be placed or merged into the main result, which is stored
 # in $mainResultDir.
-#
+#more 
 # param subTaskNum The index of this subtask.  Use this if you want to store
 #                  subtask results by subtask number.
 # param node the node obect that this subtask was run on
@@ -233,22 +245,29 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-    my @files = $node->runCmd("ls $nodeExecDir/output");
-    ##could check to make sure that the number of files is correct, otherwise throw an error.
+     ##could check to make sure that the number of files is correct, otherwise throw an error.
     ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
-    foreach my $file (@files){
-      chomp $file;
-      my $uniqueFileName = undef;
-      print STDERR $file;
-      if ( $file=~m/^Summary(_\d+)?\.txt/ || $file=~m/^FinalOutput(_\d+)\.txt/ || $file=~m/^FinalOutput_Verbose(_\d+)\.txt/)
-        {
-          $uniqueFileName=$file;
-          $uniqueFileName=~s/_\d*/_$subTaskNum/;
-        }
-      $node->runCmd("cp -r $nodeExecDir/output/$file $mainResultDir/$uniqueFileName") if $uniqueFileName;
+    my @files=$node->runCmd("ls $nodeExecDir/output/dirsubtaskMgf/");
+   print STDERR Dumper @files;
+    print STDERR "My subtask number = $subTaskNum\n";
+    foreach my $file (@files){	
+	chomp $file;
+	my $cmdLine = undef;
+	my $uniqueFileName = undef;
+	print STDERR Dumper (\@files);
+	if ( $file=~m/^Summary(_\d+)?\.txt/ || $file=~m/^FinalOutput(_\d+)?\.txt/ || $file=~m/^FinalOutput_Verbose(_\d+)?\.txt/)
+	{
+	    $uniqueFileName=$file;
+	    print STDERR "Orginal File Name : $uniqueFileName \n\n ";
+	    $uniqueFileName=~s/_\d+/_$subTaskNum/;
+	    print STDERR "New File Name : $uniqueFileName \n\n ";
+	    $cmdLine = "cp $nodeExecDir/output/dirsubtaskMgf/$file $mainResultDir/$uniqueFileName";
+	}
+	$node->runCmd("$cmdLine") if $cmdLine;
+	
     }
-}
 
+}
 # cleanUpNode is an optional method that is called when the node has completed
 # to allow the user to stop processes that they may have started on the node.
 # the files and directory structure on the nodes are already cleaned up.
@@ -265,6 +284,8 @@ sub cleanUpNode {
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir,$node) = @_;
   my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
+  my $mainFiles = $node->runCmd("ls $mainResultDir");
+  print STDERR $mainFiles;
   $node->runCmd("java -jar $jarFile create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
   
   #generate summary
