@@ -148,6 +148,12 @@ if($isColorspace){  ##need to mv the bam file
   }else{ &runCmd($cmd); print L "\n"; }
 }
 
+  ## need to rename index file from "result.bai" to "result.bam.bai"
+  $cmd = "mv $workingDir/$out.bai $workingDir/$out.bam.bai";
+  print L &getDate().": $cmd\n";
+  if(-e "$workingDir/complete" || -e "$workingDir/$out.bam.bai"){ print L "  succeeded in previous run\n\n";
+  }else{ &runCmd($cmd); print L "\n"; }
+
 $cmd = "(samtools mpileup -f $fastaFile -B $workingDir/$out.bam > $workingDir/$out.pileup) &> $workingDir/$out.pileup.err";
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.snps"){ print L "  succeeded in previous run\n\n";
