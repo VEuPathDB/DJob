@@ -1,0 +1,72 @@
+#!@perl@
+
+use strict;
+use Getopt::Long;
+
+chomp(my $thisScript = `basename $0`);
+
+my($queue,$procsPerNode,$wallTime,$help);
+my $pInit = 4;
+
+&GetOptions("help|h!" => \$help, 
+            "queue|q=s" => \$queue,
+            "wallTime|w=s" => \$wallTime,
+            "pInit|pi=i" => \$pInit,
+            );
+
+&usage() if $help;
+
+my ($nodecount, $controllerPropFile) = &parseArgs(@ARGV);
+
+my $localtmpdir = "$ENV{HOME}/djob_tmp_$$";
+mkdir $localtmpdir unless -e $localtmpdir;
+
+##need to write to a file so that user can cancel this job if fails for some reason
+my $cancelFile = "$localtmpdir/cancelDistribJob.$$";
+open(F,">$cancelFile") || die "couldn't open '$cancelFile'";
+print F "#!/bin/sh\n\nbkill ";
+close F;
+system("chmod +x $cancelFile");
+
+print "\nThe script to cancel all the jobs for this submit is $cancelFile\n\n";
+
+my $cmd = qq^distribjob \\
+           --numNodes $nodecount \\
+           --propFile $controllerPropFile \\
+           --parallelInit $pInit \\
+           --fileName $cancelFile \\
+           @{[($queue ? " --q $queue" : "")]} \\
+           @{[($wallTime ? " --t $wallTime" : "")]}
+          ^;
+
+system($cmd);
+
+open(F,">>$cancelFile");
+print F "\n\n";
+close F;
+system("$cancelFile > /dev/null 2>&1");
+
+unlink "$cancelFile";
+$cancelFile =~ s/cancel/run/;
+unlink "$cancelFile";
+rmdir $localtmpdir;
+
+sub parseArgs {
+    my ($nodecount, $controllerPropFile) = @ARGV;
+
+    &usage unless ($nodecount && $controllerPropFile);
+
+    &usage if ($nodecount <= 0 || $nodecount > 10000); 
+    &usage unless $controllerPropFile =~ /^\//;
+
+    die "controller properties file $controllerPropFile does not exist"
+	unless -e $controllerPropFile;
+
+    return ($nodecount, $controllerPropFile);
+}
+
+sub usage {
+
+    print "usage: $thisScript nodecount controllerPropFileFullPath --queue|q queue --wallTime|w max_run_time\n";
+    exit(1);
+}
