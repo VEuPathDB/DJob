@@ -1,5 +1,0 @@
-rmPath=/genomics/share/bin
-inputFilePath=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/rminput/seqs.fsa
-trimDangling=y
-dangleMax=1
-rmOptions='-mus'
