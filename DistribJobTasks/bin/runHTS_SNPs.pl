@@ -164,13 +164,24 @@ my $mpc = $snpPercentCutoff / 100;
 
 $cmd = "(java -jar $varscan pileup2snp $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $mpc > $workingDir/$out.varscan.snps ) >& $workingDir/$out.varscan_snps.err";
 print L &getDate().": $cmd\n";
+if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.indels"){ print L "  succeeded in previous run\n\n";
+}else{ &runCmd($cmd); print L "\n"; }
+
+$cmd = "(java -jar $varscan pileup2indel $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.indels ) >& $workingDir/$out.varscan_indels.err";
+print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.SNPs.gff"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
 
-$cmd = "parseVarscanToGFF.pl --f $workingDir/$out.varscan.snps --strain $strain --pc $snpPercentCutoff --o $workingDir/$out.SNPs.gff >& $workingDir/$out.parseVarscan.err";
+$cmd = "parseVarscanToGFF.pl --f $workingDir/$out.varscan.snps --strain $strain --pc $snpPercentCutoff --o $workingDir/$out.SNPs.gff --indelsFile $workingDir/$out.varscan.indels >& $workingDir/$out.parseVarscan.err";
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$out.varscan.cons"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
+
+##need to insert a parse here of indels 
+$cmd = "parseVarscanToIndels.pl --file $workingDir/$out.varscan.indels --strain $strain --indelOutput $workingDir/$out.indels.gff --percentCutoff $consPercentCutoff >& parseToIndels.stderr";
+print L &getDate().": $cmd\n\n";
+if(-e "$workingDir/complete" || -e " $workingDir/$out.varscan.cons"){ print L "  succeeded in previous run\n\n";
+}else{ &runCmd($cmd); print "\n"; }
 
 $cmd = "(java -jar $varscan pileup2cns $workingDir/$out.pileup --p-value 0.01 --min-coverage 5 --min-var-freq $pc > $workingDir/$out.varscan.cons ) >& $workingDir/$out.varscan_cons.err";
 print L &getDate().": $cmd\n\n";
@@ -190,14 +201,14 @@ print L &getDate().": run COMPLETE\n\n";
 ##should cleanup unneeded files before exiting so don't transfer too much back
 ## can delete all $tmpOut* and .err files for starters.
 
+system("gzip $workingDir/$out.varscan.cons"); ##compress to make smaller
+
 if($delIntFiles){
   print L "deleting extra files\n";
   system("/bin/rm $workingDir/$tmpOut.*");
   system("/bin/rm $workingDir/*.err");
-  unlink("$workingDir/result.pileup");
-##  unlink("$workingDir/result.varscan.snps");
-##  unlink("$workingDir/result.varscan.cons"); ##note: want to keep this
-  system("gzip $workingDir/result.varscan.cons"); ##compress to make smaller
+  unlink("$workingDir/$out.pileup");
+##  unlink("$workingDir/$out.varscan.snps");
   unlink("$workingDir/forIndelRealigner.intervals");
 }
 

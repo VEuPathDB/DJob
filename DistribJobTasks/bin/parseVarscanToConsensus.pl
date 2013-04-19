@@ -11,7 +11,6 @@ my $file;
 my $strain;
 my $referenceFasta;
 my $faOutput = '';
-my $indelOutput = '';
 my $percentCutoff = 60;
 my $pvalueCutoff = .01;
 
@@ -19,20 +18,15 @@ my $pvalueCutoff = .01;
             "percentCutoff|pc=i"=> \$percentCutoff,
             "pvalueCutoff|pvc=s"=> \$pvalueCutoff,
             "fastaOutput|fo=s"=> \$faOutput,
-            "indelOutput|io=s"=> \$indelOutput,
             "strain|s=s"=> \$strain,
             "referenceFasta|rf=s"=> \$referenceFasta,
             );
 
-if (! -e $file || !$strain || !$indelOutput || !$faOutput || !-e $referenceFasta){
+if (! -e $file || !$strain || !$faOutput || !-e $referenceFasta){
 die &getUsage();
 }
 
 open(O,">$faOutput");
-open(G,">$indelOutput");
-select G;
-$| = 1;
-select STDOUT;
 
 ##first open fasta file and get lengths of all sequences so can fill in Ns at the end.
 open(A, "$referenceFasta") || die &getUsage;
@@ -102,8 +96,6 @@ while(<F>){
       $inDeletion = length($b) - 1;
     }elsif($b =~ /^\+/){ ##insertion
       print STDERR "Insertion: $_\n";
-      &generateGffInsert(\@tmp);
-      ##need to add to gff file here
     }else{
       print STDERR "\nERROR: not dealing with putative indel properly ... appending '$tmp[2]'\n$_\n\n";
     }
@@ -132,19 +124,6 @@ sub fillInNs {
     $ret .= 'N';
   }
   return $ret;
-}
-
-sub generateGffInsert {
-  my($l) = @_;
-  my $id = "NGS_Insertion.".$l->[0] .".".$l->[1];
-  my ($allele) = ($l->[3] =~ /\+(\w+)/);
-  print STDERR "ERROR: unable to determine allele from ".join("\t",@$l)."\n" unless $allele;
-  my $cov = $l->[4] + $l->[5];
-  my $perc = $l->[6];
-  my $pvalue = $l->[11];
-  my $qual = $l->[10];
-  print G "$l->[0]\tinsertion\tindel\t$l->[1]\t$l->[1]\t.\t+\t.\tID $id; Allele \"$strain:$allele:$cov:$perc:$pvalue:$qual\"\n";
-
 }
 
 sub getUsage {

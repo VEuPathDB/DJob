@@ -12,6 +12,7 @@ my $percentCutoff = 34;
 my $pvalueCutoff = .01;
 my $depthCutoffMult = 3;
 my $minDepth = 3;
+my $indelsFile = 'result.varscan.indels';
 
 &GetOptions("file|f=s" => \$file, 
             "percentCutoff|pc=i"=> \$percentCutoff,
@@ -20,13 +21,14 @@ my $minDepth = 3;
             "minDepth|md=i"=> \$minDepth,
             "output|o=s"=> \$output,
             "strain|s=s"=> \$strain,
+            "indelsFile|if=s"=> \$indelsFile,
             );
 
 if (! -e $file || !$strain){
 print <<endOfUsage;
 parseVarscanToGFF.pl usage:
 
-  parseVarscanToGFF.pl --file|f <varscan file> --strain <strain for snps> --percentCutoff|pc <frequency percent cutoff [34]> --pvalueCutoff|pvc <pvalue cutoff [0.01]> --depthCutoff|dc <multiplier times median for depth cutoff [3] NOTE: absolute cutoff set to 50 if median * multiplier < 50> --minDepth|md <minimum coverage before call SNP [3]>--output|o <outputFile [snps.gff]>
+  parseVarscanToGFF.pl --file|f <varscan file> --strain <strain for snps> --percentCutoff|pc <frequency percent cutoff [34]> --pvalueCutoff|pvc <pvalue cutoff [0.01]> --depthCutoff|dc <multiplier times median for depth cutoff [3] NOTE: absolute cutoff set to 50 if median * multiplier < 50> --minDepth|md <minimum coverage before call SNP [3]>--output|o <outputFile [snps.gff]> --indelsFile|if <varscan output from pileup2indels [result.varscan.indels]>
 endOfUsage
 }
 
@@ -48,6 +50,27 @@ my %iupac = ('A' => ['A'],
              'V' => ['A','C','G'],
              'N' => ['A','C','G','T']
             );
+
+##very first parse the indels file so can disregard calling snps inside deletions ... artifact of how varscan treats deletions
+my %dels;
+if(-e "$indelsFile"){
+  open(F,"$indelsFile") || die "unable to open indels file '$indelsFile'\n";
+  while(<F>){
+    next if /^Chrom\s+Position/;
+    my @t = split("\t",$_);
+    if ($t[5] / ($t[4] + $t[5]) > .6){ ##hardcode this to 60%
+      if($t[3] =~ /\*\/-(\w+)/){  #3this one is a deletion
+        my $len = length($1);
+        for(my $a = $t[1];$a < $t[1] + $len;$a++){
+          $dels{$t[0]}->{$a} = 1;
+        }
+      }
+    }
+  }
+  close F;
+}else{
+  print STDERR "  NOTE: generating SNPs without regard to indels as indels file ($indelsFile) not found\n";
+}
 
 ##first determine the depthCutoff
 open(F, "$file") || die "unable to open file $file\n";
@@ -88,6 +111,8 @@ while(<F>){
   my @tmp = split("\t",$_);
   ##don't want to include positons where reference is N
   next if $tmp[2] =~ /N/i;
+  ##don't want to examine positions that are in indels
+  next if $dels{$tmp[0]}->{$tmp[1]};
   my $line = \@tmp;
   if(scalar(@tmpLines) > 0 && $tmpLines[-1]->[1] == $line->[1] && $tmpLines[-1]->[0] eq $line->[0]){  ##same position
     push(@tmpLines,$line);
