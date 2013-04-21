@@ -54,20 +54,28 @@ my %iupac = ('A' => ['A'],
 ##very first parse the indels file so can disregard calling snps inside deletions ... artifact of how varscan treats deletions
 my %dels;
 if(-e "$indelsFile"){
+  print STDERR "Parsing indels file .. ";
   open(F,"$indelsFile") || die "unable to open indels file '$indelsFile'\n";
+  my $ctIndels = 0;
+  my $ctIndBases = 0;
   while(<F>){
     next if /^Chrom\s+Position/;
     my @t = split("\t",$_);
-    if ($t[5] / ($t[4] + $t[5]) > .6){ ##hardcode this to 60%
+    chop $t[6];
+    if($t[5] / ($t[4] + $t[5]) > 0.5 && $t[6] > 20){
+      my $len = length($1);
       if($t[3] =~ /\*\/-(\w+)/){  #3this one is a deletion
         my $len = length($1);
-        for(my $a = $t[1];$a < $t[1] + $len;$a++){
+        $ctIndels++;
+        for(my $a = $t[1]+1;$a < $t[1]+1 + $len;$a++){
+          $ctIndBases++;
           $dels{$t[0]}->{$a} = 1;
         }
       }
     }
   }
   close F;
+  print STDERR "$ctIndels indels ($ctIndBases bases) identified\n";
 }else{
   print STDERR "  NOTE: generating SNPs without regard to indels as indels file ($indelsFile) not found\n";
 }

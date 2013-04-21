@@ -35,7 +35,8 @@ while(<F>){
   $ct++;
   print STDERR "  Processing $ct\n" if $ct % 10000 == 0;
   my @t = split("\t",$_);
-  if ($t[5] / ($t[4] + $t[5]) > $pc){ 
+  chop $t[6];
+  if ($t[5] / ($t[4] + $t[5]) > $pc && $t[6] > 20){ 
     &generateGffIndel(\@t);
   }
 }
