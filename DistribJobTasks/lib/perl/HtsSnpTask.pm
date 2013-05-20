@@ -92,6 +92,13 @@ sub makeSubTaskCommand {
     my $bowtie2 = $self->getProperty ("bowtie2");
 
     $consPercentCutoff = $snpPercentCutoff if $snpPercentCutoff > 60;
+
+    if ($fastaFile !~ /\.fa/ || $fastaFile !~ /\.fasta/) {
+        my $tempFile = $fastaFile;
+        $tempFile =~ s/\.\w+$/\.fa/;
+        `ln -s $fastaFile $tempFile` unless (-e $tempFile);
+        $fastaFile = $tempFile;
+    }
     
     my $cmd = "runHTS_SNPs.pl --fastaFile $fastaFile --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --outputPrefix $outputPrefix --varscan $varscan --bowtieIndex $bowtieIndex";
