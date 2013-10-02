@@ -106,7 +106,8 @@ $restartInstructions
     die "Unable to create port on server\n" if $numTries++ > 5;
     $self->{localPort} = int(rand(3000)) + 5000;
     $sock = new IO::Socket::INET (
-                                     LocalHost => $self->{hostname},
+				  LocalHost => '0.0.0.0',
+                              #       LocalHost => $self->{hostname},
                                      LocalPort => $self->{localPort},
                                      Proto => 'tcp',
                                      Listen => 100,
