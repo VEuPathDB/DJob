@@ -71,6 +71,41 @@ sub queueNode {
   $self->setState($QUEUED);
 }
 
+##can call if node has failed in order to get new active job in cluster
+sub reQueueNode {
+  my $self = shift;
+  print "     reQueueing node ".$self->getJobid()." - new JobId = ";
+  $self->getTask()->addRedoSubtasks($self->failedSoGetSubtasks()) if $self->getTask();
+  $self->setJobid("");
+  undef $self->{portCon};
+  $self->queueNode();
+  print $self->getJobid()."\n";
+}
+
+##put all the logic here for what to do if getQueueState doesn't return true
+sub manageNodeBasedOnQueueState {
+  my $self = shift;
+  return 1 if ($self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE);
+  my $ret = $self->getQueueState();
+  if($ret == 0){
+    print STDERR "ERROR: Node '".$self->getJobid()."' failed (no longer in queue)\n";
+    if($self->{countCheckFailures} < 3) {
+      $self->reQueueNode();
+    }else{
+      $self->failNode();
+    }
+    $self->{countCheckFailures}++;
+  }
+}
+
+##NOTE: this method simply returns whether the job scheduler still has this node in the queue irrexpective of it's state: could be running, queued, waiting etc but returns 1.
+sub getQueueState {
+  my $self = shift;
+  print STDERR "WARNING: node->getQueueState has not been implemented for this nodeClass\n" if $self->{countMissingQueueStates} >= 1;
+  $self->{countMissingQueueStates}++;
+  return 1
+}
+
 sub initialize {
   my($self) = @_;
   if(!$self->getJobid()){
@@ -268,18 +303,17 @@ sub getLocalPort {
 }
 
 sub getSlots {
-    my ($self) = @_;
-    unless ($self->{slots}) {
-	$self->{slots} = [];
-        $self->{slotHash};
-	for(my $i=1; $i <= $self->{slotCount}; $i++) {
-          my $slot = DJob::DistribJob::NodeSlot->new($self, $i);
-          push(@{$self->{slots}}, $slot);
-          $self->{slotHash}->{"slot_$i"} = $slot;
-	}
+  my ($self) = @_;
+  unless ($self->{slots}) {
+    $self->{slots} = [];
+    $self->{slotHash} = {};
+    for(my $i=1; $i <= $self->{slotCount}; $i++) {
+      my $slot = DJob::DistribJob::NodeSlot->new($self, $i);
+      push(@{$self->{slots}}, $slot);
+      $self->{slotHash}->{"slot_$i"} = $slot;
     }
-
-    return $self->{slots};
+  }
+  return $self->{slots};
 }
 
 sub getSlot {
@@ -357,17 +391,18 @@ sub _initTask {
 
 sub failedSoGetSubtasks {
   my $self = shift;
-  return if $self->{retrievedFailedSubtasks};
   my @st;
+  my @nums;
   foreach my $ns (@{$self->getSlots()}){
     if($ns->getTask()){
       my $subt = $ns->getTask();
       $subt->setRedoSubtask(1);
       push(@st,$subt);
+      push(@nums,$subt->getNum());
     }
   }
-  $self->{retrievedFailedSubtasks} = 1;
-  print "$self->{jobid}: Failed so retrieving ".scalar(@st)." subtasks\n";
+  undef $self->{slots};
+  print "$self->{jobid}: retrieving ".scalar(@st)." subtasks (".join(", ", @nums).")\n";
   return @st;
 }
 

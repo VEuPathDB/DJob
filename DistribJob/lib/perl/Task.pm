@@ -97,6 +97,14 @@ sub getNextRedoSubtask {
   return $st;  
 }
 
+##returns the number of subtasks that haven't been submitted 
+sub countRemainingSubtasks {
+  my $self = shift;
+  my $num = $self->{size} - $self->{end} + (defined $self->{redoSubtasks} ? $self->{subTaskSize} * scalar(@{$self->{redoSubtasks}}) : 0);
+##  print "Remaining subtasks=$num\n";
+  return $num;
+}
+
 sub runNextSubtask {
   my($self,$nextSubTask) = @_;
 
