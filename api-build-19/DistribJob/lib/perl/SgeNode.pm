@@ -41,7 +41,9 @@ sub queueNode {
     if($tjid =~ /job\s(\d+)/){
       my $jid = $1;
       $self->setJobid($jid);
+      print "Node Queued: Jobid = $jid \n";
 ##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that SGE will clean up.
+      
       $self->{nodeDir} = "$self->{nodeDir}/$jid";
       if($self->{fileName}){
         open(C,">>$self->{fileName}");
@@ -55,6 +57,20 @@ sub queueNode {
   } 
   $self->setState($QUEUED);
 }
+
+sub getQueueState {
+  my $self = shift;
+  return 1 if $self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE;  ##should not be in queue
+  my $jobid = $self->getJobid();
+  if(!$jobid){
+    print STDERR "SgeNode->getQueueState: unable to checkQueueStatus as can't retrieve JobID\n";
+    return 0;
+  }
+  my $checkCmd = "qstat -j $jobid 2> /dev/null";
+  my $res = `$checkCmd`;
+  return $? >> 8 ? 0 : 1;  ##returns 0 if error running qstat with this jobid
+}
+
 
 ##over ride this because want to delete those pesky *.OU files
 sub cleanUp {
@@ -78,12 +94,6 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $FAILEDNODE;
-  }else{
-    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
-  }
-
   ## if saving this one so don't clean up further and release
   return if($self->getSaveForCleanup() && !$force);  
 
@@ -98,7 +108,7 @@ sub cleanUp {
     $task->cleanUpNode($self) if $task;
     
     
-    if($self->{nodeNum} && $self->getPort()){
+    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
       $self->runCmd("/bin/rm -rf $self->{nodeDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
@@ -106,22 +116,26 @@ sub cleanUp {
   }
 
   ##now want to get stats and print them:
-  my @stats = `qstat -f -j $self->{jobid}`;
-  if($?){  ##node no longer running .... use qacct
-    @stats = `qacct -j $self->{jobid}`;
-    while(@stats){
-      print if (/maxvmem/i || /failed/i);
-    }
-  }else{
+  if($self->getQueueState()){
+    my @stats = `qstat -f -j $self->{jobid}`;
     foreach my $line (@stats){
       if($line =~ /^usage.*?(cpu.*)$/){
         print "  qstat -f -j $self->{jobid}: $1\n";
         last;
       }
     }
+    system("qdel $self->{jobid} > /dev/null 2>&1");  
+  }else{
+    my @stats = `qacct -j $self->{jobid}`;
+    foreach my $line (@stats){
+      print "qacct -j $self->{jobid}`: $line" if $line =~ /(maxvmem|failed)/i;
+    }
   }
-
-  system("qdel $self->{jobid} > /dev/null 2>&1");  
+  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
+    $state = $FAILEDNODE;
+  }else{
+    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
+  }
 
 }
 
