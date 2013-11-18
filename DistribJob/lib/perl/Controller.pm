@@ -106,8 +106,8 @@ $restartInstructions
     die "Unable to create port on server\n" if $numTries++ > 5;
     $self->{localPort} = int(rand(3000)) + 5000;
     $sock = new IO::Socket::INET (
-				  LocalHost => '0.0.0.0',
-                              #       LocalHost => $self->{hostname},
+ #                                    LocalHost => $self->{hostname},
+                                     LocalHost => '0.0.0.0',
                                      LocalPort => $self->{localPort},
                                      Proto => 'tcp',
                                      Listen => 100,
@@ -150,8 +150,9 @@ $restartInstructions
 
   my $ctInitNode = 0;
   until($initNode){
-    print "." if $ctInitNode % 10 == 0;
     $ctInitNode++;
+    if($ctInitNode % 10 == 0){ print "."; }
+    die "ERROR Queueing init node ... check error logs\n" if $ctInitNode % 20 == 0 && !$nodes[0]->getQueueState();
     $self->getNodeMsgs($sel,$sock);
     if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
       if($nodes[0]->checkNode()){
@@ -188,7 +189,6 @@ sub run {
     my $running = 1;
     my $kill;
     $self->{parInit} = 1 unless $self->{parInit};
-    my $complete = 0;
     my $ctLoops = 0;
 
     do {
@@ -205,7 +205,7 @@ sub run {
 
           $self->getNodeMsgs($sel,$sock);
 
-          if($node->getState() < $RUNNINGTASK && $complete){  ##no more tasks...clean up these  nodes...
+          if($node->getState() < $RUNNINGTASK && !$task->countRemainingSubtasks()){  ##no more tasks...clean up these  nodes...
             $node->cleanUp(1);
             next;
           }
@@ -248,10 +248,9 @@ sub run {
             foreach my $nodeSlot (@{$node->getSlots()}) {
               if ($nodeSlot->taskComplete() && !$kill) {
                 last if $node->getState() == $FAILEDNODE;  ##taskComplete can fail if results can't be integrated so need to stop processing if that happens.
-#                $task->nextSubTask($nodeSlot);
                 $nodeSlot->assignNewTask($task->nextSubTask($nodeSlot));
               }
-              $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
+#remove              $complete |= !$nodeSlot->isRunning();  ##sets to non-zero if nodeslot is not running
               ##check to see if the node is still functional 
               if($ctLoops % 20 == 0 && $nodeSlot->isRunning()){
                 if(($task->getSubtaskTime() && $nodeSlot->getTask()->getRunningTime() > 2 * $task->getSubtaskTime()) || $ctLoops % 1000 == 0){
@@ -264,13 +263,17 @@ sub run {
             }
           }
         } 
-        $running =  !$complete || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
-        if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
-          $running = 0;
-          print "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
-        }
+        $running =  $task->countRemainingSubtasks() || $ctRunning;  ##set to 0 if $complete > 0 and $ctRunning == 0
+#        if($running && $ctFinished >= scalar(@nodes)){  ##if running and no nodes not finished then stop
+#          $running = 0;
+#          print "\nERROR:  No nodes are available but subtasks remain to complete ... exiting\nRestart to run the remaining subtasks.\n\n";
+#        }
         $ctLoops++;
-        $self->manageFailedNodes() if $ctLoops % 20 == 0;
+        if($ctLoops % 20 == 0){
+          $self->manageNodesBasedOnQueueState();
+          $self->manageFailedNodes();
+        }
+        ##new need to check on the nodes in the queue in case have failed silently ...
         sleep(1);
 
       } while ($running && $kill != $KILLNOW);
@@ -542,6 +545,31 @@ sub manageFailedNodes {
   }
   @failedNodes = values(%tmp);
 #  print "  Remaining failed nodes: ".scalar(@failedNodes)."\n";
+}
+
+##want to exit entirely if more than one node and all are either failednodes or getQueueState == 0
+##if don't exit, for any where getQueueState == 0 want to run manageNodeBasedOnQueueState
+sub manageNodesBasedOnQueueState {
+  my ($self) = @_;
+  my @bad;  ##put any here that aren't in queue
+  my $ct = 0;
+  foreach my $node (@nodes){
+    $ct++;
+    next if ($node->getState() == $FAILEDNODE || $node->getState() == $COMPLETE);
+    push(@bad,$node) unless $node->getQueueState();
+  }
+  ##want to exit gracefully if number of bad nodes == $ct || $ct == 0
+  ##unless scalar(@nodes) == 1 then want to manage nodes on node and allow to requeue.
+  if($ct == 0 || (scalar(@bad) == $ct && scalar(@nodes) > 1)){
+    ##need to die here
+    foreach my $n (@nodes){
+      $n->cleanUp(1);
+    }
+    die "ERROR: there are no queued or running nodes available in QUEUE ... exiting\n  Check all error logs, fix problems before rerunning\n\n";
+  }
+  foreach my $badNode (@bad){
+    $badNode->manageNodeBasedOnQueueState();
+  }
 }
 
 1;
