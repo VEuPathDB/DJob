@@ -4,14 +4,13 @@ use strict;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my($fastaFile,$mateA,$mateB,$sampleName,$delIntFiles,$bowtieIndex,$isColorspace,$removePCRDuplicates,$bowtie2,$extraBowtieParams);
+my($mateA,$mateB,$sampleName,$delIntFiles,$bowtieIndex,$isColorspace,$removePCRDuplicates,$bowtie2,$extraBowtieParams);
 #my $out = "result";
 my $workingDir = ".";
 
-&GetOptions("fastaFile|f=s" => \$fastaFile, 
+&GetOptions( 
             "mateA|ma=s"=> \$mateA,
             "mateB|mb=s" => \$mateB,
- #           "outputPrefix|o=s" => \$out,
             "bowtie2=s" => \$bowtie2,
             "bowtieIndex|x=s" => \$bowtieIndex,
             "sampleName|s=s" => \$sampleName,
@@ -24,7 +23,6 @@ my $workingDir = ".";
 
 die "mateA file not found\n".&getParams() unless -e "$mateA";
 die "mateB file not found\n".&getParams() if ($mateB && !-e "$mateB");
-die "fasta file not found\n".&getParams() unless -e "$fastaFile";
 die "bowtie index must be specified\n".&getParams() unless (-e "$bowtieIndex.1.bt2" || ($isColorspace && -e "$bowtieIndex.1.ebwt")); 
 die "you must provide a sample name\n".&getParams() unless $sampleName;
 ##should add in usage
@@ -105,7 +103,7 @@ if($delIntFiles){
 close L;
 
 sub getParams {
-  return &getDate().": runBowtieMapping.pl ... parameter values:\n\tfastaFile=$fastaFile\n\tOR\n\tbowtieIndex=$bowtieIndex\n\tmateA=$mateA\n\tmateB=$mateB\n\toutputPrefix=$out\n\tsampleName=$sampleName\n\tworkingDir=$workingDir\n\n";
+  return &getDate().": runBowtieMapping.pl ... parameter values:\n\tOR\n\tbowtieIndex=$bowtieIndex\n\tmateA=$mateA\n\tmateB=$mateB\n\toutputPrefix=$out\n\tsampleName=$sampleName\n\tworkingDir=$workingDir\n\n";
 }
 
 sub getDate {
