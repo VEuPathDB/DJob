@@ -64,7 +64,10 @@ sub makeSubTaskCommand {
     
     my $cmd = "runBowtieMapping.pl --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --bowtieIndex $bowtieIndex";
-    $cmd .= " --bowtie2 $bowtie2 --extraBowtieParams $extraBowtieParams";
+    $cmd .= " --bowtie2 $bowtie2";
+    if($self->getProperty('extraBowtieParams') ne 'none'){
+      $cmd .= "--extraBowtieParams $extraBowtieParams";
+    }
     if($self->getProperty('isColorspace') eq 'true'){
       $cmd .= " --isColorspace";
     }
