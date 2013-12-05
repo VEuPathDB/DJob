@@ -18,6 +18,7 @@ my @properties =
 	["bowtieIndex", "none", "full path of the bowtie indices .. likely same as fasta file"],
 	["isColorspace", "false", "input sequence reads are in SOLiD colorspace.  Quality files must be exactly matename.qual"],
     ["removePCRDuplicates", "true", "remove PCR duplicates for any analysis involving read depth, e.g., ploidy, CNV, mapping replication origins"],
+    ["extraBowtieParams", "none", "Bowtie parameters other than default"],
 	["bowtie2", "default", "full path to the bowtie2 bin dir"],
 	["sampleName", "", "strain to be put into output"],
 	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"]
