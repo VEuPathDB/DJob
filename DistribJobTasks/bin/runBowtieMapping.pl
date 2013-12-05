@@ -5,7 +5,6 @@ use Getopt::Long;
 use CBIL::Util::Utils;
 
 my($mateA,$mateB,$sampleName,$delIntFiles,$bowtieIndex,$isColorspace,$removePCRDuplicates,$bowtie2,$extraBowtieParams);
-#my $out = "result";
 my $workingDir = ".";
 
 &GetOptions( 

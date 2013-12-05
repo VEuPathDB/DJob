@@ -78,8 +78,6 @@ sub makeSubTaskCommand {
     $cmd .= " --sampleName $sampleName";
     $cmd .= " --workingDir $wDir" . ($self->getProperty('deleteIntermediateFiles') eq 'true' ? " --deleteIntermediateFiles" : "");
       
-#    print "Returning command: $cmd\n";
-#    exit(0);  ##for testing
     return $cmd;
 }
 
