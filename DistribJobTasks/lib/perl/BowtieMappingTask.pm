@@ -52,7 +52,7 @@ sub makeSubTaskCommand {
     my $mateA = $self->getProperty ("mateA");
     my $mateB = $self->getProperty ("mateB");
     my $bowtieIndex = $self->getProperty ("bowtieIndex");
-    my $isColorSpace = $self->getProperty ("isColorSpace");
+    my $isColorspace = $self->getProperty ("isColorspace");
     my $removePCRDuplicates = $self->getProperty ("removePCRDuplicates");
     my $extraBowtieParams = $self->getProperty ("extraBowtieParams");
     my $sampleName = $self->getProperty ("sampleName");
