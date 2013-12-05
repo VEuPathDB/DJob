@@ -15,7 +15,7 @@ my $workingDir = ".";
             "bowtieIndex|x=s" => \$bowtieIndex,
             "sampleName|s=s" => \$sampleName,
             "workingDir|w=s" => \$workingDir,
-            "extraBowtieParams|e=s" => \$extraBowtieParams,
+            "extraBowtieParams|e:s" => \$extraBowtieParams,
             "deleteIntermediateFiles!" => \$delIntFiles,
             "isColorspace!" => \$isColorspace,
             "removePCRDuplicates!" => \$removePCRDuplicates,
