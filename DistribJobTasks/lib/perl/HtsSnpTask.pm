@@ -6,9 +6,9 @@ use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
 
-@ISA = (DJob::DistribJob::Task);
-
 use strict;
+
+@ISA = (DJob::DistribJob::Task);
 
 # [name, default (or null if reqd), comment]
 my @properties = 
@@ -54,6 +54,7 @@ sub initServer {
     if(-e "$mateA"){
       print "reads file $mateA already present so not retrieving from SRA\n";
     }else{  ##need to retrieve here
+      print "retrieving reads from SRA for '$sidlist'\n";
       $self->{nodeForInit}->runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
     }
   } 
@@ -123,7 +124,7 @@ sub integrateSubTaskResults {
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
-  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default so reads were retrieved from sra
+  if($sidlist && $sidlist ne 'none' && $self->getProperty('deleteIntermediateFiles') eq 'true'){ ##have a value and other than default so reads were retrieved from sra
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
     unlink($mateA) if -e "$mateA";

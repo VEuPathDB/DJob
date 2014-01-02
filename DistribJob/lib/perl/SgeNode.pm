@@ -95,7 +95,10 @@ sub cleanUp {
   }
 
   ## if saving this one so don't clean up further and release
-  return if($self->getSaveForCleanup() && !$force);  
+  if($self->getSaveForCleanup() && !$force){
+    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
+    return;
+  }
 
   $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
     

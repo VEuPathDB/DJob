@@ -181,7 +181,7 @@ sub integrateSubTaskResults {
 ## concatenate files here so are in order
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
-
+##  print "BlastSimilarity:  Cleaning up server method called using node: ".$node->getNum()."\n" if $node;
 }
 
 1;
