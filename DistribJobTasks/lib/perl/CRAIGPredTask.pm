@@ -75,7 +75,7 @@ sub makeSubTaskCommand {
     my $stopResource = ($self->getProperty("STOP-resource") eq " " ? "" : "--STOP-resource=".$self->getProperty("STOP-resource"));
     my $donorResource = ($self->getProperty("DONOR-resource") eq " " ? "" : "--DONOR-resource=".$self->getProperty("DONOR-resource"));
     my $acceptorResource = ($self->getProperty("ACCEPTOR-resource") eq " " ? "" : "--ACCEPTOR-resource=".$self->getProperty("ACCEPTOR-resource"));
-    my $cmd = "craigPredict -r $predictUTRs  $startResource $stopResource $donorResource $acceptorResource --output-file=seqsubset.locs --format=$format --best=1 --strand=both --prefix-files=$prefixFilesPath $params seqsubset.fa";
+    my $cmd = "craigPredict $predictUTRs  $startResource $stopResource $donorResource $acceptorResource --output-file=seqsubset.locs --format=$format --best=1 --strand=both --prefix-files=$prefixFilesPath $params seqsubset.fa";
 
     return $cmd;
 }

@@ -26,7 +26,10 @@ sub new {
 
 sub initServer {
     my ($self, $inputDir) = @_;
-
+    my $prefixOutputFiles = $self->getProperty("prefixFilesPath");
+    $self->{nodeForInit}->runCmd("rm -f $prefixOutputFiles.xsignal");
+    $self->{nodeForInit}->runCmd("rm -f $prefixOutputFiles.xsigscores");
+    $self->{nodeForInit}->runCmd("rm -f ;$prefixOutputFiles.stderr");
 }
 
 sub initNode {
