@@ -5,7 +5,7 @@ use lib "$ENV{GUS_HOME}/lib/perl";
 use DJob::DistribJob::Controller;
 use Getopt::Long;
 
-my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname, $queue);
+my($parInit,$runTime,$propFile,$help,$kill,$killslow,$numNodes,$fileName,$hostname, $queue, $initNodeMem);
 my $procsPerNode = 1;
 my $memPerNode = 1.8;
 
@@ -16,6 +16,7 @@ my $memPerNode = 1.8;
             "runTime|t=i" => \$runTime,
             "procsPerNode|ppn=i" => \$procsPerNode,
             "memoryPerNode|mpn=s" => \$memPerNode,
+            "initNodeMem|inm=s" => \$initNodeMem,
             "parallelInit|pi=i" => \$parInit,
             "propFile|p=s" => \$propFile,
             "fileName|f=s" => \$fileName,
@@ -30,6 +31,8 @@ unless (-e "$propFile"){
     exit(0);
 }
 
+$initNodeMem = $initNodeMem ? $initNodeMem : $memPerNode;
+
 ##need to write to cancel file to kill self since now controller requests more nodes when existing go away
 if(-e $fileName){
   open(F, ">>$fileName");
@@ -39,7 +42,7 @@ if(-e $fileName){
 
 my $killVal = $kill ? 1 : $killslow ? 2 : 0;
 
-DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $queue);
+DJob::DistribJob::Controller->new($propFile, $numNodes ? $numNodes : \@ARGV ,$killVal, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $initNodeMem, $queue);
 
 sub usage {
 
@@ -53,31 +56,34 @@ Usage:
 
 where:
 
-  --help|h            Print full help.
+  --help|h             Print full help.
 
-  --propFile|p        A file containing configuration properties for the distributed
-                      job controller.  (See The Controller Properties File in full 
-                      help).
+  --propFile|p         A file containing configuration properties for the distributed
+                       job controller.  (See The Controller Properties File in full 
+                       help).
 
-  --numNodes|n        Number of nodes to run on ... only valid if there is no list of nodes
+  --numNodes|n         Number of nodes to run on ... only valid if there is no list of nodes
 
-  --parallelInit|pi   Number of ndoes to initialize the task on at a time
+  --parallelInit|pi    Number of ndoes to initialize the task on at a time
 
-  --procsPerNode|ppn  Number of processors to request / node [default is  2]
+  --procsPerNode|ppn   Number of processors to request / node [default is  2]
 
   --memoryPerNode|mpn  gigabytes of memory to request / node [default is  1.8]
 
-  --queue|q           Name  of queue to use if not using the default queue
+  --initNodeMem|inm    gigabytes of memory to request for init Node (used for cleanup as well)
+                       [default is  memoryPerNode]
 
-  --fileName|f        file name to be passed to the controller that nodes can utilize
+  --queue|q            Name  of queue to use if not using the default queue
 
-  --kill|k            Gracefully kill the controller and node subtasks as soon as 
-                      possible.
+  --fileName|f         file name to be passed to the controller that nodes can utilize
+
+  --kill|k             Gracefully kill the controller and node subtasks as soon as 
+                       possible.
   
-  --killslow|ks       Gracefully kill the controller when all current node subtasks
-                      are done.
+  --killslow|ks        Gracefully kill the controller when all current node subtasks
+                       are done.
 
-  node1 ...	      List of nodes to run on.
+  node1 ...	       List of nodes to run on.
 ";
 }
 

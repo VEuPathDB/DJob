@@ -30,7 +30,7 @@ my @properties =
 my @nodes;
 
 sub new {
-  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $queue) = @_;
+  my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $initNodeMem, $queue) = @_;
 
   my $self = {};
   bless $self;
@@ -41,6 +41,7 @@ sub new {
   $self->{hostname} = $hostname;
   $self->{procsPerNode} = $procsPerNode;
   $self->{memPerNode} = $memPerNode;
+  $self->{initNodeMem} = $initNodeMem;
   $self->{queue} = $queue;
   $self->{propFile} = $propfile;
   $self->{kill} = $kill;
@@ -119,17 +120,17 @@ $restartInstructions
   my $amRunning = 0;
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
-    foreach my $nodenum (@$nodenumlist) {
-      my $node = $self->{nodeClass}->new($nodenum, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
+    for(my$a=1;$a<=scalar(@$nodenumlist);$a++){
+      my $node = $self->{nodeClass}->new($nodenumlist->[$a], $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
-        print "  Unable to create node $nodenum....skipping\n";
+        print "  Unable to create node $nodenumlist->[$a]....skipping\n";
         next;
       }
       push(@nodes,$node);
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
+      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;
@@ -137,17 +138,17 @@ $restartInstructions
       push(@nodes,$node);
     }
   }
-
+  
   ## get an init node before initializing the task so this can be done on a node
   print "Waiting for init node\n";
   my $initNode;
   if(!$nodes[0]->getState()){
     print "Submitting node to scheduler ";
     ##NOTE: need to set the memory of the init node here iif differet than rest.
-
+    
     $nodes[0]->queueNode();
   }
-
+  
   my $ctInitNode = 0;
   until($initNode){
     $ctInitNode++;
@@ -159,7 +160,7 @@ $restartInstructions
         $initNode = $nodes[0];
         print "\n";
       }else{
-        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir}); 
+        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{initNodeMem}, $self->{queue},$self->{masterDir}); 
         print "\nNew node created to replace failed node (".$nodes[0]->getJobid().")\n";
         $nodes[0] = $tmpNode;
         print "Submitting node to scheduler ";
@@ -168,6 +169,7 @@ $restartInstructions
     }
     sleep 1;
   }
+  $nodes[0]->setSaveForCleanup(1);  ##want to save the initNode for cleanup since has initNodeMem
 
   my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$initNode);
 
