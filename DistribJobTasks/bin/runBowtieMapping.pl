@@ -57,7 +57,7 @@ if($isColorspace && -e "$bowtieIndex.1.ebwt"){
 
 ##aligning with Bowtie2 if not colorspace
 }elsif( -e "$bowtieIndex.1.bt2"){  
-  $cmd = "($bowtie2 --end-to-end --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' ";
+  $cmd = "($bowtie2 --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' ";
   if ($extraBowtieParams){$cmd = $cmd.$extraBowtieParams;}
   $cmd = $cmd." -x $bowtieIndex ".(-e "$mateB" ? "-1 $mateA -2 $mateB " : "-U $mateA ")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
   
