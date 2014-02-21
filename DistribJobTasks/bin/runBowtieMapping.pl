@@ -26,6 +26,10 @@ die "bowtie index must be specified\n".&getParams() unless (-e "$bowtieIndex.1.b
 die "you must provide a sample name\n".&getParams() unless $sampleName;
 ##should add in usage
 $bowtie2 = $bowtie2 eq 'default' ? 'bowtie2' : $bowtie2;  ##if not specified then bowtie2 must be in path.
+
+#change _ back to - in bowtie params
+$extraBowtieParams =~ s/_/-/g;
+
 open(L,">>$workingDir/runBowtieMapping.log");
 
 select L;
