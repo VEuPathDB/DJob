@@ -67,8 +67,9 @@ sub makeSubTaskCommand {
     $cmd .= " --bowtieIndex $bowtieIndex";
     $cmd .= " --bowtie2 $bowtie2";
     if($self->getProperty('extraBowtieParams') ne 'none'){
-      # swap - for _ so getOpt::Long can take bowtieParams as a string
+      # The swaps are so getOpt::Long can take bowtieParams as a string
       $extraBowtieParams =~ s/-/_/g;
+      $extraBowtieParams =~ s/ /#/g;
       $cmd .= " --extraBowtieParams $extraBowtieParams";
     }
     if($self->getProperty('isColorspace') eq 'true'){

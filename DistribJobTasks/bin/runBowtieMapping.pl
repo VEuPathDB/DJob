@@ -27,8 +27,9 @@ die "you must provide a sample name\n".&getParams() unless $sampleName;
 ##should add in usage
 $bowtie2 = $bowtie2 eq 'default' ? 'bowtie2' : $bowtie2;  ##if not specified then bowtie2 must be in path.
 
-#change _ back to - in bowtie params
+#change bowtie params back to corret form
 $extraBowtieParams =~ s/_/-/g;
+$extraBowtieParams =~ s/#/ /g;
 
 open(L,">>$workingDir/runBowtieMapping.log");
 
