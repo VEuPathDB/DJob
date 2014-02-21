@@ -54,7 +54,7 @@ if($isColorspace && -e "$bowtieIndex.1.ebwt"){
   }else{  ##single end
     $cmd = "(bowtie -f -C -a -S -n 3 --best --strata --sam-RG 'ID:EuP' --sam-RG 'SM:TU114' --sam-RG 'PL:Illumina' ";
     if ($extraBowtieParams) {$cmd = $cmd.$extraBowtieParams;}
-    $cmd = $cmd." $bowtieIndex $mateA -Q $mateA.qual > $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+    $cmd = $cmd." $bowtieIndex $mateA -Q $mateA.qual > $workingDir/$tmpOut.sam) >& $workingDir/bowtie.log";
   }
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
@@ -64,7 +64,7 @@ if($isColorspace && -e "$bowtieIndex.1.ebwt"){
 }elsif( -e "$bowtieIndex.1.bt2"){  
   $cmd = "($bowtie2 --rg-id EuP --rg 'SM:TU114' --rg 'PL:Illumina' ";
   if ($extraBowtieParams){$cmd = $cmd.$extraBowtieParams;}
-  $cmd = $cmd." -x $bowtieIndex ".(-e "$mateB" ? "-1 $mateA -2 $mateB " : "-U $mateA ")."-S $workingDir/$tmpOut.sam) >& $workingDir/$tmpOut.bowtie.log";
+  $cmd = $cmd." -x $bowtieIndex ".(-e "$mateB" ? "-1 $mateA -2 $mateB " : "-U $mateA ")."-S $workingDir/$tmpOut.sam) >& $workingDir/bowtie.log";
   
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
