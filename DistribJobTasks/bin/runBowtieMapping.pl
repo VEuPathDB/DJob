@@ -81,7 +81,11 @@ if (-e "$workingDir/$out.bam"){print L " succeeded in previous run\n\n";
 
 # Remove PCR duplicates if flagged
 if ($removePCRDuplicates) {
-    $cmd = "samtools rmdup -S $workingDir/$tmpOut.bam $workingDir/$out.bam";
+    if (-e "$mateB"){ #paired end
+        $cmd = "samtools rmdup $workingDir/$tmpOut.bam $workingDir/$out.bam";
+    }else{ #single end
+        $cmd = "samtools rmdup -S $workingDir/$tmpOut.bam $workingDir/$out.bam";
+    }
     print L &getDate().": $cmd\n";
     if (-e "$workingDir/$out.bam") { print L " succeeded in previous run\n\n";
     }else{ &runCmd($cmd); print L "\n"; }
