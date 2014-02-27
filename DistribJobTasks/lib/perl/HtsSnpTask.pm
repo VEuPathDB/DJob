@@ -6,10 +6,10 @@ use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
 
-use strict;
+
 
 @ISA = (DJob::DistribJob::Task);
-
+use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
 (
