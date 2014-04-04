@@ -10,7 +10,7 @@ my $strain;
 my $output = 'snps.gff';
 my $percentCutoff = 34;
 my $pvalueCutoff = .01;
-my $depthCutoffMult = 3;
+my $depthCutoffMult = 5;
 my $minDepth = 3;
 my $indelsFile = 'result.varscan.indels';
 
