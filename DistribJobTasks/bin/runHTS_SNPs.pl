@@ -193,6 +193,11 @@ print L &getDate().": $cmd\n\n";
 if(-e "$workingDir/complete"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print "\n"; }
 
+$cmd = "parseVarscanToCoverage.pl --file $workingDir/$out.varscan.cons --outputFile $workingDir/$out.coverage.txt --percentCutoff $consPercentCutoff >& parseToConsensus.stderr";
+print L &getDate().": $cmd\n\n";
+if(-e "$workingDir/complete"){ print L "  succeeded in previous run\n\n";
+}else{ &runCmd($cmd); print "\n"; }
+
 print L &getDate().": run COMPLETE\n\n";
 
 &runCmd("echo complete > $workingDir/complete");
