@@ -40,13 +40,18 @@ while(<F>){
 
   my $isSameSequence = $prevSeq ? $prevSeq eq $a[0]  : 1;
 
-  # start span 
+  # start span (doesn't matter what the sequence is 
   if(!$spanStart && $hasCoverage) {
     $spanStart = $a[1];
   }
-  # end span
-  elsif($spanStart && (!$isSameSequence || !$hasCoverage)) {
-    print O "$a[0]\t$spanStart\t$prevLoc\n";
+  # end span (sequence transition)
+  elsif($spanStart && $hasCoverage && !$isSameSequence ) {
+    print O "$prevSeq\t$spanStart\t$prevLoc\n";
+    $spanStart = $a[1];;
+  }
+  # end span (no coverge )
+  elsif($spanStart && !$hasCoverage) {
+    print O "$prevSeq\t$spanStart\t$prevLoc\n";
     $spanStart = undef;
   }
   else { }
