@@ -24,7 +24,8 @@ else {
   open(F, "$file") || die "unable to open file $file for reading: $!";
 }
 
-open(O,">$out") or die "Cannot open file for writing: $!";
+
+open(O,"|sort -k 1,1 -k 2,2n > $out") or die "Cannot open file for writing: $!";
 
 
 my ($spanStart, $prevSeq, $prevLoc);
