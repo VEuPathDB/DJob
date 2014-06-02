@@ -46,7 +46,7 @@ while(<F>){
     $spanStart = $a[1];
   }
   # end span (sequence transition)
-  elsif($spanStart && $hasCoverage && !$isSameSequence ) {
+  elsif($spanStart && $hasCoverage && (!$isSameSequence || $prevLoc + 1 != $a[1])) {
     print O "$prevSeq\t$spanStart\t$prevLoc\n";
     $spanStart = $a[1];;
   }
