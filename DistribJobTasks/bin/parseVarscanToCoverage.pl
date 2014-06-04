@@ -32,7 +32,8 @@ open(O,"|sort -k 1,1 -k 2,2n > $out") or die "Cannot open file for writing: $!";
 
 my ($spanStart, $prevSeq, $prevLoc);
 
-my @stats;
+my @coverages;
+my @percents;
 while(<F>){
   next if /^Chrom\s+Position/;
   chomp;
@@ -50,23 +51,29 @@ while(<F>){
   # start span (doesn't matter what the sequence is 
   if(!$spanStart && $hasCoverage) {
     $spanStart = $a[1];
-    push @stats, "$coverage:$varPercent";
+    push @coverages, $coverage;
+    push @percents, $varPercent;
   }
   # end span (sequence transition)
   elsif($spanStart && $hasCoverage && (!$isSameSequence || $prevLoc + 1 != $a[1])) {
-    print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @stats) . "\n";
+    print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @coverages) . "\t" . join(',', @percents) . "\n";
     $spanStart = $a[1];;
-    @stats = ();
-    push @stats, "$coverage:$varPercent";
+    @coverages = ();
+    @percents = ();
+    push @coverages, $coverage;
+    push @percents, $varPercent;
   }
   # end span (no coverge )
   elsif($spanStart && !$hasCoverage) {
-    print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @stats) . "\n";
+    print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @coverages) . "\t" . join(',', @percents) . "\n";
     $spanStart = undef;
-    @stats = ();
+
+    @coverages = ();
+    @percents = ();
   }
   elsif($hasCoverage) { 
-    push @stats, "$coverage:$varPercent";
+    push @coverages, $coverage;
+    push @percents, $varPercent;
   }
   else {}
 
@@ -75,7 +82,7 @@ while(<F>){
 }
 
 if($spanStart) {
-  print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @stats) . "\n";
+  print O "$prevSeq\t$spanStart\t$prevLoc\t" . join(',', @coverages) . "\t" . join(',', @percents) . "\n";
 }
 
 close F;
