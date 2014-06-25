@@ -1,0 +1,8 @@
+masterdir=$ENV{GUS_HOME}/test/DJob/ppinput/master
+inputdir=$ENV{GUS_HOME}/test/DJob/DistribJobTasks/ppinput
+nodedir=/scratch/user/$ENV{USER}
+slotspernode=1
+subtasksize=1
+taskclass=DJob::DistribJobTasks::ProteomicsPipelineTask
+nodeclass=DJob::DistribJob::LocalNode
+#restart=no
