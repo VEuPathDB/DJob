@@ -316,23 +316,33 @@ ERROR: the following subtasks were not run\n";
     
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
+    close($sock);
+
     ##delete the script file ...
     print "Cleaning up files on server\n";
-    my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
-    system($delScript);
-    close($sock);
     ##also delete those error files that are of no use since we capture
     sleep 10;  ##give time for the nodes to all be released
     foreach my $n (@nodes){
-      if($n->{script}){
+      if($n->{localTmpDir}){  ##LsfNode
+        my $delCmd = "/bin/rm $n->{localTmpDir}/djob.".$n->getJobid().".*";
+#        print "LOG FILES: $delCmd\n";
+        system("$delCmd"); 
+      }elsif($n->{script}){ ##SgeNode
         my $errBase = basename($n->{script});
         my $delCmd = "/bin/rm $errBase.* > /dev/null 2>&1";
-#        print "$delCmd\n";
         system("$delCmd"); 
         last;
       }else{
         print "ERROR MSG for basename ... script name = '$n->{script}'\n";
       }
+    }
+    ##remove the script file
+    my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
+    system($delScript);
+    ##remove the localTmpDir if it exists
+    if($nodes[0]->{localTmpDir} && -e $nodes[0]->{localTmpDir}){
+      my $rmdirCmd = "rmdir $nodes[0]->{localTmpDir} > /dev/null 2>&1";
+      system($rmdirCmd);
     }
     print "Done\n" unless $failures;
 }
