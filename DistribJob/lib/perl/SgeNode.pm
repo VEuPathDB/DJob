@@ -150,5 +150,21 @@ sub cleanUp {
 
 }
 
+sub deleteLogFilesAndTmpDir {
+  my $self = shift;
+  return;
+  foreach my $file (glob()){
+    unlink("$self->{localTmpDir}/djob.$self->{jobid}.out") || print STDERR "Unable to unlink '$self->{localTmpDir}/djob.$self->{jobid}.out'\n";
+    unlink("$self->{localTmpDir}/djob.$self->{jobid}.err") || print STDERR "Unable to unlink '$self->{localTmpDir}/djob.$self->{jobid}.err'\n";
+  }
+  my @outfiles = glob("$self->{localTmpDir}/djob.*.out");
+  if(scalar(@outfiles) == 0){
+    ##remove the script file
+    unlink("$self->{script}");
+    #      system("/bin/rm -r $self->{localTmpDir}");
+    print STDERR "Removed $self->{localTmpDir} containing the script and err files\n";
+  }
+}
+
 
 1;

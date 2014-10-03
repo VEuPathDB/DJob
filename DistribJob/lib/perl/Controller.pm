@@ -316,6 +316,15 @@ ERROR: the following subtasks were not run\n";
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
     close($sock);
+    ##delete the script file ...
+    print "Cleaning up files on server\n";
+    ##also delete those error files that are of no use since we capture ... nodes do this
+    sleep 10;  ##give time for the nodes to all be released
+    foreach my $n (@nodes){
+      ##don't delete if this is a failed node
+      next if $n->getState() == $FAILEDNODE;
+      $n->deleteLogFilesAndTmpDir();
+    }
 
     print "Done\n" unless $failures;
 }

@@ -496,4 +496,8 @@ sub getInteractiveShellCommand {
   die "must be overridden by subclass";
 }
 
+sub deleteLogFilesAndTmpDir {
+  die "must over-ride the deleteLogFilesAndTmpDir method in the subclass\n";
+}
+
 1;
