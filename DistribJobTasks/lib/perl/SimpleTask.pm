@@ -29,8 +29,8 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-    my $jobDir = $node->getJobDir();
-    print "DEBUG: SimpleTask::initNode(node=$node, jobDir=$jobDir, inputDir=$inputDir)\n"
+    my $workingDir = $node->getWorkingDir();
+    print "DEBUG: SimpleTask::initNode(node=$node, workingDir=$workingDir, inputDir=$inputDir)\n"
 	if $self->{'debug'};
 }
 
