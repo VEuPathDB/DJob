@@ -52,11 +52,6 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-
-    my $dbFilePath = $self->getProperty("dbFilePath");
-    my $nodeDir = $node->getDir();
-
-    $node->runCmd("cp $dbFilePath.x* $nodeDir");
 }
 
 sub getInputSetSize {
@@ -95,7 +90,7 @@ sub makeSubTaskCommand {
     my $maskRepeats = $self->getProperty("maskRepeats") eq "y"? "--maskRepeats" : "";
     my $dbFilePath = $self->getProperty("dbFilePath");
 
-    my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
+    my $dbFile = $dbFilePath;
 
     my $cmd = "blastMatrix --blastBinDir $blastBin --db $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --endSlop $endSlop $maskRepeats";
    

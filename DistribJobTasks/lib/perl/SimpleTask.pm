@@ -29,14 +29,9 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-    my $nodeDir = $node->getDir();
-    print "DEBUG: SimpleTask::initNode(node=$node, nodeDir=$nodeDir, inputDir=$inputDir)\n"
+    my $jobDir = $node->getJobDir();
+    print "DEBUG: SimpleTask::initNode(node=$node, jobDir=$jobDir, inputDir=$inputDir)\n"
 	if $self->{'debug'};
-
-    my $cmd = "cp -r $inputDir/* $nodeDir";
-    print "DEBUG: SimpleTask::initNode: running command $cmd...\n" if $self->{'debug'};
-    $node->runCmd("$cmd");
-    print "DEBUG: done\n" if $self->{'debug'};
 }
 
 sub getInputSetSize {
@@ -62,10 +57,9 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
     my $cmd = $self->getProperty("cmd");
-    my $nodeDir = $node->getDir();
 
     print "DEBUG: SimpleTask::runSubTask: command from prop is $cmd...\n" if $self->{'debug'};
-    $cmd =~ s/\$nodeDir/$nodeDir/g; #substitute nodeDir
+    $cmd =~ s/\$nodeDir/$inputDir/g; #the input command has \$nodeDir where it wants to find input.  substitute in $inputDir
     $cmd =~ s/\\s/ /g; #substiture space
     print "DEBUG: SimpleTask::runSubTask: running subTask w\/ command $cmd...\n" if $self->{'debug'};
     return $cmd;
