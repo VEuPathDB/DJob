@@ -30,7 +30,7 @@ sub queueNode {
       print R <<"EOF";
 #!/bin/sh
 function cleanup {
-  find $self->{nodeDir}/\${LSB_JOBID} -user \$LOGNAME -maxdepth 0 -print0 2>/dev/null | xargs -0r rm -rv  >&2
+  find $self->{nodeWorkingDirsHome}/\${LSB_JOBID} -user \$LOGNAME -maxdepth 0 -print0 2>/dev/null | xargs -0r rm -rv  >&2
 }
 trap cleanup SIGINT SIGTERM EXIT
 
@@ -40,12 +40,15 @@ EOF
       system("chmod +x $runFile");
     }
     $self->{script} = $runFile;
+
+    my $q = $self->getQueue();
+
     my $bsubcmd = qq^
         bsub \\
         -J DJob_$$ \\
         -o $localtmpdir/djob.%J.out \\
         -e $localtmpdir/djob.%J.err \\
-        @{[($self->{queue} ? " -q $self->{queue}" : "")]} \\
+        @{[($q ? " -q $q" : "")]} \\
         @{[($self->{runTime} ? " -W $self->{runTime}" : "")]} \\
         $runFile
     ^;
@@ -55,7 +58,7 @@ EOF
     DEBUG && warn "DEBUG: jobid $jid";    
 
     if($jid =~ /^\d+$/) { 
-      $self->{nodeDir} = "$self->{nodeDir}/$jid";
+      $self->{workingDir} = "$self->{nodeWorkingDirsHome}/$jid";
 
       $self->setJobid($jid);
       # inject jobids into cancelFile
@@ -117,13 +120,6 @@ sub cleanUp {
 
   
   if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
-#    print STDERR "Cleaning up the node $self->{nodeNum} ... running: /bin/rm -r $self->{nodeDir}\n";
-##note that the nodeSocketServer is now deleting the nodeDir
-#    $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);  
-    ##delete those pesky log files  ... not yet written so comment out ...
-#    my $delCmd = "/bin/rm -r $self->{localTmpDir}/djob.".$self->getJobid().".*";
-#    print STDERR "deleting log files: '$delCmd'\n";
-#    system($delCmd);
     $self->runCmd("closeAndExit");
     $self->closePort();
   }else{
@@ -150,6 +146,11 @@ sub getQueueState {
   my $res = `$checkCmd`;
   return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
   return $? >> 8 ? 0 : 1;  ##returns 0 if error running bjobs with this jobid
+}
+
+# static method
+sub getInteractiveShellCommand {
+  return "bsub -Is"
 }
 
 1;

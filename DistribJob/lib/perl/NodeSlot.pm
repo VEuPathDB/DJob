@@ -9,7 +9,7 @@ sub new {
     bless $self;
     $self->{node} = $node;
     $self->{slotNum} = $slotNum;
-    $self->{nodeSlotDir} = $node->getDir() . "/slot_$slotNum";
+    $self->{nodeSlotDir} = $node->getWorkingDir() . "/slot_$slotNum";
     $self->_initDir();
 
     return $self;

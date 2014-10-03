@@ -9,10 +9,10 @@ use Cwd;
 use strict;
 
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotcount, $runTime, $fileName) = @_;
+    my ($class, $nodeNum, $nodeWorkingDirsHome, $slotcount, $runTime, $fileName) = @_;
     ##NOTE: need jobid in order to cancel job at end so create an undef one unless have jobid
     die "ERROR: BprocNode must be created with a jobid or undef nodenum\n" if (defined $nodeNum && length($nodeNum) <= 3); 
-    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotcount, $runTime, $fileName);
+    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeWorkingDirsHome, $slotcount, $runTime, $fileName);
     $self->setJobid($nodeNum);   ##job ids are always long...
     $self->{cwd} = getcwd();
     return $self;
@@ -88,7 +88,7 @@ sub _init {
     close MAIL;
     return;
   }
-  $self->_initNodeDir(); 
+  $self->_initWorkingDir(); 
   print "Node $self->{nodeNum} initialized\n";
 }
 
@@ -112,19 +112,19 @@ sub runCmgetnodes {
   return 1;
 }
 
-sub _initNodeDir {
+sub _initWorkingDir {
     my ($self) = @_;
 
 
-    if ($self->_fileExists($self->{nodeDir})) {
-	$self->runCmd("/bin/rm -r $self->{nodeDir}");
+    if ($self->_fileExists($self->{workingDir})) {
+	$self->runCmd("/bin/rm -r $self->{workingDir}");
     }
 
     my $try = 0;
-    until($self->_fileExists($self->{nodeDir})){
-	die "Can't create $self->{nodeDir} on node $self->{nodeNum}" 
+    until($self->_fileExists($self->{workingDir})){
+	die "Can't create $self->{workingDir} on node $self->{nodeNum}" 
 	    if ($try++ > 3);
-	$self->runCmd("mkdir -p $self->{nodeDir}");
+	$self->runCmd("mkdir -p $self->{workingDir}");
     }
     return 1;
 }
@@ -228,7 +228,7 @@ sub cleanUp {
 
     print "Cleaning up node $self->{nodeNum}...\n";
    
-    $self->runCmd("/bin/rm -r $self->{nodeDir}") if $self->getState() > $QUEUED;
+    $self->runCmd("/bin/rm -r $self->{workingDir}") if $self->getState() > $QUEUED;
     unlink("$self->{jobid}.stdout");  ##delete that nasty .stdout file
     system("canceljob $self->{jobid} > /dev/null");  ##release the node back into scheduler
 }
