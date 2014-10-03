@@ -90,9 +90,7 @@ sub makeSubTaskCommand {
     my $maskRepeats = $self->getProperty("maskRepeats") eq "y"? "--maskRepeats" : "";
     my $dbFilePath = $self->getProperty("dbFilePath");
 
-    my $dbFile = $dbFilePath;
-
-    my $cmd = "blastMatrix --blastBinDir $blastBin --db $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --endSlop $endSlop $maskRepeats";
+    my $cmd = "blastMatrix --blastBinDir $blastBin --db $dbFilePath --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --endSlop $endSlop $maskRepeats";
    
     return $cmd;
 }
