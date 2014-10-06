@@ -33,9 +33,6 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    # my $targetListPath = $self->{props}->getProp("targetListPath");
-    # my $nodeDir = $node->getDir();
-    # $node->runCmd("cp $targetListPath* $nodeDir");
 }
 
 sub getInputSetSize {

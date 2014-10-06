@@ -18,13 +18,12 @@ my @properties =
 (
  ["inputdir",     "",  "Directory in which the controller can find the input"],
  ["masterdir",    "",  "The controller's master directory"],
- ["nodedir",      "",  "Directory on the node's disk to use as a working dir"],
+ ["nodeWorkingDirsHome",      "",  "Directory accessible to nodes, in which to put each node's working dir"],
  ["slotspernode", "",  "Number of subtasks to run on a node simultaneously"],
  ["subtasksize",  "",  "Number of input elements to include in each subtask"],
  ["taskclass",    "",  "Subclass of DJob::DistribJob::Task that manages the task"],
  ["nodeclass",    "",  "Subclass of DJob::DistribJob::Node that handles the node"],
  ["keepNodeForPostProcessing", "no",  "yes/no: keep a node for cleanup at end"],
- ["useTmpDir", "yes",  "[yes]/no: set the nodeDir to the tmpDir assigned by scheduler"],
  );
 
 my @nodes;
@@ -46,7 +45,7 @@ sub new {
   $self->{propFile} = $propfile;
   $self->{kill} = $kill;
 
-  ($self->{inputDir}, $self->{masterDir}, $self->{nodeDir}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}, $self->{useTmpDir}) = $self->readPropFile($propfile, \@properties);
+  ($self->{inputDir}, $self->{masterDir}, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}) = $self->readPropFile($propfile, \@properties);
 
   return if ($self->kill($kill));
 
@@ -121,7 +120,7 @@ $restartInstructions
   my $runpid;
   if(ref($nodenumlist) =~ /ARRAY/){
     for(my$a=1;$a<=scalar(@$nodenumlist);$a++){
-      my $node = $self->{nodeClass}->new($nodenumlist->[$a], $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
+      my $node = $self->{nodeClass}->new($nodenumlist->[$a], $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
         print "  Unable to create node $nodenumlist->[$a]....skipping\n";
         next;
@@ -130,7 +129,7 @@ $restartInstructions
     }
   }else{
     for(my$a=1;$a<=scalar($nodenumlist);$a++){
-      my $node = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
+      my $node = $self->{nodeClass}->new(undef, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $a == 1 ? $self->{initNodeMem} : $self->{memPerNode}, $self->{queue},$self->{masterDir});
       if (!$node) {               ##failed to initialize so is null..
         print "Unable to create new node number $a....skipping\n";
         next;
@@ -160,7 +159,7 @@ $restartInstructions
         $initNode = $nodes[0];
         print "\n";
       }else{
-        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{initNodeMem}, $self->{queue},$self->{masterDir}); 
+        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{initNodeMem}, $self->{queue},$self->{masterDir}); 
         print "\nNew node created to replace failed node (".$nodes[0]->getJobid().")\n";
         $nodes[0] = $tmpNode;
         print "Submitting node to scheduler ";
@@ -225,7 +224,7 @@ sub run {
             ### remove from the array of @nodes
             $self->removeNode($node->getJobid());
             ### want to get a new node here and add to list of nodes but only do once!!
-            my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
+            my $tmpNode = $self->{nodeClass}->new(undef, $self->{nobsDir}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{memPerNode}, $self->{queue},$self->{masterDir});
             if (!$tmpNode) {               ##failed to initialize so is null..
               print "Unable to create new node to replace failed node ".$node->getJobid()."\n";
               next;
@@ -316,24 +315,8 @@ ERROR: the following subtasks were not run\n";
     
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
-    ##delete the script file ...
-    print "Cleaning up files on server\n";
-    my $delScript = "/bin/rm $nodes[0]->{script} > /dev/null 2>&1";
-    system($delScript);
     close($sock);
-    ##also delete those error files that are of no use since we capture
-    sleep 10;  ##give time for the nodes to all be released
-    foreach my $n (@nodes){
-      if($n->{script}){
-        my $errBase = basename($n->{script});
-        my $delCmd = "/bin/rm $errBase.* > /dev/null 2>&1";
-#        print "$delCmd\n";
-        system("$delCmd"); 
-        last;
-      }else{
-        print "ERROR MSG for basename ... script name = '$n->{script}'\n";
-      }
-    }
+
     print "Done\n" unless $failures;
 }
 
@@ -358,8 +341,7 @@ sub getNodeMsgs {
         if($n->getJobid() eq $jobid){
           $n->setState($READYTORUN);
           $n->setNum($slot) if $slot;
-          $n->setDir($tmpDir) if ($tmpDir && $self->{useTmpDir} eq 'yes');
-          print "Node $slot nodedir set to ".$n->getDir()."\n";
+          print "Node $slot jobs dir set to ".$n->getNodeWorkingDirsHome()."\n";
           $n->setLocalPort($status) if $status;
           $n->initialize();
           $self->{nodes}->{$jobid} = $n;  ##put into  hash for nodes
@@ -398,8 +380,8 @@ sub readPropFile {
 
     my $props  = CBIL::Util::PropertySet->new($propfile, $propDeclaration);
 
-    die "\nError: property 'nodeDir' in $propfile must be a full path\n"
-	unless $props->getProp('nodedir') =~ /^\//;
+    die "\nError: property 'nodeWorkingDirsHome' in $propfile must be a full path\n"
+	unless $props->getProp('nodeWorkingDirsHome') =~ /^\//;
 
     die "\nError: property 'slotspernode' in $propfile must be between 1 and 10\n" 
 	if ($props->getProp('slotspernode') < 1 
@@ -418,11 +400,10 @@ sub readPropFile {
     print "Controller Properties\n".$props->toString()."\n";
 	
     return ($props->getProp('inputdir'), $props->getProp('masterdir'), 
-	    $props->getProp('nodedir'), 
+	    $props->getProp('nodeWorkingDirsHome'), 
 	    $props->getProp('slotspernode'), $props->getProp('subtasksize'), 
 	    $props->getProp('taskclass'), 
-	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'), 
-            $props->getProp('useTmpDir') );
+	    $props->getProp('nodeclass'), $props->getProp('keepNodeForPostProcessing'));
 }
 
 sub checkKill {

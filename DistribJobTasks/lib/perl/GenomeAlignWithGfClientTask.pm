@@ -41,7 +41,6 @@ sub initNode {
     my ($self, $node, $inputDir) = @_;
 
     my $targetDirPath = $self->getProperty("targetDirPath");
-    my $nodeDir = $node->getDir();
 
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
@@ -87,7 +86,6 @@ sub makeSubTaskCommand {
     my $gaBinPath = $self->getProperty("gaBinPath"); #the path of the gfClient script
     my $targetPath = $self->getProperty("targetDirPath"); #path of the dir with the .2bit file
     my $port = $node->{gfport};
-    my $nodeDir = $node->getDir();
     my $maxIntron = $self->getProperty("maxIntron");
     my $queryType = $self->getProperty("queryType");
     my $dbType = $queryType eq 'dna' ? 'dna' : 'dnax';

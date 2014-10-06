@@ -40,13 +40,6 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
-    my $nodeDir = $node->getDir();
-    my $dbFile = basename($dbFilePath);
-
-##    $node->runCmd("cp $dbFilePath $nodeDir");
-    $node->runCmd("ln -s $dbFilePath $nodeDir/$dbFile");
 }
 
 ## Note that this method is also doing something that could be done in initServer..ie
@@ -81,7 +74,7 @@ sub makeSubTaskCommand {
 
     my $binPath = '/genomics/share/pkg/bio/ArrayOligoSelector/latest';
     my $script = $self->{props}->getProp("dbType") =~ /^r/i ? 'Pick70_script1' : 'Pick70_script1_contig';
-    my $dbFile = $node->getDir() . "/" . basename($self->{props}->getProp("dbFilePath"));
+    my $dbFile = $self->{props}->getProp("dbFilePath");
     my $alignAlg = $self->{props}->getProp("alignmentAlg");
     my $length = $self->{props}->getProp("length");
     my $mask = $self->getProperty("maskByLowerCase");

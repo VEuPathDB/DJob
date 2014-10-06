@@ -32,10 +32,6 @@ sub initServer {
 ##copy the pfam database file(s) to the nodedir
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
-    my $nodeDir = $node->getDir();
-	warn "$nodeDir\n";
-	$node->runCmd("cp $dbFilePath $nodeDir");
 }
 
 sub getInputSetSize {
@@ -67,9 +63,8 @@ sub makeSubTaskCommand {
 
     my $dbFilePath = $self->{props}->getProp("dbFilePath");
     my $hmmpfamDir = $self->{props}->getProp("hmmpfamDir");
-    my $dbFile = $node->getDir() . "/" . basename($dbFilePath);
 
-     my $cmd =  "$hmmpfamDir/hmmpfam -A 0 --acc --cut_ga $dbFile $nodeExecDir/seqsubset.fsa";
+    my $cmd =  "$hmmpfamDir/hmmpfam -A 0 --acc --cut_ga $dbFilePath $nodeExecDir/seqsubset.fsa";
 
     return $cmd;
 }
