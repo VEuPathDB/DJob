@@ -27,7 +27,6 @@ my @properties =
  ["saveGoodBlastFiles",   "no",    "If yes then blast results that meet parse are saved"],
  ["blastFileDirPath",   "$ENV{HOME}/blastFiles",    "Must specify a directory to save blast files into if saveGoodBlastFiles=yes [$ENV{HOME}/blastFiles]"],
  ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
- ["copyDbToNode", "no", "(yes | [no]) if 'yes' then copies the blast indices to the local nodeDir on node ... may be faster in some contexts"],
  ["printSimSeqsFile", "no", "print output in format for sqlldr for similarsequences"]
  );
 
@@ -103,16 +102,6 @@ sub initServer {
 sub initNode {
     my ($self, $node, $inputDir) = @_;
 
-    return if $self->getProperty("copyDbToNode") eq 'no';
-
-    my $blastProgram = $self->getProperty("blastProgram");
-    my $dbFilePath = $self->getProperty("dbFilePath");
-    my $nodeDir = $node->getDir();
-
-    $node->runCmd("cp $dbFilePath.* $nodeDir");
-    if ($blastProgram eq 'rpsblast') {  
-	$node->runCmd("cp $dbFilePath $nodeDir");
-    }
 }
 
 sub getInputSetSize {
@@ -158,7 +147,7 @@ sub makeSubTaskCommand {
     my $saveGood = $self->getProperty("saveGoodBlastFiles");
     my $blastFilePath = $self->getProperty("blastFileDirPath");
     my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
-    my $dbFile = $self->getProperty("copyDbToNode") eq 'no' ? $dbFilePath : $node->getDir() . "/" . basename($dbFilePath);
+    my $dbFile = $dbFilePath  . "/" . basename($dbFilePath);
 
 
     my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");

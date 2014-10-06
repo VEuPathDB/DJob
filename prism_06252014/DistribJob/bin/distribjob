@@ -153,10 +153,8 @@ restart=no
                 files for the task.  This is also a convenient place to store 
                 the controller's property file.  You must specify a full path.
  
-  nodedir       Directory on the node's local disk to use as a working dir.  
-                You must specify a full path.  (When simulating nodes by using 
-                LocalNode as the nodeClass, this is the directory where the 
-                simulated nodes' 'local disks' are placed.)
+  nodeWorkingDirsHome  Directory that will hold working dirs for each node.
+                You must specify a full path.
 
   slotspernode  Number of subtasks that run on each node simultaneously.  For
                 example, if each node has two processors, and the command you

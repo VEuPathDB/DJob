@@ -24,7 +24,15 @@ sub queueNode {
       my $host = `hostname`;
       chomp $host;
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
-      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n\n";
+      print R <<"EOF";
+#!/bin/sh
+function cleanup {
+  find $self->{nodeWorkingDirsHome}/\${JOB_ID} -user \$LOGNAME -maxdepth 0 -print0 2>/dev/null | xargs -0r rm -rv  >&2
+}
+trap cleanup SIGINT SIGTERM EXIT
+
+$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}
+EOF
       close R;
       system("chmod +x $runFile");
       if($host =~ /cluster/){
@@ -33,18 +41,18 @@ sub queueNode {
         print STDERR "done \n";
       }
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
-#    my $qsubcmd = "qsub -V -cwd ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
-#    print "$qsubcmd\n";
-#    my $qsubcmd = "qsub -V -cwd $runFile";
+    my $q = $self->getQueue();
+
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($q ? "-q $q " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
+
     my $tjid = `$qsubcmd`;
     if($tjid =~ /job\s(\d+)/){
       my $jid = $1;
       $self->setJobid($jid);
       print "Node Queued: Jobid = $jid \n";
-##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that SGE will clean up.
+##NOTE: am changing so that now will use the $TMPDIR for the nodeWorkingDirsHome so that SGE will clean up.
       
-      $self->{nodeDir} = "$self->{nodeDir}/$jid";
+      $self->setWorkingDir("$self->{nodeWorkingDirsHome}/$jid");
       if($self->{fileName}){
         open(C,">>$self->{fileName}");
         print C "$self->{jobid} ";
@@ -112,7 +120,7 @@ sub cleanUp {
     
     
     if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
-      $self->runCmd("/bin/rm -rf $self->{nodeDir}",1);
+      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
