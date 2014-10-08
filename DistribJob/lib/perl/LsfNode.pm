@@ -165,14 +165,14 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getInteractiveShellCommand {
-  my ($queue) = @_;
+  my ($class, $queue) = @_;
   return "bsub -Is"
 }
 
 # static method to extract Job Id from job submitted file text
 # used to get job id for distribjob itself
 sub getJobIdFromJobSubmittedFile {
-  my ($jobInfoString) = @_;
+  my ($class, $jobInfoString) = @_;
 
   # Your job 1580354 ("script") has been submitted
   $jobInfoString =~ /Your job (\d+)/;
@@ -182,7 +182,7 @@ sub getJobIdFromJobSubmittedFile {
 # static method to provide command to run to get status of a job
 # used to get status of distribjob itself
 sub getCheckStatusCmd {
-  my ($jobId) = @_;
+  my ($class, $jobId) = @_;
 
   return "bjobs $jobId";
 }
@@ -191,7 +191,7 @@ sub getCheckStatusCmd {
 # used to check status of distribjob itself
 # return 1 if still running.
 sub checkJobStatus {
-  my ($statusFileString, $jobId) = @_;
+  my ($class, $statusFileString, $jobId) = @_;
 
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
