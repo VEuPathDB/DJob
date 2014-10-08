@@ -516,7 +516,7 @@ sub checkJobStatus {
 }
 
 # static method
-sub getInteractiveShellCommand {
+sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
   die "must be overridden by subclass";
 }

@@ -164,9 +164,9 @@ sub deleteLogFilesAndTmpDir {
 }
 
 # static method
-sub getInteractiveShellCommand {
+sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
-  return "bsub -Is"
+  return "bsub"
 }
 
 # static method to extract Job Id from job submitted file text

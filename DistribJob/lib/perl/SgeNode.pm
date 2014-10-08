@@ -193,7 +193,7 @@ sub checkJobStatus {
 }
 
 # static method
-sub getInteractiveShellCommand {
+sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
 
   return "qsub -V -cwd -q $queue"
