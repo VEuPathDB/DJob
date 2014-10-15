@@ -174,8 +174,9 @@ sub getQueueSubmitCommand {
 sub getJobIdFromJobSubmittedFile {
   my ($class, $jobInfoString) = @_;
 
-  # Your job 1580354 ("script") has been submitted
-  $jobInfoString =~ /Your job (\d+)/;
+  # Job <356327> is submitted to default queue <normal>
+  $jobInfoString =~ /Job \<(\d+)\>/;
+
   return $1;
 }
 
@@ -196,7 +197,7 @@ sub checkJobStatus {
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
 
-  return $statusFileString =~ /$jobId\s+\S+\s+[RUN|PEND|WAIT]/;
+  return $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
 }
 
 
