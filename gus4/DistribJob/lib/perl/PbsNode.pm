@@ -32,19 +32,11 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-#    my $qsubcmd = "qsub -N DistribJob -V -j oe -o localhost:/tmp -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
     my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
 ##    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
-##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that PBS will clean up.
-## $TMPDIR = /tmp/$jid
-    $self->{nodeDir} = "/tmp/$jid";
-#    if($jid =~ /^(\d+)/){ 
-#      $self->{nodeDir} = "$self->{nodeDir}.$1";
-#    }else{ 
-#      $self->{nodeDir} = "$self->{nodeDir}.$jid";
-#    }
+    $self->{workingDir} = "/$self->{nodeWorkingDirsHome}/$jid";
     $self->setJobid($jid);
     if($self->{fileName}){
       open(C,">>$self->{fileName}");
@@ -101,7 +93,7 @@ sub cleanUp {
     
     
     if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+      $self->runCmd("/bin/rm -r $self->{workingDir}", 1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }

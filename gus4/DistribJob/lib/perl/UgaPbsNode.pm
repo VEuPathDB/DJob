@@ -56,10 +56,10 @@ sub getNodeAddress {
   return $self->{nodeNum};
 }
 
-sub _initNodeDir {
+sub _initWorkingDir {
   my ($self) = @_;
-  $self->{nodeDir} = $self->{nodeDir} . '/' . $self->{nodeNum};
-  $self->SUPER::_initNodeDir();
+  $self->{workingDir} = $self->{nodeWorkingDirsHome} . '/' . $self->{nodeNum};
+  $self->SUPER::_initWorkingDir();
 }
 
 ##over ride this because want to delete those pesky *.OU files
@@ -89,7 +89,7 @@ sub cleanUp {
   print "Cleaning up node $self->{nodeNum}...\n";
   
   if($self->{portCon}){
-    $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+    $self->runCmd("/bin/rm -r $self->{workingDir}", 1);
     $self->runCmd("closeAndExit");
     $self->closePort();
   }else{

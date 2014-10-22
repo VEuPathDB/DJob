@@ -16,7 +16,6 @@ my @properties = (["psipredDir", "default", "full path to the psipred dir"],
                   [ "dbFilePath", "", "subject file path"],
                   [ "inputFilePath", "", "query file path"],
 		  [ "ncbiBinDir", "", "fullpath to the ncbi bin dir"],
-                  ["copyDbToNode", "no", "(yes | [no]) if 'yes' then copies the database to the local nodeDir on node ... may be faster in some contexts"],
 		  );
 
 sub new {
@@ -42,16 +41,6 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-
-
-    return if $self->getProperty("copyDbToNode") eq 'no';
-
-    my $dbFilePath = $self->{props}->getProp("dbFilePath");
-    my $nodeDir = $node->getDir();
-
-    my $nrfilt = $dbFilePath . "*";
-
-    $node->runCmd("cp $nrfilt $nodeDir/");
 }
 
 sub getInputSetSize {
@@ -100,7 +89,7 @@ sub makeSubTaskCommand {
     my $runpsipred =  "$dir/runpsipred_single";
     my $nrFilt = $self->{props}->getProp("dbFilePath");
 
-    my $dbFile = $self->getProperty("copyDbToNode") eq 'no' ? $nrFilt : $node->getDir() . "/" . basename($nrFilt);
+    my $dbFile = $nrFilt  . "/" . basename($nrFilt);
 
     my $cmd = "$runpsipred $nodeExecDir/*.fsa $dbFile ";
     print STDERR "command:\n$cmd\n\n";

@@ -12,11 +12,11 @@ my $endMatchString = 'FooCmdEnd';
 my $endCmdString = "echo \$?.$endMatchString";
 
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort) = @_;
-    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort);
+    my ($class, $nodeNum, $nodeWorkingDirsHome, $slotCount, $runTime, $fileName, $serverHost, $serverPort) = @_;
+    my $self = &DJob::DistribJob::Node::new($class, $nodeNum, $nodeWorkingDirsHome, $slotCount, $runTime, $fileName, $serverHost, $serverPort);
     $localNodeNum++;
-    $self->{nodeDir} = "$nodeDir/node$localNodeNum";
-    print STDERR "$localNodeNum: NodeDir = ".$self->getDir()."\n";
+    $self->{workingDir} = "$nodeWorkingDirsHome/node$localNodeNum";
+    print STDERR "$localNodeNum: job dir = ".$self->getWorkingDir()."\n";
     return $self;
 }
 
