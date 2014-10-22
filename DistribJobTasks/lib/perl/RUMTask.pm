@@ -245,13 +245,6 @@ sub initServer {
 sub initNode {
   my ($self, $node, $inputDir) = @_;
   return 1;
-  my $genomeFastaFile = $self->getProperty("genomeFastaFile");
-  my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
-  my $nodeDir = $node->getDir();
-  $node->runCmd("cp $genomeFastaFile $nodeDir");
-  $node->runCmd("cp $self->{bowtie_genome}.* $nodeDir");
-  $node->runCmd("cp $self->{bowtie_transcript}.* $nodeDir") if $self->{bowtie_transcript};
-  $node->runCmd("cp $geneAnnotationFile $nodeDir") if (-e "$geneAnnotationFile");
 }
 
 sub getInputSetSize {

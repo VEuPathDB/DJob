@@ -29,12 +29,12 @@ my $endCmdString = "echo \$?.$endMatchString";
 my %gfServerPort;
 
 sub new {
-    my ($class, $nodeNum, $nodeDir, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue, $masterDir) = @_;
+    my ($class, $nodeNum, $nodeWorkingDirsHome, $slotCount, $runTime, $fileName, $serverHost, $serverPort, $procsPerNode, $memPerNode, $queue, $masterDir) = @_;
 
     my $self = {};
     bless($self, $class);
     $self->{nodeNum} = $nodeNum;
-    $self->{nodeDir} = $nodeDir;
+    $self->{nodeWorkingDirsHome} = $nodeWorkingDirsHome;
     $self->{slotCount} = $slotCount;
     $self->{runTime} = $runTime;
     $self->{fileName} = $fileName;
@@ -60,6 +60,11 @@ sub new {
       
 
     return $self;
+}
+
+sub getQueue {
+  my $self = shift;
+  return $self->{queue};
 }
 
 ##queue the node here...will need to be node specific...
@@ -142,7 +147,7 @@ sub _init {
     $self->failNode();
     return 0;
   }
-  return $self->_initNodeDir(); 
+  return $self->_initWorkingDir(); 
 }
 
 sub failNode {
@@ -154,11 +159,11 @@ sub failNode {
   push(@failedNodes,[time(),$self]);
 }
 
-sub _initNodeDir {
+sub _initWorkingDir {
   my ($self) = @_;
 
-if ($self->_fileExists($self->{nodeDir})) {
-    $self->runCmd("/bin/rm -r $self->{nodeDir}",1);
+if ($self->_fileExists($self->{workingDir})) {
+    $self->runCmd("/bin/rm -r $self->{workingDir}",1);
   }
 
   my $try = 0;
@@ -167,9 +172,9 @@ if ($self->_fileExists($self->{nodeDir})) {
       $self->failNode();
       return 0;
     }
-#    die "Can't create $self->{nodeDir} on node $self->{nodeNum}" if ($try++ > 3);
-    $self->runCmd("mkdir -p $self->{nodeDir}",1);
-  } until ($self->_fileExists($self->{nodeDir})); 
+#    die "Can't create node job dir $self->{workingDir} on node $self->{nodeNum}" if ($try++ > 3);
+    $self->runCmd("mkdir -p $self->{workingDir}",1);
+  } until ($self->_fileExists($self->{workingDir})); 
   return 1;
 }
 
@@ -271,14 +276,26 @@ sub _fileExists {
   }
 }
 
-sub getDir {
+# the directory the job runs in.
+sub getWorkingDir {
     my ($self) = @_;
-    return $self->{nodeDir};
+    return $self->{workingDir}; 
 }
 
-sub setDir {
+sub setWorkingDir {
+    my ($self, $dir) = @_;
+    $self->{workingDir} = $dir if $dir;  ## don't overwrite if null
+}
+
+# the dir that holds job dirs.  set at initialization, by config, and not changed, unless using tmp dir
+sub getNodeWorkingDirsHome {
+    my ($self) = @_;
+    return $self->{nodeWorkingDirsHome}; 
+}
+
+sub setNodeWorkingDirsHome {
   my($self,$dir) = @_;
-  $self->{nodeDir} = $dir if $dir;  ## don't overwrite if null
+  $self->{nodeWorkingDirsHome} = $dir if $dir;  ## don't overwrite if null
 }
 
 sub getNum {
@@ -467,11 +484,45 @@ sub cleanUp {
     $task->cleanUpNode($self) if $task;
 
     if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{nodeDir}", 1);
+      $self->runCmd("/bin/rm -r $self->{workingDir}", 1); 
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
   }
+}
+
+# static method to extract Job Id from job id file text
+# used to get job id for distribjob itself
+sub parseJobIdFile {
+  my ($class, $jobIdString) = @_;
+
+  die "parseJobIdFile() must be overridden by subclass";
+}
+
+# static method to provide command to run to get status of a job
+# used to get status of distribjob itself
+sub getCheckStatusCmd {
+  my ($class, $jobId) = @_;
+
+  die "parseJobIdFile() must be overridden by subclass";
+}
+
+# static method to extract status from status file
+# used to check status of distribjob itself
+sub checkJobStatus {
+  my ($class, $statusFileString) = @_;
+
+  die "checkJobStatus() must be overridden by subclass";
+}
+
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+  die "must be overridden by subclass";
+}
+
+sub deleteLogFilesAndTmpDir {
+  die "must override the deleteLogFilesAndTmpDir method in the subclass\n";
 }
 
 1;

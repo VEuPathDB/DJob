@@ -18,7 +18,6 @@ use strict;
 my @properties = 
 (
  ["inputFile",    "",     "full path to the input file with commands one / line"],
- ["copyToNode",   "none",   "comma delimitted list of files to copy to nodes"],
  ["outputFile",   "none",   "eg, myRun.out"],
  ["debug",  "false", ""],
  );
@@ -49,12 +48,7 @@ sub initServer {
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-    return 1 if $self->getProperty('copyToNode') eq 'none';
-    my @files = split(", *",$self->getProperty('copyToNode'));
-    my $nodeDir = $node->getDir();
-    foreach my $file (@files){
-      $node->runCmd("cp $file $nodeDir/");
-    }
+    return 1;
 }
 
 sub getInputSetSize {
