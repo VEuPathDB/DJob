@@ -24,7 +24,15 @@ sub queueNode {
       my $host = `hostname`;
       chomp $host;
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
-      print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n\n";
+      print R <<"EOF";
+#!/bin/sh
+function cleanup {
+  find $self->{nodeWorkingDirsHome}/\${JOB_ID} -user \$LOGNAME -maxdepth 0 -print0 2>/dev/null | xargs -0r rm -rv  >&2
+}
+trap cleanup SIGINT SIGTERM EXIT
+
+$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}
+EOF
       close R;
       system("chmod +x $runFile");
       if($host =~ /cluster/){
@@ -33,16 +41,18 @@ sub queueNode {
         print STDERR "done \n";
       }
     }
-    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
-#    my $qsubcmd = "qsub -V -cwd ". ($self->{queue} ? "-q $self->{queue} " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
-#    print "$qsubcmd\n";
-#    my $qsubcmd = "qsub -V -cwd $runFile";
+    my $q = $self->getQueue();
+
+    my $qsubcmd = "qsub -V -cwd -pe DJ $self->{procsPerNode} ". ($q ? "-q $q " : ""). "-l h_vmem=$self->{memPerNode}G $runFile";
+
     my $tjid = `$qsubcmd`;
     if($tjid =~ /job\s(\d+)/){
       my $jid = $1;
       $self->setJobid($jid);
-##NOTE: am changing so that now will use the $TMPDIR for the nodeDir so that SGE will clean up.
-      $self->{nodeDir} = "$self->{nodeDir}/$jid";
+      print "Node Queued: Jobid = $jid \n";
+##NOTE: am changing so that now will use the $TMPDIR for the nodeWorkingDirsHome so that SGE will clean up.
+      
+      $self->setWorkingDir("$self->{nodeWorkingDirsHome}/$jid");
       if($self->{fileName}){
         open(C,">>$self->{fileName}");
         print C "$self->{jobid} ";
@@ -55,6 +65,20 @@ sub queueNode {
   } 
   $self->setState($QUEUED);
 }
+
+sub getQueueState {
+  my $self = shift;
+  return 1 if $self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE;  ##should not be in queue
+  my $jobid = $self->getJobid();
+  if(!$jobid){
+    print STDERR "SgeNode->getQueueState: unable to checkQueueStatus as can't retrieve JobID\n";
+    return 0;
+  }
+  my $checkCmd = "qstat -j $jobid 2> /dev/null";
+  my $res = `$checkCmd`;
+  return $? >> 8 ? 0 : 1;  ##returns 0 if error running qstat with this jobid
+}
+
 
 ##over ride this because want to delete those pesky *.OU files
 sub cleanUp {
@@ -78,14 +102,11 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $FAILEDNODE;
-  }else{
-    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
-  }
-
   ## if saving this one so don't clean up further and release
-  return if($self->getSaveForCleanup() && !$force);  
+  if($self->getSaveForCleanup() && !$force){
+    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
+    return;
+  }
 
   $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
     
@@ -98,32 +119,84 @@ sub cleanUp {
     $task->cleanUpNode($self) if $task;
     
     
-    if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -rf $self->{nodeDir}",1);
+    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
+      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
   }
 
   ##now want to get stats and print them:
-  my @stats = `qstat -f -j $self->{jobid}`;
-  if($?){  ##node no longer running .... use qacct
-    @stats = `qacct -j $self->{jobid}`;
-    while(@stats){
-      print if (/maxvmem/i || /failed/i);
-    }
-  }else{
+  if($self->getQueueState()){
+    my @stats = `qstat -f -j $self->{jobid}`;
     foreach my $line (@stats){
       if($line =~ /^usage.*?(cpu.*)$/){
         print "  qstat -f -j $self->{jobid}: $1\n";
         last;
       }
     }
+    system("qdel $self->{jobid} > /dev/null 2>&1");  
+  }else{
+    my @stats = `qacct -j $self->{jobid}`;
+    foreach my $line (@stats){
+      print "qacct -j $self->{jobid}`: $line" if $line =~ /(maxvmem|failed)/i;
+    }
   }
-
-  system("qdel $self->{jobid} > /dev/null 2>&1");  
+  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
+    $state = $FAILEDNODE;
+  }else{
+    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
+  }
 
 }
 
+sub deleteLogFilesAndTmpDir {
+  my $self = shift;
+  unlink("$self->{script}.e$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.e$self->{jobid}\n";
+  unlink("$self->{script}.o$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.o$self->{jobid}\n";
+  unlink("$self->{script}.pe$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.pe$self->{jobid}\n";
+  unlink("$self->{script}.po$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.po$self->{jobid}\n";
+  my @outfiles = glob("$self->{script}.*");
+  if(scalar(@outfiles) == 0){
+    ##remove the script file
+    unlink("$self->{script}") || print STDERR "Unable to unlink $self->{script}\n";
+  }
+}
+
+# static method to extract Job Id from job submitted file text
+# used to get job id for distribjob itself
+sub getJobIdFromJobSubmittedFile {
+  my ($class, $jobInfoString) = @_;
+
+  # Your job 1580354 ("script") has been submitted
+  $jobInfoString =~ /Your job (\d+)/;
+  return $1;
+}
+
+# static method to provide command to run to get status of a job
+# used to get status of distribjob itself
+sub getCheckStatusCmd {
+  my ($class, $jobId) = @_;
+
+  return "qstat -j $jobId";
+}
+
+# static method to extract status from status file
+# used to check status of distribjob itself
+# return 1 if still running.
+sub checkJobStatus {
+  my ($class, $statusFileString, $jobId) = @_;
+
+#5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
+
+  return $statusFileString =~ /$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+}
+
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+
+  return "qsub -V -cwd -q $queue"
+}
 
 1;
