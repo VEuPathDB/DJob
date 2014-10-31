@@ -77,10 +77,7 @@ sub initServer {
 # "node directory" provided by $node->getDir()
 #
 # The only way to access the node directory is by executing commands on the
-# node itself.  To do this, use $node->runCmd("my command").  For example,
-# to copy a file from the inputdir to the node dir:
-#    my $nodeDir = $node->getDir();
-#    $node->runCmd("cp $inputdir/myfile $nodeDir");
+# node itself.  To do this, use $node->runCmd("my command").  
 #
 # param node The node object.
 # param inputDir The input directory where you may expect the user to place resources.

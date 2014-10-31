@@ -130,8 +130,8 @@ sub cleanUp {
     $state = $FAILEDNODE;
   }else{
     $self->setState($state ? $state : $COMPLETE); ##complete
+
   }
-  
 }
 
 sub getQueueState {
@@ -148,9 +148,57 @@ sub getQueueState {
   return $? >> 8 ? 0 : 1;  ##returns 0 if error running bjobs with this jobid
 }
 
-# static method
-sub getInteractiveShellCommand {
-  return "bsub -Is"
+### delete the log files here ... since it didn't fail won't need them
+### also check to see if any log files remain, if don't, then delete the localtmpdir
+sub deleteLogFilesAndTmpDir {
+  my $self = shift;
+  unlink("$self->{localTmpDir}/djob.$self->{jobid}.out") || print STDERR "Unable to unlink '$self->{localTmpDir}/djob.$self->{jobid}.out'\n";
+  unlink("$self->{localTmpDir}/djob.$self->{jobid}.err") || print STDERR "Unable to unlink '$self->{localTmpDir}/djob.$self->{jobid}.err'\n";
+  my @outfiles = glob("$self->{localTmpDir}/djob.*.out");
+  if(scalar(@outfiles) == 0){
+    ##remove the script file
+    unlink("$self->{script}");
+    system("/bin/rm -r $self->{localTmpDir}");
+#    print STDERR "Removed $self->{localTmpDir} containing the script and err files\n";
+  }
 }
+
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+  return "bsub"
+}
+
+# static method to extract Job Id from job submitted file text
+# used to get job id for distribjob itself
+sub getJobIdFromJobSubmittedFile {
+  my ($class, $jobInfoString) = @_;
+
+  # Job <356327> is submitted to default queue <normal>
+  $jobInfoString =~ /Job \<(\d+)\>/;
+
+  return $1;
+}
+
+# static method to provide command to run to get status of a job
+# used to get status of distribjob itself
+sub getCheckStatusCmd {
+  my ($class, $jobId) = @_;
+
+  return "bjobs $jobId";
+}
+
+# static method to extract status from status file
+# used to check status of distribjob itself
+# return 1 if still running.
+sub checkJobStatus {
+  my ($class, $statusFileString, $jobId) = @_;
+
+#JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
+#282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
+
+  return $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+}
+
 
 1;
