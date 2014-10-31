@@ -150,5 +150,53 @@ sub cleanUp {
 
 }
 
+sub deleteLogFilesAndTmpDir {
+  my $self = shift;
+  unlink("$self->{script}.e$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.e$self->{jobid}\n";
+  unlink("$self->{script}.o$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.o$self->{jobid}\n";
+  unlink("$self->{script}.pe$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.pe$self->{jobid}\n";
+  unlink("$self->{script}.po$self->{jobid}") || print STDERR "Unable to unlink $self->{script}.po$self->{jobid}\n";
+  my @outfiles = glob("$self->{script}.*");
+  if(scalar(@outfiles) == 0){
+    ##remove the script file
+    unlink("$self->{script}") || print STDERR "Unable to unlink $self->{script}\n";
+  }
+}
+
+# static method to extract Job Id from job submitted file text
+# used to get job id for distribjob itself
+sub getJobIdFromJobSubmittedFile {
+  my ($class, $jobInfoString) = @_;
+
+  # Your job 1580354 ("script") has been submitted
+  $jobInfoString =~ /Your job (\d+)/;
+  return $1;
+}
+
+# static method to provide command to run to get status of a job
+# used to get status of distribjob itself
+sub getCheckStatusCmd {
+  my ($class, $jobId) = @_;
+
+  return "qstat -j $jobId";
+}
+
+# static method to extract status from status file
+# used to check status of distribjob itself
+# return 1 if still running.
+sub checkJobStatus {
+  my ($class, $statusFileString, $jobId) = @_;
+
+#5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
+
+  return $statusFileString =~ /$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+}
+
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+
+  return "qsub -V -cwd -q $queue"
+}
 
 1;

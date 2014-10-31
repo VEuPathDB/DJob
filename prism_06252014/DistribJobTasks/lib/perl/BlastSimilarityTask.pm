@@ -147,10 +147,9 @@ sub makeSubTaskCommand {
     my $saveGood = $self->getProperty("saveGoodBlastFiles");
     my $blastFilePath = $self->getProperty("blastFileDirPath");
     my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
-    my $dbFile = $dbFilePath  . "/" . basename($dbFilePath);
 
 
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFile --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
+    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFilePath --seqFile $nodeExecDir/seqsubset.fsa --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($saveGood =~ /yes/i ? " --saveGoodBlastFiles --blastFileDir $blastFilePath" : "").($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
 
     my $printSimSeqsFile = $self->getProperty("printSimSeqsFile");
     $cmd .= " --printSimSeqsFile" if $printSimSeqsFile eq 'yes';
