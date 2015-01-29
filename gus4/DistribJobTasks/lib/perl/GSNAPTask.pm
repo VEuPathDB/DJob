@@ -15,14 +15,16 @@ my @properties =
  ["mateB",   "none",     "full path to paired reads file (optional)"],
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
+ ["gtfFile",   "none",     "full path to the gtf file; Only required for cufflinks and junctions quantification"],
  ["createSAMFile",   "true",     "create SAM file if true (false | [true])"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
- ["outputFileBasename", "results.sam", "Base name for the results file"],
+ ["outputFileBasename", "results", "Base name for the results file"],
  ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
  ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
  ["quantifyWithCufflinks", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
+ ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
 );
 
 sub new {
@@ -98,8 +100,6 @@ sub makeSubTaskCommand {
       $alternateFormat = "-A sam";
     }
 
-    my $outputFileBasename = $self->getProperty("outputFileBasename");
-
     my $databaseDirectory = dirname($genomeDatabase);
     my $databaseName = basename($genomeDatabase);
 
@@ -110,28 +110,74 @@ sub makeSubTaskCommand {
     my $totalSubtasks = int($self->{size} / $self->{subTaskSize});
     $totalSubtasks += 1 if $self->{size} % $self->{subTaskSize};
 
-    my $q = $subtaskNumber . "/" . $totalSubtasks;
+    my $q = $subtaskNumber - 1 . "/" . $totalSubtasks;
 
-    my $cmd = "gsnap -q $q --nofails -N 1 -s $iitFile $alternateFormat -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
-
+    my $cmd = "gsnap -q $q --split-output 'split_output' --quiet-if-excessive --nofails -N 1 -s $iitFile $alternateFormat -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
     return $cmd;
 }
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    my $outputFileBasename = $self->getProperty("outputFileBasename");
+    my $outputBase = "$nodeExecDir/split_output";
 
-    $node->runCmd("cat $nodeExecDir/subtask.output >> $mainResultDir/$outputFileBasename");
-    return 1 if $node->getErr();
+    my @unique = map { $outputBase . "." . $_ } ("concordant_transloc",
+                                                 "concordant_uniq",
+                                                "halfmapping_transloc",
+                                                 "halfmapping_uniq",
+                                                 "paired_uniq_circular",
+                                                 "paired_uniq_inv",
+                                                 "paired_uniq_long",
+                                                 "paired_uniq_scr",
+                                                 "unpaired_transloc",
+                                                 "unpaired_uniq",
+    );
 
-    $node->runCmd("cat $nodeExecDir/subtask.stderr >> $mainResultDir/$outputFileBasename.stderr");
-    return 0;
+    my @nu = map { $outputBase . "." . $_ } ("concordant_mult",
+                                             "halfmapping_mult",
+                                             "paired_mult",
+                                             "unpaired_mult",
+    );
+
+    # transform split output into bam files
+    foreach my $bam (@unique, @nu) {
+      $node->runCmd("samtools view -Sb $bam > ${bam}.bam 2>>$nodeExecDir/subtask.stderr; echo done");
+    }
+
+    my @uniqueBams = map { "${_}.bam" } @unique ;
+    my $uniqueBams = join(" ", @uniqueBams);
+
+    my @nuBams = map { "${_}.bam" } @nu;
+    my $nuBams = join(" ", @nuBams);
+
+    # merge into Unique and non unique files
+    $node->runCmd("samtools merge $nodeExecDir/unique.bam $uniqueBams" );
+    $node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams");
+
+    # copy unique and non unique to mainresult dir;  Cannot merge into one file yet
+    $node->runCmd("cp $nodeExecDir/unique.bam  $mainResultDir/$subTaskNum.unique.bam");
+    $node->runCmd("cp $nodeExecDir/nu.bam  $mainResultDir/$subTaskNum.nu.bam");
 }
 
 ##cleanup materDir here and remove extra files that don't want to transfer back to compute node
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
+
+  my $outputFileBasename = $self->getProperty("outputFileBasename");
+
+  mkdir "$mainResultDir/unique";
+  mkdir "$mainResultDir/nu";
+
+  # merge subtasks into unique and nonunique bams 
+  $node->runCmd("samtools merge $mainResultDir/unique/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam");
+  $node->runCmd("samtools sort $mainResultDir/unique/${outputFileBasename}_unique.bam $mainResultDir/unique/${outputFileBasename}_unique_sorted");
+
+  # sort bams
+  $node->runCmd("samtools merge $mainResultDir/nu/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam");
+  $node->runCmd("samtools sort $mainResultDir/nu/${outputFileBasename}_nu.bam $mainResultDir/nu/${outputFileBasename}_nu_sorted");
+
+  # clean up 
+  unlink glob "$mainResultDir/*.bam";
 
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
 
@@ -142,7 +188,24 @@ sub cleanUpServer {
     unlink($mateB) if -e "$mateB";
   }
 
-  # TODO:  quantify w/ cufflinks and quantify introns (junctions)
+  my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
+  my $writeBedFile = $self->getProperty("writeBedFile");
+
+  # FPKM From Cufflinks
+  # TODO:  How to handle Strand Specific?
+  if($runCufflinks && lc($runCufflinks) eq 'true') {
+    my $gtfFile = $self->getProperty("gtfFile");
+
+    $node->runCmd("cufflinks -o $mainResultDir/unique -G $gtfFile $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam");
+    $node->runCmd("cufflinks -o $mainResultDir/nu -G $gtfFile $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam");
+  }
+
+  # BED FILE
+  # TODO:  How to handle Strand Specific?
+  if($writeBedFile && lc($writeBedFile) eq 'true') {
+    $node->runCmd("bamToBed -i $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted.bed");
+    $node->runCmd("bamToBed -i $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam >$mainResultDir/nu/${outputFileBasename}_nu_sorted.bed");
+  }
 }
 
 1;
