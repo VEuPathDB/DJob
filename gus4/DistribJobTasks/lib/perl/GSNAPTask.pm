@@ -16,15 +16,16 @@ my @properties =
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
  ["gtfFile",   "none",     "full path to the gtf file; Only required for cufflinks and junctions quantification"],
- ["createSAMFile",   "true",     "create SAM file if true (false | [true])"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
  ["outputFileBasename", "results", "Base name for the results file"],
  ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
  ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
  ["quantifyWithCufflinks", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
- ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
  ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
+ ["isStrandSpecific", "false", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
+
+ ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
 );
 
 sub new {
@@ -93,13 +94,6 @@ sub makeSubTaskCommand {
     my $genomeDatabase = $self->getProperty("genomeDatabase");
     my $iitFile = $self->getProperty("iitFile");
 
-    my $createSAMFile = $self->getProperty("createSAMFile");
-
-    my $alternateFormat;
-    if($createSAMFile && lc($createSAMFile) eq 'true') {
-      $alternateFormat = "-A sam";
-    }
-
     my $databaseDirectory = dirname($genomeDatabase);
     my $databaseName = basename($genomeDatabase);
 
@@ -112,7 +106,9 @@ sub makeSubTaskCommand {
 
     my $q = $subtaskNumber - 1 . "/" . $totalSubtasks;
 
-    my $cmd = "gsnap -q $q --split-output 'split_output' --quiet-if-excessive --nofails -N 1 -s $iitFile $alternateFormat -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
+    my $extraGsanpParams = $self->getProperty("extraGsnapParams") eq "none" ? undef : $self->getProperty("extraGsnapParams");
+
+    my $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q --split-output 'split_output' --quiet-if-excessive --nofails -N 1 -s $iitFile -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
     return $cmd;
 }
 
@@ -181,7 +177,7 @@ sub cleanUpServer {
 
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
 
-  if($sidlist && $sidlist ne 'none' && $self->getProperty('deleteIntermediateFiles') eq 'true'){ ##have a value and other than default so reads were retrieved from sra
+  if($sidlist && $sidlist ne 'none' && lc($self->getProperty('deleteIntermediateFiles')) eq 'true'){ ##have a value and other than default so reads were retrieved from sra
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
     unlink($mateA) if -e "$mateA";
@@ -190,22 +186,48 @@ sub cleanUpServer {
 
   my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
   my $writeBedFile = $self->getProperty("writeBedFile");
+  my $isStrandSpecific = $self->getProperty("isStrandSpecific");
 
   # FPKM From Cufflinks
-  # TODO:  How to handle Strand Specific?
   if($runCufflinks && lc($runCufflinks) eq 'true') {
     my $gtfFile = $self->getProperty("gtfFile");
 
-    $node->runCmd("cufflinks -o $mainResultDir/unique -G $gtfFile $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam");
-    $node->runCmd("cufflinks -o $mainResultDir/nu -G $gtfFile $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam");
+    my @libraryTypes = ("fr-unstranded");
+
+    if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+      @libraryTypes = ("fr-firststrand", "fr-secondstrand");
+    }
+
+    foreach my $lt (@libraryTypes) {
+      $node->runCmd("cufflinks --library-type '$lt' -o $mainResultDir/unique -G $gtfFile $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam");
+      rename "$mainResultDir/unique/genes.fpkm_tracking" "$mainResultDir/unique/genes.fpkm_tracking.$lt";
+
+      $node->runCmd("cufflinks --library-type '$lt' -o $mainResultDir/nu -G $gtfFile $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam");
+      rename "$mainResultDir/nu/genes.fpkm_tracking" "$mainResultDir/nu/genes.fpkm_tracking.$lt";
+    }
   }
 
-  # BED FILE
-  # TODO:  How to handle Strand Specific?
+  # BED 
   if($writeBedFile && lc($writeBedFile) eq 'true') {
-    $node->runCmd("bamToBed -i $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted.bed");
-    $node->runCmd("bamToBed -i $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam >$mainResultDir/nu/${outputFileBasename}_nu_sorted.bed");
+
+    # For strand specific datasets ... write out for and rev bed files
+    if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+      $node->runCmd("samtools view -b -F 16 $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted_forward.bam"  );
+      $node->runCmd("samtools view -b -f 16 $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted_reverse.bam"  );
+
+      $node->runCmd("bamToBed -i $mainResultDir/unique/${outputFileBasename}_unique_sorted_forward.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted_forward.bed");
+      $node->runCmd("bamToBed -i $mainResultDir/nu/${outputFileBasename}_nu_sorted_forward.bam >$mainResultDir/nu/${outputFileBasename}_nu_sorted_forward.bed");
+
+      $node->runCmd("bamToBed -i $mainResultDir/unique/${outputFileBasename}_unique_sorted_reverse.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted_reverse.bed");
+      $node->runCmd("bamToBed -i $mainResultDir/nu/${outputFileBasename}_nu_sorted_reverse.bam >$mainResultDir/nu/${outputFileBasename}_nu_sorted_reverse.bed");
+    }
+    else {
+      $node->runCmd("bamToBed -i $mainResultDir/unique/${outputFileBasename}_unique_sorted.bam >$mainResultDir/unique/${outputFileBasename}_unique_sorted.bed");
+      $node->runCmd("bamToBed -i $mainResultDir/nu/${outputFileBasename}_nu_sorted.bam >$mainResultDir/nu/${outputFileBasename}_nu_sorted.bed");
+    }
   }
+
+
 }
 
 1;
