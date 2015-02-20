@@ -6,26 +6,31 @@ use strict;
 
 use Getopt::Long;
 
-my ($minsize, $uniqueSamFile, $nuSamFile, $outputFile);
+my ($minsize, $uniqueFile, $nuFile, $outputFile, $isBam);
 
 &GetOptions("min_size=i"=> \$minsize,
-            "unique_sam=s" => \$uniqueSamFile,
-            "nu_sam=s" => \$nuSamFile,
+            "unique_file=s" => \$uniqueFile,
+            "nu_file=s" => \$nuFile,
             "output_file=s" => \$outputFile,
+            "is_bam" => \$isBam,
     );
 
 $minsize = 0 unless($minsize);;
 
-unless(-e $uniqueSamFile && -e $nuSamFile) {
-  die "usage:  gsnapSam2Junctions.pl --unique_sam=s --nu_sam=s [--min_size=i]\n";
+unless(-e $uniqueFile && -e $nuFile) {
+  die "usage:  gsnapSam2Junctions.pl --unique_file=s --nu_file=s [--min_size=i]\n";
 }
 
 my %junctions;
 
 
-foreach("$uniqueSamFile|unique", "$nuSamFile|nu") {
+foreach("$uniqueFile|unique", "$nuFile|nu") {
 
   my ($samFile, $mapperType) = split(/\|/, $_);
+
+  if($isBam) {
+    $samFile = "samtools view $samFile|";
+  }
 
   open(INFILE, $samFile) or die "\nError: Cannot open '$samFile' for reading\n\n";
 
@@ -51,8 +56,8 @@ foreach("$uniqueSamFile|unique", "$nuSamFile|nu") {
       my $type = $2;
       
 	if($type eq 'N') {
-          my$start = $pos + $running_offset - 1;
-          my $end = $start + $num + 1;
+          my$start = $pos + $running_offset;
+          my $end = $start + $num - 1;
           my $junction = "$rname:$start-$end";
 
           if($num >= $minsize) {
