@@ -138,7 +138,7 @@ sub integrateSubTaskResults {
 
     # transform split output into bam files
     foreach my $bam (@unique, @nu) {
-      $node->runCmd("samtools view -Sb $bam > ${bam}.bam 2>>$nodeExecDir/subtask.stderr; echo done");
+      $node->runCmd("samtools view -Sb $bam > ${bam}.bam 2>>$nodeExecDir/subtask.stderr; echo done") if(-e $bam);
     }
 
     my @uniqueBams = map { "${_}.bam" } @unique ;
