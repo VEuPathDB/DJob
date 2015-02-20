@@ -90,6 +90,8 @@ sub makeSubTaskCommand {
 
     my $mateA = $self->getProperty ("mateA");
     my $mateB = $self->getProperty ("mateB");
+    $mateB = undef if(lc($mateB) eq 'none');
+
     my $genomeDatabase = $self->getProperty("genomeDatabase");
     my $iitFile = $self->getProperty("iitFile");
 
