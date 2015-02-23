@@ -154,8 +154,19 @@ sub integrateSubTaskResults {
     my $nuBams = join(" ", @nuBams);
 
     # merge into Unique and non unique files
-    $node->runCmd("samtools merge $nodeExecDir/unique.bam $uniqueBams" );
-    $node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams");
+    if(scalar @uniqueBams > 1) {
+	$node->runCmd("samtools merge $nodeExecDir/unique.bam $uniqueBams" );
+    } 
+    else {
+	$node->runCmd("cp $uniqueBams $nodeExecDir/unique.bam" );
+    }
+
+    if(scalar @nuBams > 1) {
+	$node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams");
+    }
+    else {
+	$node->runCmd("cp $nuBams $nodeExecDir/nu.bam");
+    }
 
     # copy unique and non unique to mainresult dir;  Cannot merge into one file yet
     $node->runCmd("cp $nodeExecDir/unique.bam  $mainResultDir/$subTaskNum.unique.bam");
