@@ -141,10 +141,16 @@ sub integrateSubTaskResults {
       $node->runCmd("samtools view -Sb $bam > ${bam}.bam 2>>$nodeExecDir/subtask.stderr; echo done") if(-e $bam);
     }
 
-    my @uniqueBams = map { "${_}.bam" } @unique ;
+    my @uniqueBams;
+    foreach my $bam (@unique) {
+      push @uniqueBams, "${bam}.bam" if(-e "${bam}.bam");
+    }
     my $uniqueBams = join(" ", @uniqueBams);
 
-    my @nuBams = map { "${_}.bam" } @nu;
+    my @nuBams
+    foreach my $bam (@nu) {
+      push @nuBams, "${bam}.bam" if(-e "${bam}.bam");
+    }
     my $nuBams = join(" ", @nuBams);
 
     # merge into Unique and non unique files
