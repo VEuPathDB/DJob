@@ -154,6 +154,10 @@ sub integrateSubTaskResults {
     # copy unique and non unique to mainresult dir;  Cannot merge into one file yet
     $node->runCmd("cp $nodeExecDir/unique.bam  $mainResultDir/$subTaskNum.unique.bam");
     $node->runCmd("cp $nodeExecDir/nu.bam  $mainResultDir/$subTaskNum.nu.bam");
+
+    die "Subtask $subTaskNum Unique File [$mainResultDir/$subTaskNum.unique.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.unique.bam");
+    die "Subtask $subTaskNum NU File [$mainResultDir/$subTaskNum.nu.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.nu.bam");
+
 }
 
 ##cleanup materDir here and remove extra files that don't want to transfer back to compute node
@@ -182,6 +186,9 @@ sub cleanUpServer {
     unlink($mateA) if -e "$mateA";
     unlink($mateB) if -e "$mateB";
   }
+
+  die "UNIQUE SORTED File [$mainResultDir/${outputFileBasename}_unique_sorted.bam] does not exist" unless(-e "$mainResultDir/${outputFileBasename}_unique_sorted.bam");
+  die "NU SORTED File [$mainResultDir/${outputFileBasename}_nu_sorted.bam] does not exist" unless(-e "$mainResultDir/${outputFileBasename}_nu_sorted.bam");
 
   my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
   my $writeBedFile = $self->getProperty("writeBedFile");
