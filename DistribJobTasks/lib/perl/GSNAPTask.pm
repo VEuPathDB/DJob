@@ -147,7 +147,7 @@ sub integrateSubTaskResults {
     }
     my $uniqueBams = join(" ", @uniqueBams);
 
-    my @nuBams
+    my @nuBams;
     foreach my $bam (@nu) {
       push @nuBams, "${bam}.bam" if(-e "${bam}.bam");
     }
