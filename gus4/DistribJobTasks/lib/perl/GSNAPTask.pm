@@ -118,6 +118,16 @@ sub integrateSubTaskResults {
 
     my $outputBase = "$nodeExecDir/split_output";
 
+    my $nes = `grep ^\@ -vl $outputBase*`;
+
+    my @nonEmptySam = split(/\n/, $nes);
+
+    # transform split output into bam files
+    foreach my $sam (@nonEmptySam) {
+      $node->runCmd("samtools view -Sb $sam > ${sam}.bam 2>>$nodeExecDir/subtask.stderr");
+    }
+
+
     my @unique = map { $outputBase . "." . $_ } ("concordant_transloc",
                                                  "concordant_uniq",
                                                 "halfmapping_transloc",
@@ -136,10 +146,6 @@ sub integrateSubTaskResults {
                                              "unpaired_mult",
     );
 
-    # transform split output into bam files
-    foreach my $bam (@unique, @nu) {
-      $node->runCmd("samtools view -Sb $bam > ${bam}.bam 2>>$nodeExecDir/subtask.stderr; echo samtools_view", 1) if(-e $bam);
-    }
 
     my @uniqueBams;
     foreach my $bam (@unique) {
@@ -155,14 +161,14 @@ sub integrateSubTaskResults {
 
     # merge into Unique and non unique files
     if(scalar @uniqueBams > 1) {
-	$node->runCmd("samtools merge $nodeExecDir/unique.bam $uniqueBams; echo samtools_merge", 1);
+	$node->runCmd("samtools merge $nodeExecDir/unique.bam $uniqueBams");
     } 
     else {
 	$node->runCmd("cp $uniqueBams $nodeExecDir/unique.bam" );
     }
 
     if(scalar @nuBams > 1) {
-	$node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams; echo samtools_merge", 1);
+	$node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams");
     }
     else {
 	$node->runCmd("cp $nuBams $nodeExecDir/nu.bam");
@@ -175,7 +181,8 @@ sub integrateSubTaskResults {
     die "Subtask $subTaskNum Unique File [$mainResultDir/$subTaskNum.unique.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.unique.bam");
     die "Subtask $subTaskNum NU File [$mainResultDir/$subTaskNum.nu.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.nu.bam");
 
-    return 1;
+    
+    return 0;
 }
 
 ##cleanup materDir here and remove extra files that don't want to transfer back to compute node
@@ -185,12 +192,12 @@ sub cleanUpServer {
   my $outputFileBasename = $self->getProperty("outputFileBasename");
 
   # merge subtasks into unique and nonunique bams 
-  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam; echo samtools_merge", 1);
-  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted; echo samtools_sort", 1);
+  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam");
+  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted");
 
   # sort bams
-  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam; echo samtools_merge", 1);
-  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/${outputFileBasename}_nu_sorted; echo samtools_sort", 1);
+  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam");
+  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/${outputFileBasename}_nu_sorted");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*nu.bam";
@@ -245,8 +252,8 @@ sub cleanUpServer {
 
     # For strand specific datasets ... write out for and rev bed files
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bam; echo samtools_view", 1);
-      $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam; echo samtools_view", 1);
+      $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bam");
+      $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam");
 
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted_forward.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted_forward.bam >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bed");
@@ -259,8 +266,6 @@ sub cleanUpServer {
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted.bed");
     }
   }
-
-  return 1;
 }
 
 1;
