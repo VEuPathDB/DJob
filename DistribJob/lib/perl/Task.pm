@@ -174,6 +174,7 @@ sub passSubTask {
                                                   $self->{mainResultDir});
     ##default is for $integRes to be null if command succeeded ... if returns 1 then want to fail subtask
     if($integRes == 1){
+      print "Method integrateSubTask returned 1... Failing.\n";
       $self->failSubTask($subTask);
       return;
     }
