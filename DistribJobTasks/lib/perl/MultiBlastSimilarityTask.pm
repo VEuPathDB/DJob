@@ -40,13 +40,13 @@ sub initServer {
     my ($self, $inputDir) = @_;
 
     my $blastBin = $self->getProperty("blastBinDir");
-    my $dbFilePath = $self->getProperty("dbFilePath");
+    my $inputDirTar = $self->getProperty("inputDirTar");
     my $dbType = $self->getProperty("dbType");
     my $blastProgram = $self->getProperty("blastProgram");
     my $blastVendor = $self->getProperty("blastVendor");
 
     die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
-    die "inputDirPath $inputDirPath doesn't exist" unless -d "$inputDirPath";
+    die "inputDirTar $inputDirTar doesn't exist" unless -d "$inputDirTar";
 }
 
 sub initNode {
@@ -57,7 +57,7 @@ sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
     my $tarredDir = $self->getProperty("inputDirTar");
-    $tarredDir =~ /((*)\.tar\.gz/ || dir "inputDirTar is not a .tar.gz file";
+    $tarredDir =~ /(*)\.tar\.gz/ || die "inputDirTar is not a .tar.gz file";
     my $fastaDir = $1;
 
     &runCmd("tar -xzf $tarredDir");
