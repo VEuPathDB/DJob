@@ -178,11 +178,12 @@ sub integrateSubTaskResults {
     $node->runCmd("cp $nodeExecDir/unique.bam  $mainResultDir/$subTaskNum.unique.bam");
     $node->runCmd("cp $nodeExecDir/nu.bam  $mainResultDir/$subTaskNum.nu.bam");
 
-    die "Subtask $subTaskNum Unique File [$mainResultDir/$subTaskNum.unique.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.unique.bam");
-    die "Subtask $subTaskNum NU File [$mainResultDir/$subTaskNum.nu.bam] Does not exist" unless(-e "$mainResultDir/$subTaskNum.nu.bam");
+    unless(-e "$mainResultDir/$subTaskNum.unique.bam" && -e "$mainResultDir/$subTaskNum.nu.bam") {
+      print "unique or nu file does not exist in the mainResultDir\n";
+      return 1;
+    }
 
-    
-    return 0;
+    return $node->getErr();
 }
 
 ##cleanup materDir here and remove extra files that don't want to transfer back to compute node
