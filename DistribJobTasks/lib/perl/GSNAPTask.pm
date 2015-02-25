@@ -192,12 +192,27 @@ sub cleanUpServer {
 
   my $outputFileBasename = $self->getProperty("outputFileBasename");
 
+
+  my @masterUnique = glob "$mainResultDir/*.unique.bam";
+  my @masterNu = glob "$mainResultDir/*.nu.bam";
+
   # merge subtasks into unique and nonunique bams 
-  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam");
-  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted");
+  if(scalar @masterUnique > 1) {
+    $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam");
+  }
+  else {
+    $node->runCmd("cp $masterUnique[0] $mainResultDir/${outputFileBasename}_unique.bam");
+  }
+
+  if(scalar @masterNu > 1) {
+    $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam");
+  }
+  else {
+    $node->runCmd("cp $masterNu[0] $mainResultDir/${outputFileBasename}_nu.bam");
+  }
 
   # sort bams
-  $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam");
+  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted");
   $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/${outputFileBasename}_nu_sorted");
 
   # clean up some extra files
