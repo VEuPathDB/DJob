@@ -57,7 +57,7 @@ sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
     my $tarredDir = $self->getProperty("inputDirTar");
-    $tarredDir =~ /(*)\.tar\.gz/ || die "inputDirTar is not a .tar.gz file";
+    $tarredDir =~ /(.*)\.tar\.gz/ || die "inputDirTar is not a .tar.gz file";
     my $fastaDir = $1;
 
     &runCmd("tar -xzf $tarredDir");
