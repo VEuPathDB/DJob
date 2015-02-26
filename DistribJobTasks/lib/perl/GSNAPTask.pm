@@ -271,11 +271,17 @@ sub cleanUpServer {
       $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bam");
       $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam");
 
+      $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bam");
+      $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bam");
+
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted_forward.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted_forward.bam >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bed");
 
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted_reverse.bam >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bed");
+
+      unlink glob "$mainResultDir/*_sorted_forward.bam";
+      unlink glob "$mainResultDir/*_sorted_reverse.bam";
     }
     else {
       $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
