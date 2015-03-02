@@ -25,6 +25,7 @@ my @properties =
  ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["isStrandSpecific", "false", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
+ ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
 );
 
 sub new {
@@ -266,26 +267,22 @@ sub cleanUpServer {
   # BED 
   if($writeBedFile && lc($writeBedFile) eq 'true') {
 
+    my $topLevelSeqSizeFile = $self->getProperty("topLevelSeqSizeFile");
+    unless(-e $topLevelSeqSizeFile) {
+      die "Top Level Seq Size FIle $topLevelSeqSizeFile does not exist";
+    }
+
     # For strand specific datasets ... write out for and rev bed files
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bam");
-      $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam");
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bed");
 
-      $node->runCmd("samtools view -b -F 16 $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bam");
-      $node->runCmd("samtools view -b -f 16 $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bam");
-
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted_forward.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted_forward.bam >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bed");
-
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted_reverse.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted_reverse.bam >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bed");
-
-      unlink glob "$mainResultDir/*_sorted_forward.bam";
-      unlink glob "$mainResultDir/*_sorted_reverse.bam";
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile -strand '-' >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile -strand '-' >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bed");
     }
     else {
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
-      $node->runCmd("bamToBed -i $mainResultDir/${outputFileBasename}_nu_sorted.bam >$mainResultDir/${outputFileBasename}_nu_sorted.bed");
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
+      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile >$mainResultDir/${outputFileBasename}_nu_sorted.bed");
     }
   }
 }
