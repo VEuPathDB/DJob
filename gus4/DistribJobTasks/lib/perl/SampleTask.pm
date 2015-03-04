@@ -71,13 +71,17 @@ sub initServer {
 # There are only two correct ways for you to locate resources to copy onto
 # the node.  You may have declared a property that contains the location
 # (eg, matrixfile) or, you may require the user to place the resource in the
-# input directory.
+# input/ directory.
 #
 # There is only one valid location on the node where you can place data:  the
 # "node directory" provided by $node->getDir()
 #
 # The only way to access the node directory is by executing commands on the
-# node itself.  To do this, use $node->runCmd("my command"). 
+# node itself.  To do this, use $node->runCmd("my command").
+#
+# If your cluster has a fast central file system from which nodes can efficiently
+# share data files, you might not need to use local node disks, and so won't need
+# to use this method.
 #
 # param node The node object.
 # param inputDir The input directory where you may expect the user to place resources.
@@ -140,7 +144,7 @@ sub getInputSetSize {
 # param nodeSubTaskDir The subtask specific input dir on the node.
 # 
 sub initSubTask {
-    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeSubTaskDir,$subTask) = @_;
+    my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeSubTaskDir, $subTask) = @_;
 
     &runCmd("cp $inputDir/task.prop $serverSubTaskDir");
 
@@ -177,37 +181,37 @@ sub initSubTask {
 #
 # param $node The Node object on which the subtask will run.
 # param $inputDir The input dir on the server where the task's input is found.
-# param nodeExecDir The subtask specific dir on the node where the command will be run.
+# param $nodeSubTaskDir The subtask specific dir on the node where the command will be run from.  Also contains any data placed there by initSubTask.
 # 
 sub makeSubTaskCommand { 
-    my ($self, $node, $inputDir, $nodeExecDir) = @_;
+    my ($self, $node, $inputDir, $nodeSubTaskDir) = @_;
 
     my $msg = $self->getProperty("msg");
 
-    my $cmd = "samplecmd $nodeExecDir/inputset $msg";
+    my $cmd = "samplecmd $nodeSubTaskDir/inputset $msg";
 
     return $cmd;
 
 }
 
-# Merge subTask results from $nodeExecDir into the main result in
+# Merge subTask results from $nodeSubTaskDir into the main result in
 # $mainResultDir as needed.  This method is called once by the controller
 # for each subtask after it completes successfully.
 #
-# Each subtask produces results in $nodeExecDir.   These
+# Each subtask produces results in $nodeSubTaskDir.   These
 # results must be placed or merged into the main result, which is stored
 # in $mainResultDir.
 #
 # param subTaskNum The index of this subtask.  Use this if you want to store
 #                  subtask results by subtask number.
 # param node the node obect that this subtask was run on
-# param nodeExecDir subtask specific dir on node where command was executed...result files here
+# param nodeSubTaskDir subtask specific dir on node where command was executed...result files here
 # param mainResultDir The directory in which the main result is stored.
 #
 sub integrateSubTaskResults {
-    my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
+    my ($self, $subTaskNum, $node, $nodeSubTaskDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/answer >> $mainResultDir/answer");
+    $node->runCmd("cat $nodeSubTaskDir/answer >> $mainResultDir/answer");
 }
 
 # cleanUpNode is an optional method that is called when the node has completed

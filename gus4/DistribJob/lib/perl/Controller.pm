@@ -27,6 +27,8 @@ my @properties =
  );
 
 my @nodes;
+my $ctFailedFileHandles = 0;
+my $ctNewNodes = 0;
 
 sub new {
   my ($class, $propfile, $nodenumlist, $kill, $runTime, $parInit, $fileName, $hostname, $procsPerNode, $memPerNode, $initNodeMem, $queue) = @_;
@@ -230,6 +232,11 @@ sub run {
               next;
             }
             print "New node created to replace failed node (".$node->getJobid().")\n";
+            $ctNewNodes++;
+            if($ctNewNodes >= 50){
+              print "ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n";
+              $self->cleanupAndExitOnFailure($sock);
+            }
             push(@nodes,$tmpNode);
             next;
           }elsif($node->getState() == $READYTOINITTASK){  ##has connection but task on node has not been initialized
@@ -334,7 +341,12 @@ sub getNodeMsgs {
   while($sel->can_read(0)) {
     my $fh = $sock->accept();
     if(!$fh){
+      $ctFailedFileHandles++;
       print "ERROR: getNodeMsgs: There is no file handle from socket\n";
+      if($ctFailedFileHandles >= 1000){
+        print "ERROR:  maximum number ($ctFailedFileHandles) of failed file handles reached so exiting\n";
+        $self->cleanupAndExitOnFailure($sock);
+      }
       next;
     }
     my $s = <$fh>;
@@ -359,6 +371,19 @@ sub getNodeMsgs {
       }
     }
   }
+}
+
+sub cleanupAndExitOnFailure {
+  my($self,$sock) = @_;  ##note that @nodes is global variable
+  print "  Cleaning up and exiting .... \n";
+  ##cleanup all nodes
+  foreach my $node (@nodes) {
+    $node->cleanUp(1);
+  }
+  ##need to also cleanup any nodes that are in @failedNodes
+  $self->manageFailedNodes(1);
+  close($sock);
+  exit(1);
 }
 
 # return undef if failed
