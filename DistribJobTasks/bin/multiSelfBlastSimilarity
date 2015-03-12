@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 use Cwd;
 
-my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$blastParamsFile,$tarFile)
+my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$blastParamsFile,$tarFile);
 
 &GetOptions("regex=s" => \$regex, 
             "pValCutoff=f" => \$pValCutoff, 
@@ -25,7 +25,7 @@ die "tar file '$tarFile' does not exist\n" unless -e $tarFile;
 
 die "tar file '$tarFile' does not end in .tar\n" unless $tarFile =~ /\.tar(\.gz)?$/;
 
-$z = ($tarFile =~ /\.gz$/)? 'z' : '';
+my $z = ($tarFile =~ /\.gz$/)? 'z' : '';
 my $cmd = "tar -xf$z $tarFile";
 system($cmd) && die "Error running cmd $cmd\n$?\n";
 
@@ -34,16 +34,16 @@ my @fasta;
 opendir(my $dh, $pwd) || die "Can't open dir '$pwd'\n";
 while(readdir $dh) {
     next if /^\./;
-    die "fasta file '$fasta' does not end in .fasta\n" unless /\.fasta$/;
     push(@fasta, $_);
 }
 closedir $dh;
 
 foreach my $fasta (@fasta) {
+    die "fasta file '$fasta' does not end in .fasta\n" unless $fasta =~ /\.fasta$/;
     $cmd = "formatdb -i $fasta -p T";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
     
-    $cmd = "blastSimilarity --database $fasta --seqFile $fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile --printSimSeqsFile";
+    $cmd = "blastSimilarity --database $fasta --seqFile $fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex $regex --blastParamsFile $blastParamsFile --printSimSeqsFile";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
     
     $cmd = "cat blastSimilarities.out >> gatheredResult";
