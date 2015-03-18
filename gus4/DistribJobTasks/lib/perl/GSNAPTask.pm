@@ -285,6 +285,8 @@ sub cleanUpServer {
       $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile >$mainResultDir/${outputFileBasename}_nu_sorted.bed");
     }
   }
+
+  return 1;
 }
 
 1;
