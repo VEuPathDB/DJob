@@ -197,8 +197,12 @@ sub cleanUpServer {
   my @masterUnique = glob "$mainResultDir/*.unique.bam";
   my @masterNu = glob "$mainResultDir/*.nu.bam";
 
+
+  die "Did not find unique bam files in $mainResultDir/*.unique.bam" unless(scalar @masterUnique > 0);
+  die "Did not find nu bam files in $mainResultDir/*.nu.bam" unless(scalar @masterUnique > 0);
+
   # merge subtasks into unique and nonunique bams 
-  if(scalar @masterUnique > 1) {
+   if(scalar @masterUnique > 1) {
     $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/*.unique.bam");
   }
   else {
