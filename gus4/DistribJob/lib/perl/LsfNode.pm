@@ -196,8 +196,11 @@ sub checkJobStatus {
 
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
-
-  return $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  if($statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/) {
+      return 1;
+  }
+  print STDERR "JOB Status not found for string:  $statusFileString\n";
+  return 0;
 }
 
 
