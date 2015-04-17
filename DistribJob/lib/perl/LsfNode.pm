@@ -197,7 +197,9 @@ sub checkJobStatus {
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
 
-  return $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  my $flag = $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  print STDERR "Found non-running status '$1' in status string\n $statusFileString\n" if (!$flag);
+  return $flag;
 }
 
 
