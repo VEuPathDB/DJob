@@ -27,6 +27,7 @@ my @properties =
  ["isStrandSpecific", "false", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
  ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
+ ["topLevelFastaFile", "none", "required if quantifyWithCufflinks is true"],
 );
 
 sub new {
@@ -241,12 +242,14 @@ sub cleanUpServer {
   my $writeBedFile = $self->getProperty("writeBedFile");
   my $quantifyJunctions = $self->getProperty("quantifyJunctions");
 
+
   my $isStrandSpecific = $self->getProperty("isStrandSpecific");
 
   # FPKM From Cufflinks
   if($runCufflinks && lc($runCufflinks) eq 'true') {
     my $gtfFile = $self->getProperty("gtfFile");
     my $maskFile = $self->getProperty("maskFile");
+    my $topLevelFastaFile = $self->getProperty("topLevelFastaFile");
 
     my @libraryTypes = ("fr-unstranded");
 
@@ -255,11 +258,11 @@ sub cleanUpServer {
     }
 
     foreach my $lt (@libraryTypes) {
-      $node->runCmd("cufflinks --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_unique_sorted.bam");
+      $node->runCmd("cufflinks -b $topLevelFastaFile --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_unique_sorted.bam");
       rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.unique.fpkm_tracking.$lt";
       rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.unique.fpkm_tracking.$lt";
 
-      $node->runCmd("cufflinks --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_nu_sorted.bam");
+      $node->runCmd("cufflinks-b $topLevelFastaFile --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_nu_sorted.bam");
       rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.nu.fpkm_tracking.$lt";
       rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.nu.fpkm_tracking.$lt";
     }
