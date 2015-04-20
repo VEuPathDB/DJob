@@ -196,11 +196,12 @@ sub checkJobStatus {
 
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
-  if($statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/) {
-      return 1;
-  }
-  print STDERR "JOB Status not found for string:  $statusFileString\n";
-  return 0;
+
+  print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /$jobId/;
+
+  my $flag = $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  print STDERR "Found non-running status '$1' for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
+  return $flag;
 }
 
 
