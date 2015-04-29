@@ -250,8 +250,8 @@ sub cleanUpServer {
 
 
   # make bam index files
-  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted.bam");
-  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_all_sorted.bam");
+  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_unique_sorted.bam");
+  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_all_sorted.bam");
 
 
   my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
@@ -286,7 +286,7 @@ sub cleanUpServer {
 
   # Junctions
   if($quantifyJunctions && lc($quantifyJunctions eq 'true')) {
-    $node->runCmd("gsnapSam2Junctions.pl  --is_bam --unique_file $mainResultDir/${outputFileBasename}_unique_sorted.bam --all_file $mainResultDir/${outputFileBasename}_all_sorted.bam --output_file $mainResultDir/junctions.tab");
+    $node->runCmd("gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_all_sorted.bam --output_file $mainResultDir/junctions.tab");
   }
 
   # BED 
@@ -300,7 +300,7 @@ sub cleanUpServer {
     # For strand specific datasets ... write out for and rev bed files
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
       $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
-      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_all_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_all_sorted_forward.bed");
+      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted_forward.bed");
 
       $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
       $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted_reverse.bed");
