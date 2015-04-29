@@ -143,10 +143,20 @@ sub integrateSubTaskResults {
                                                  "unpaired_uniq",
     );
 
-    my @nu = map { $outputBase . "." . $_ } ("concordant_mult",
+    my @all = map { $outputBase . "." . $_ } ("concordant_mult",
                                              "halfmapping_mult",
                                              "paired_mult",
                                              "unpaired_mult",
+					     "concordant_transloc",
+					     "concordant_uniq",
+					     "halfmapping_transloc",
+					     "halfmapping_uniq",
+					     "paired_uniq_circular",
+					     "paired_uniq_inv",
+					     "paired_uniq_long",
+					     "paired_uniq_scr",
+					     "unpaired_transloc",
+					     "unpaired_uniq",
     );
 
 
@@ -156,11 +166,11 @@ sub integrateSubTaskResults {
     }
     my $uniqueBams = join(" ", @uniqueBams);
 
-    my @nuBams;
-    foreach my $bam (@nu) {
-      push @nuBams, "${bam}.bam" if(-e "${bam}.bam");
+    my @allBams;
+    foreach my $bam (@all) {
+      push @allBams, "${bam}.bam" if(-e "${bam}.bam");
     }
-    my $nuBams = join(" ", @nuBams);
+    my $allBams = join(" ", @allBams);
 
     # merge into Unique and non unique files
     if(scalar @uniqueBams > 1) {
@@ -170,19 +180,19 @@ sub integrateSubTaskResults {
 	$node->runCmd("cp $uniqueBams $nodeExecDir/unique.bam" );
     }
 
-    if(scalar @nuBams > 1) {
-	$node->runCmd("samtools merge $nodeExecDir/nu.bam $nuBams");
+    if(scalar @allBams > 1) {
+	$node->runCmd("samtools merge $nodeExecDir/all.bam $allBams");
     }
     else {
-	$node->runCmd("cp $nuBams $nodeExecDir/nu.bam");
+	$node->runCmd("cp $allBams $nodeExecDir/all.bam");
     }
 
     # copy unique and non unique to mainresult dir;  Cannot merge into one file yet
     $node->runCmd("cp $nodeExecDir/unique.bam  $mainResultDir/$subTaskNum.unique.bam");
-    $node->runCmd("cp $nodeExecDir/nu.bam  $mainResultDir/$subTaskNum.nu.bam");
+    $node->runCmd("cp $nodeExecDir/all.bam  $mainResultDir/$subTaskNum.all.bam");
 
-    unless(-e "$mainResultDir/$subTaskNum.unique.bam" && -e "$mainResultDir/$subTaskNum.nu.bam") {
-      print "unique or nu file does not exist in the mainResultDir\n";
+    unless(-e "$mainResultDir/$subTaskNum.unique.bam" && -e "$mainResultDir/$subTaskNum.all.bam") {
+      print "unique or all file does not exist in the mainResultDir\n";
       return 1;
     }
 
@@ -197,11 +207,11 @@ sub cleanUpServer {
 
 
   my @masterUnique = glob "$mainResultDir/*.unique.bam";
-  my @masterNu = glob "$mainResultDir/*.nu.bam";
+  my @masterAll = glob "$mainResultDir/*.all.bam";
 
 
-  die "Did not find unique bam files in $mainResultDir/*.unique.bam" unless(scalar @masterUnique > 0);
-  die "Did not find nu bam files in $mainResultDir/*.nu.bam" unless(scalar @masterUnique > 0);
+  die "Did not find *unique* bam files in $mainResultDir/*.unique.bam" unless(scalar @masterUnique > 0);
+  die "Did not find *all* bam files in $mainResultDir/*.all.bam" unless(scalar @masterAll > 0);
 
   # merge subtasks into unique and nonunique bams 
    if(scalar @masterUnique > 1) {
@@ -211,19 +221,19 @@ sub cleanUpServer {
     $node->runCmd("cp $masterUnique[0] $mainResultDir/${outputFileBasename}_unique.bam");
   }
 
-  if(scalar @masterNu > 1) {
-    $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/*.nu.bam");
+  if(scalar @masterAll > 1) {
+    $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}_all.bam $mainResultDir/*.all.bam");
   }
   else {
-    $node->runCmd("cp $masterNu[0] $mainResultDir/${outputFileBasename}_nu.bam");
+    $node->runCmd("cp $masterAll[0] $mainResultDir/${outputFileBasename}_all.bam");
   }
 
   # sort bams
   $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted");
-  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_nu.bam $mainResultDir/${outputFileBasename}_nu_sorted");
+  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}_all.bam $mainResultDir/${outputFileBasename}_all_sorted");
 
   # clean up some extra files
-  unlink glob "$mainResultDir/*nu.bam";
+  unlink glob "$mainResultDir/*all.bam";
   unlink glob "$mainResultDir/*unique.bam";
 
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
@@ -236,7 +246,13 @@ sub cleanUpServer {
   }
 
   die "UNIQUE SORTED File [$mainResultDir/${outputFileBasename}_unique_sorted.bam] does not exist" unless(-e "$mainResultDir/${outputFileBasename}_unique_sorted.bam");
-  die "NU SORTED File [$mainResultDir/${outputFileBasename}_nu_sorted.bam] does not exist" unless(-e "$mainResultDir/${outputFileBasename}_nu_sorted.bam");
+  die "ALL SORTED File [$mainResultDir/${outputFileBasename}_all_sorted.bam] does not exist" unless(-e "$mainResultDir/${outputFileBasename}_all_sorted.bam");
+
+
+  # make bam index files
+  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_unique_sorted.bam");
+  $node->runCmd("samtools index $mainResultDir/${outputFileBasename}_unique.bam $mainResultDir/${outputFileBasename}_all_sorted.bam");
+
 
   my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
   my $writeBedFile = $self->getProperty("writeBedFile");
@@ -258,19 +274,19 @@ sub cleanUpServer {
     }
 
     foreach my $lt (@libraryTypes) {
-      $node->runCmd("cufflinks -b $topLevelFastaFile --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_unique_sorted.bam");
+      $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_unique_sorted.bam");
       rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.unique.fpkm_tracking.$lt";
       rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.unique.fpkm_tracking.$lt";
 
-      $node->runCmd("cufflinks-b $topLevelFastaFile --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_nu_sorted.bam");
-      rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.nu.fpkm_tracking.$lt";
-      rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.nu.fpkm_tracking.$lt";
+      $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$lt' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_all_sorted.bam");
+      rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.all.fpkm_tracking.$lt";
+      rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.all.fpkm_tracking.$lt";
     }
   }
 
   # Junctions
   if($quantifyJunctions && lc($quantifyJunctions eq 'true')) {
-    $node->runCmd("gsnapSam2Junctions.pl  --is_bam --unique_file $mainResultDir/${outputFileBasename}_unique_sorted.bam --nu_file $mainResultDir/${outputFileBasename}_nu_sorted.bam --output_file $mainResultDir/junctions.tab");
+    $node->runCmd("gsnapSam2Junctions.pl  --is_bam --unique_file $mainResultDir/${outputFileBasename}_unique_sorted.bam --all_file $mainResultDir/${outputFileBasename}_all_sorted.bam --output_file $mainResultDir/junctions.tab");
   }
 
   # BED 
@@ -283,15 +299,15 @@ sub cleanUpServer {
 
     # For strand specific datasets ... write out for and rev bed files
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_nu_sorted_forward.bed");
+      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
+      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_all_sorted.bam -g $topLevelSeqSizeFile -strand '+' >$mainResultDir/${outputFileBasename}_all_sorted_forward.bed");
 
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile -strand '-' >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile -strand '-' >$mainResultDir/${outputFileBasename}_nu_sorted_reverse.bed");
+      $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
+      $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted_reverse.bed");
     }
     else {
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_unique_sorted.bam -g $topLevelSeqSizeFile >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
-      $node->runCmd("bedtools genomecov -bg -ibam $mainResultDir/${outputFileBasename}_nu_sorted.bam -g $topLevelSeqSizeFile >$mainResultDir/${outputFileBasename}_nu_sorted.bed");
+      $node->runCmd("bamutils tobedgraph $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
+      $node->runCmd("bamutils tobedgraph $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted.bed");
     }
   }
 

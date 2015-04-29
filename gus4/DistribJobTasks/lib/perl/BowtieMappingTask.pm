@@ -21,7 +21,11 @@ my @properties =
     ["extraBowtieParams", "none", "Bowtie parameters other than default"],
 	["bowtie2", "default", "full path to the bowtie2 bin dir"],
 	["sampleName", "", "strain to be put into output"],
-	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"]
+	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
+
+ ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
+ ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
+
 );
 
 sub new {
@@ -91,6 +95,23 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
+
+  my $writeBedFile = $self->getProperty("writeBedFile");
+
+  # BED 
+  if($writeBedFile && lc($writeBedFile) eq 'true') {
+
+      my $topLevelSeqSizeFile = $self->getProperty("topLevelSeqSizeFile");
+      my $sampleName = $self->getProperty ("sampleName");
+
+      unless(-e $topLevelSeqSizeFile) {
+	  die "Top Level Seq Size FIle $topLevelSeqSizeFile does not exist";
+      }
+
+      $node->runCmd("bamutils tobedgraph $mainResultDir/${sampleName}.bam >$mainResultDir/${sampleName}.bed");
+  }
+
+
   }
 
 1;
