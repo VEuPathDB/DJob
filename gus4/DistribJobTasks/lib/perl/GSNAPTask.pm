@@ -16,7 +16,7 @@ my @properties =
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
  ["gtfFile",   "none",     "full path to the gtf file; Only required for cufflinks and junctions quantification"],
- ["maskFile",   "none",     "full path to the gtf mask file; Only required for cufflinks and junctions quantification"],
+ ["maskFile",   "none",     "full path to the gtf masked file; Only required for cufflinks"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
  ["outputFileBasename", "results", "Base name for the results file"],
@@ -176,9 +176,9 @@ sub cleanUpServer {
       my $libraryType = "fr-firststrand";
     }
 
-    $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm -M $maskFile --library-type '$libraryType' -o $mainResultDir -G $gtfFile $mainResultDir/${outputFileBasename}_all_sorted.bam");
-    rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.all.fpkm_tracking.$libraryType";
-    rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.all.fpkm_tracking.$libraryType";
+    $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type '$libraryType' -o $mainResultDir -G $maskFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.fpkm_tracking.$libraryType";
+    rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.fpkm_tracking.$libraryType";
   }
 
   # Junctions
