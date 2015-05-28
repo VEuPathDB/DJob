@@ -1,4 +1,4 @@
-# Take as input count files (two if strand-specific data, else one) from HTSeq and a gene footprint file and outputs fpkm files (two if strand-specific data, else one). The denominator in the fpkm is the product of the length of the gene footpring and the total counts (sense+antisense total if strand-specific).
+# Take as input count files (two if strand-specific data, else one) from HTSeq and a gene footprint file and outputs fpkm files (two if strand-specific data, else one). The denominator in the fpkm is the product of the length of the gene footprint and the total counts (sense+antisense total if strand-specific).
 
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ my ($verbose,$geneFootprintFile,$countFile,$fpkmFile,$antisenseCountFile,$antise
     ); 
 
 if(!$geneFootprintFile || !$countFile || !$fpkmFile){
-	die "usage: makeFpkmFromhtseqCounts.pl --geneFootprintFile <geneFootpringFile> --countFile <input file (sense if strand-specific)> --fpkmFile <output file (sense if strand-specific)> [--antisenseCountFile <input file (antisense if strand-specific)> --antisenseFpkmFile <output file (antisense if strand-specific)>]\n";
+	die "usage: makeFpkmFromhtseqCounts.pl --geneFootprintFile <geneFootprintFile> --countFile <input file (sense if strand-specific)> --fpkmFile <output file (sense if strand-specific)> [--antisenseCountFile <input file (antisense if strand-specific)> --antisenseFpkmFile <output file (antisense if strand-specific)>]\n";
 }
 
 my $isStrandSpecific = 0;
