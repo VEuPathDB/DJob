@@ -180,6 +180,8 @@ sub cleanUpServer {
     # HTSeq
     my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+	# IMPORTANT: Here we assume that it is the reverse read which is in the same orientation as the gene (like in the typical dUTP Illumina protocol).
+
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
 	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.sense.counts");
