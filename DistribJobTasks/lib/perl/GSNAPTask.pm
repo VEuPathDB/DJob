@@ -15,19 +15,18 @@ my @properties =
  ["mateB",   "none",     "full path to paired reads file (optional)"],
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
- ["gtfFile",   "none",     "full path to the gtf file; Only required for cufflinks and junctions quantification"],
- ["maskFile",   "none",     "full path to the gtf masked file; Only required for cufflinks"],
+ ["maskedFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for Cufflinks and HTseq"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
  ["outputFileBasename", "results", "Base name for the results file"],
  ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
  ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
- ["quantifyWithCufflinks", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
+ ["quantify", "true", "[true]|false: if true then runs Cufflinks and HTSeq"],
  ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["isStrandSpecific", "false", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
  ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
- ["topLevelFastaFile", "none", "required if quantifyWithCufflinks is true"],
+ ["topLevelGeneFootprintFile", "none", "required if quantify is true"]
 );
 
 sub new {
@@ -157,28 +156,45 @@ sub cleanUpServer {
     unlink($mateB) if -e "$mateB";
   }
 
-  my $runCufflinks = $self->getProperty("quantifyWithCufflinks");
+  my $runQuant = $self->getProperty("quantify");
   my $writeBedFile = $self->getProperty("writeBedFile");
   my $quantifyJunctions = $self->getProperty("quantifyJunctions");
-
-
   my $isStrandSpecific = $self->getProperty("isStrandSpecific");
 
-  # FPKM From Cufflinks
-  if($runCufflinks && lc($runCufflinks) eq 'true') {
-    my $gtfFile = $self->getProperty("gtfFile");
-    my $maskFile = $self->getProperty("maskFile");
+  # Quantification
+  if($runQuant && lc($runQuant) eq 'true') {
+    my $maskedFile = $self->getProperty("maskedFile");
     my $topLevelFastaFile = $self->getProperty("topLevelFastaFile");
+    my $topLevelGeneFootprintFile = $self->getProperty("topLevelGeneFootprintFile");
 
+   # Cufflinks
     my $libraryType = "fr-unstranded";
 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
       my $libraryType = "fr-firststrand";
     }
 
-    $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type '$libraryType' -o $mainResultDir -G $maskFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type '$libraryType' -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
     rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.fpkm_tracking.$libraryType";
     rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.fpkm_tracking.$libraryType";
+
+    # HTSeq
+    my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
+    if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+	for (my $i=0; $i<@modes; $i++) {
+	    my $mode = $modes[$i];
+	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.sense.counts");
+	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.antisense.counts");
+	    $node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.sense.counts --fpkmFile $mainResultDir/genes.htseq-$mode.sense.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.antisense.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.antisense.fpkm");
+	}
+    }
+    else {
+	for (my $i=0; $i<@modes; $i++) {
+	    my $mode = $modes[$i];
+	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.counts");
+	$node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.counts --fpkmFile $mainResultDir/genes.htseq-$mode.fpkm");
+	}
+    }
   }
 
   # Junctions
