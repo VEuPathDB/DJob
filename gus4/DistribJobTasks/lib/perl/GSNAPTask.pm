@@ -164,14 +164,13 @@ sub cleanUpServer {
   # Quantification
   if($runQuant && lc($runQuant) eq 'true') {
     my $maskedFile = $self->getProperty("maskedFile");
-    my $topLevelFastaFile = $self->getProperty("topLevelFastaFile");
     my $topLevelGeneFootprintFile = $self->getProperty("topLevelGeneFootprintFile");
 
    # Cufflinks
     my $libraryType = "fr-unstranded";
 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      my $libraryType = "fr-firststrand";
+      $libraryType = "fr-firststrand";
     }
 
     $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type '$libraryType' -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
@@ -189,11 +188,11 @@ sub cleanUpServer {
 	}
     }
     else {
-	for (my $i=0; $i<@modes; $i++) {
-	    my $mode = $modes[$i];
-	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.counts");
+      for (my $i=0; $i<@modes; $i++) {
+        my $mode = $modes[$i];
+        $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.counts");
 	$node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.counts --fpkmFile $mainResultDir/genes.htseq-$mode.fpkm");
-	}
+      }
     }
   }
 
