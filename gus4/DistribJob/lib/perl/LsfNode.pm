@@ -42,6 +42,7 @@ EOF
     $self->{script} = $runFile;
 
     my $q = $self->getQueue();
+	my $mem = int($self->{memPerNode} * 1024);
 
     my $bsubcmd = qq^
         bsub \\
@@ -49,6 +50,7 @@ EOF
         -o $localtmpdir/djob.%J.out \\
         -e $localtmpdir/djob.%J.err \\
         @{[($q ? " -q $q" : "")]} \\
+        @{[($mem ? " -M $mem" : "")]} \\
         @{[($self->{runTime} ? " -W $self->{runTime}" : "")]} \\
         $runFile
     ^;
