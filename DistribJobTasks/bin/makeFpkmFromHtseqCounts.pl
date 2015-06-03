@@ -1,3 +1,4 @@
+#!@perl@
 # Take as input count files (two if strand-specific data, else one) from HTSeq and a gene footprint file and outputs fpkm files (two if strand-specific data, else one). The denominator in the fpkm is the product of the length of the gene footprint and the total counts (sense+antisense total if strand-specific).
 
 use strict;
