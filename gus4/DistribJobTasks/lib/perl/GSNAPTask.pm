@@ -22,10 +22,10 @@ my @properties =
  ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
  ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
  ["quantify", "true", "[true]|false: if true then runs Cufflinks and HTSeq"],
- ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
- ["isStrandSpecific", "false", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
- ["quantifyJunctions", "true", "[true]|false: if true then runs cufflinks on Unique and Multi Mappers"],
- ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
+ ["writeCovFiles", "true", "[true]|false: if true then runs sam2cov"],
+ ["isStrandSpecific", "false", "[true]|false"],
+ ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
+ ["topLevelGenomeOneLineSeqFaFaiFile", "none", "required if writeCovFiles is turned on"],
  ["topLevelGeneFootprintFile", "none", "required if quantify is true"]
 );
 
@@ -157,7 +157,7 @@ sub cleanUpServer {
   }
 
   my $runQuant = $self->getProperty("quantify");
-  my $writeBedFile = $self->getProperty("writeBedFile");
+  my $writeCovFiles = $self->getProperty("writeCovFiles");
   my $quantifyJunctions = $self->getProperty("quantifyJunctions");
   my $isStrandSpecific = $self->getProperty("isStrandSpecific");
 
@@ -167,33 +167,40 @@ sub cleanUpServer {
     my $topLevelGeneFootprintFile = $self->getProperty("topLevelGeneFootprintFile");
 
    # Cufflinks
-    my $libraryType = "fr-unstranded";
 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $libraryType = "fr-firststrand";
+	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.firststrand.fpkm_tracking";
+	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.firststrand.fpkm_tracking";
+
+	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.secondstrand.fpkm_tracking";
+	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.secondstrand.fpkm_tracking";
     }
 
-    $node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type '$libraryType' -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
-    rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.fpkm_tracking.$libraryType";
-    rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.fpkm_tracking.$libraryType";
-
+    else {
+	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.unstranded.fpkm_tracking";
+	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.unstranded.fpkm_tracking";
+    }
+    
     # HTSeq
     my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-	# IMPORTANT: Here we assume that it is the reverse read which is in the same orientation as the gene (like in the typical dUTP Illumina protocol).
 
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
-	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.sense.counts");
-	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.antisense.counts");
-	    $node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.sense.counts --fpkmFile $mainResultDir/genes.htseq-$mode.sense.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.antisense.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.antisense.fpkm");
+	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
+	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
+
+	    $node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
 	}
     }
     else {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
-        $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.counts");
-	$node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.counts --fpkmFile $mainResultDir/genes.htseq-$mode.fpkm");
+        $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
+	$node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
       }
     }
   }
@@ -203,26 +210,25 @@ sub cleanUpServer {
     $node->runCmd("gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_sorted.bam --output_file $mainResultDir/junctions.tab");
   }
 
-  # BED 
-  if($writeBedFile && lc($writeBedFile) eq 'true') {
-    die "Not yet implemented";
-    my $topLevelSeqSizeFile = $self->getProperty("topLevelSeqSizeFile");
-    unless(-e $topLevelSeqSizeFile) {
-      die "Top Level Seq Size FIle $topLevelSeqSizeFile does not exist";
+  # COVERAGE PLOTS
+  if($writeCovFiles && lc($writeCovFiles) eq 'true') {
+    my $topLevelGenomeOneLineSeqFaFaiFile = $self->getProperty("topLevelGenomeOneLineSeqFaFaiFile");
+    unless(-e $topLevelGenomeOneLineSeqFaFaiFile) {
+      die "Top Level Genome One-line Seq fa.fai File $topLevelGenomeOneLineSeqFaFaiFile does not exist";
     }
-
-    # For strand specific datasets ... write out for and rev bed files
+    $node->runCmd("samtools view $mainResultDir/${outputFileBasename}.bam > $mainResultDir/${outputFileBasename}.sam");
+    my $mateB = $self->getProperty('mateB');
+    my $isPairedEnd = 1;
+    $isPairedEnd = 0 if(lc($mateB) eq 'none');
+ 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_forward.bed");
-      $node->runCmd("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted_forward.bed");
-
-      $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted_reverse.bed");
-      $node->runCmd("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted_reverse.bed");
+      $node->runCmd("sam2cov -s 1 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.firststrand. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmd("sam2cov -s 2 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.secondstrand. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
     else {
-      $node->runCmd("bamutils tobedgraph $mainResultDir/${outputFileBasename}_unique_sorted.bam >$mainResultDir/${outputFileBasename}_unique_sorted.bed");
-      $node->runCmd("bamutils tobedgraph $mainResultDir/${outputFileBasename}_all_sorted.bam >$mainResultDir/${outputFileBasename}_all_sorted.bed");
+      $node->runCmd("sam2cov -s 0 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.unstranded. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
+    unlink("$mainResultDir/${outputFileBasename}.sam");
   }
 
   return 1;
