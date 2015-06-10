@@ -25,7 +25,7 @@ my @properties =
  ["writeCovFiles", "true", "[true]|false: if true then runs sam2cov"],
  ["isStrandSpecific", "false", "[true]|false"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
- ["topLevelGenomeOneLineSeqFaFaiFile", "none", "required if writeCovFiles is turned on"],
+ ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
  ["topLevelGeneFootprintFile", "none", "required if quantify is true"]
 );
 
@@ -212,9 +212,9 @@ sub cleanUpServer {
 
   # COVERAGE PLOTS
   if($writeCovFiles && lc($writeCovFiles) eq 'true') {
-    my $topLevelGenomeOneLineSeqFaFaiFile = $self->getProperty("topLevelGenomeOneLineSeqFaFaiFile");
-    unless(-e $topLevelGenomeOneLineSeqFaFaiFile) {
-      die "Top Level Genome One-line Seq fa.fai File $topLevelGenomeOneLineSeqFaFaiFile does not exist";
+    my $topLevelFastaFaiFile = $self->getProperty("topLevelFastaFaiFile");
+    unless(-e $topLevelFastaFaiFile) {
+      die "Top Level Genome fa.fai File $topLevelFastaFaiFile does not exist";
     }
     $node->runCmd("samtools view $mainResultDir/${outputFileBasename}.bam > $mainResultDir/${outputFileBasename}.sam");
     my $mateB = $self->getProperty('mateB');
@@ -222,11 +222,11 @@ sub cleanUpServer {
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
  
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("sam2cov -s 1 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.firststrand. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
-      $node->runCmd("sam2cov -s 2 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.secondstrand. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmd("sam2cov -s 1 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.firststrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmd("sam2cov -s 2 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.secondstrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
     else {
-      $node->runCmd("sam2cov -s 0 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.unstranded. $topLevelGenomeOneLineSeqFaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmd("sam2cov -s 0 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.unstranded. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
     unlink("$mainResultDir/${outputFileBasename}.sam");
   }
