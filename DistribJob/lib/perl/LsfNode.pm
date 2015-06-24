@@ -202,7 +202,7 @@ sub checkJobStatus {
   print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /$jobId/;
 
   my $flag = $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
-  print STDERR "Found non-running status '$1' for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
+  print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
   return $flag;
 }
 
