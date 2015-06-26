@@ -19,7 +19,7 @@ while(<F>) {
   if (!$nodeClass && /nodeclass = (\S+)/) {
     $nodeClass = $1;
     my $nodePath = $nodeClass;
-    my $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
+    $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
     require "$nodePath.pm";
   }
   if (!$inputDir && /^inputdir = (\S+)/) { 
