@@ -16,14 +16,19 @@ my @jobsToKill;
 
 while(<F>) {
 
+  # only do this the first time we see an input dir
+  if (!$inputDir && /^inputdir = (\S+)/) {
+    $inputDir = $1;
+  }
+
+  # only do this the first time we see nodeclass.  we should have input dir by now
   if (!$nodeClass && /nodeclass = (\S+)/) {
+    die "Expected to find 'inputdir =' in log before 'nodeclass ='\n" unless $inputDir;
     $nodeClass = $1;
     my $nodePath = $nodeClass;
     $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
     require "$nodePath.pm";
-  }
-  if (!$inputDir && /^inputdir = (\S+)/) { 
-    $inputDir = $1;
+
     my $jobInfoFile = "$inputDir/distribjobJobInfo.txt";
     if (-e $jobInfoFile) {
       open(J, $jobInfoFile) || die "can't open job info file '$jobInfoFile'\n";
