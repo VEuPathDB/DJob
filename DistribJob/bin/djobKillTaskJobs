@@ -23,7 +23,7 @@ while(<F>) {
 
   # only do this the first time we see nodeclass.  we should have input dir by now
   if (!$nodeClass && /nodeclass = (\S+)/) {
-    die "Expected to find 'inputdir =' in log before 'nodeclass ='\n" unless $inputDir;
+    die "Error: expected to find 'inputdir =' in log before 'nodeclass ='\n" unless $inputDir;
     $nodeClass = $1;
     my $nodePath = $nodeClass;
     $nodePath =~ s/::/\//g;       # work around perl 'require' weirdness
