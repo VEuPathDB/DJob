@@ -173,7 +173,8 @@ sub getQueueSubmitCommand {
 
 # static method to extract Job Id from job submitted file text
 # used to get job id for distribjob itself
-sub getJobIdFromJobSubmittedFile {
+# return job id
+sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
   # Job <356327> is submitted to default queue <normal>
@@ -188,6 +189,13 @@ sub getCheckStatusCmd {
   my ($class, $jobId) = @_;
 
   return "bjobs $jobId";
+}
+
+# static method to provide command to run kill jobs
+sub getKillJobCmd {
+  my ($class, $jobIds) = @_;
+
+  return "bkill $jobIds";
 }
 
 # static method to extract status from status file
