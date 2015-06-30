@@ -23,7 +23,7 @@ usage() unless ($regex && $blastParamsFile && $tarFile);
 
 die "tar file '$tarFile' does not exist\n" unless -e $tarFile;
 
-die "tar file '$tarFile' does not end in .tar\n" unless $tarFile =~ /\.tar(\.gz)?$/;
+die "tar file '$tarFile' does not end in .tar or .tar.gz\n" unless $tarFile =~ /\.tar(\.gz)?$/;
 
 my $z = ($tarFile =~ /\.gz$/)? 'z' : '';
 my $cmd = "tar -xf$z $tarFile";

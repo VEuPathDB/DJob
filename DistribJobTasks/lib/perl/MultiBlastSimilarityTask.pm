@@ -63,7 +63,7 @@ sub getInputSetSize {
     &runCmd("tar -xzf $tarredDir");
 
     opendir(DIR, $fastaDir) || die "can't open inputDir '$fastaDir'\n";
-    @files = readdir(DIR);
+    my @files = readdir(DIR);
     $self->{fastaFiles} = \@files;
     closedir(DIR);
     return scalar(@files);
@@ -75,6 +75,8 @@ sub initSubTask {
     die "initSubTask:  end must equal start.  start=$start end=$end\n" unless $start = $end;
 
     my $dbFilePath = $self->{fastaFiles}->[$start];
+    my $blastBin = $self->getProperty("blastBinDir");
+    my $dbType = $self->getProperty("dbType");
     &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "formatdb -i $dbFilePath -p ".($dbType eq 'p' ? 'T' : 'F'));
 }
 
