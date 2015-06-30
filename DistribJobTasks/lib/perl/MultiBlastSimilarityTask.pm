@@ -57,10 +57,14 @@ sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
     my $tarredDir = $self->getProperty("fastasTarPath");
-    $tarredDir =~ /(.*)\.tar\.gz/ || die "property fastasTarPath must be a .tar.gz file";
-    my $fastaDir = $1;
+    $tarredDir =~ /(.*)\/(.*)\.tar\.gz/ || die "property fastasTarPath must be a .tar.gz file";
+    my $baseDir = $1;
+    my $fastaDir = $2;
+    chdir $baseDir || die "Can't chdir to '$baseDir'";
+    my $cmd = "tar -xzf $tarredDir";
+    print STDERR "running: $cmd";
 
-    &runCmd("tar -xzf $tarredDir");
+    &runCmd($cmd);
 
     opendir(DIR, $fastaDir) || die "can't open inputDir '$fastaDir'\n";
     my @files = readdir(DIR);
