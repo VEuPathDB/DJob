@@ -1,4 +1,4 @@
-package DJob::DistribJobTasks::BlastSimilarityTask;
+package DJob::DistribJobTasks::MultiBlastSimilarityTask;
 
 use DJob::DistribJob::Task;
 use CBIL::Bio::FastaFileSequential;
@@ -18,7 +18,7 @@ my @properties =
 (
  ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
  ["blastBinDir",   "default",   "eg, /genomics/share/bin"],
- ["fastaDirFilePath",   "",     "full path tar file containing fasta files"],
+ ["fastaDirPath",   "",     "full path to tar file containing fasta files"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
  ["pValCutoff",      "1e-5",  "[1e-5]"],
  ["lengthCutoff",    "10",    "[10]"],
@@ -40,13 +40,13 @@ sub initServer {
     my ($self, $inputDir) = @_;
 
     my $blastBin = $self->getProperty("blastBinDir");
-    my $inputDirTar = $self->getProperty("inputDirTar");
+    my $fastasTarPath = $self->getProperty("fastasTarPath");
     my $dbType = $self->getProperty("dbType");
     my $blastProgram = $self->getProperty("blastProgram");
     my $blastVendor = $self->getProperty("blastVendor");
 
     die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
-    die "inputDirTar $inputDirTar doesn't exist" unless -d "$inputDirTar";
+    die "fastasTarPath '$fastasTarPath' doesn't exist" unless -d "$fastasTarPath";
 }
 
 sub initNode {
@@ -56,8 +56,8 @@ sub initNode {
 sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
-    my $tarredDir = $self->getProperty("inputDirTar");
-    $tarredDir =~ /(.*)\.tar\.gz/ || die "inputDirTar is not a .tar.gz file";
+    my $tarredDir = $self->getProperty("fastasTarPath");
+    $tarredDir =~ /(.*)\.tar\.gz/ || die "property fastasTarPath must be a .tar.gz file";
     my $fastaDir = $1;
 
     &runCmd("tar -xzf $tarredDir");
