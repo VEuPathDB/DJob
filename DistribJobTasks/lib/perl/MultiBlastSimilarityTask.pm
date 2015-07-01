@@ -46,7 +46,7 @@ sub initServer {
     my $blastVendor = $self->getProperty("blastVendor");
 
     die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
-    die "fastasTarPath '$fastasTarPath' doesn't exist" unless -d "$fastasTarPath";
+    die "fastasTarPath '$fastasTarPath' doesn't exist" unless -e "$fastasTarPath";
 }
 
 sub initNode {
@@ -61,13 +61,13 @@ sub getInputSetSize {
     my $baseDir = $1;
     my $fastaDir = $2;
     chdir $baseDir || die "Can't chdir to '$baseDir'";
-    my $cmd = "tar -xzf $tarredDir";
+    my $cmd = "tar -xzf $fastaDir.tar.gz";
     print STDERR "running: $cmd";
 
     &runCmd($cmd);
 
     opendir(DIR, $fastaDir) || die "can't open inputDir '$fastaDir'\n";
-    my @files = readdir(DIR);
+    my @files = grep(/fasta/, readdir(DIR));
     $self->{fastaFiles} = \@files;
     closedir(DIR);
     return scalar(@files);
@@ -78,31 +78,20 @@ sub initSubTask {
 
     die "initSubTask:  end must equal start.  start=$start end=$end\n" unless $start = $end;
 
-    my $dbFilePath = $self->{fastaFiles}->[$start];
-    my $blastBin = $self->getProperty("blastBinDir");
-    my $dbType = $self->getProperty("dbType");
-    &runCmd(($blastBin eq 'default' ? "" : "$blastBin/") . "formatdb -i $dbFilePath -p ".($dbType eq 'p' ? 'T' : 'F'));
+    $self->{tarFile} = $self->{fastaFiles}->[$start];
 }
 
 sub makeSubTaskCommand { 
     my ($self, $node, $inputDir, $nodeExecDir) = @_;
 
-    my $blastBin = $self->getProperty("blastBinDir");
-    my $blastVendor = $self->getProperty("blastVendor");
     my $lengthCutoff = $self->getProperty("lengthCutoff");
     my $pValCutoff = $self->getProperty("pValCutoff");
     my $percentCutoff = $self->getProperty("percentCutoff");
-    my $blastProgram = $self->getProperty("blastProgram");
     my $regex = $self->getProperty("regex");
     my $blastParamsFile = $self->getProperty("blastParamsFile");
     my $dbFilePath = $self->getProperty("dbFilePath");
-    my $doNotExitOnBlastFailure = $self->getProperty("doNotExitOnBlastFailure");
 
-
-    my $cmd =  "blastSimilarity  --blastBinDir $blastBin --database $dbFilePath --seqFile $dbFilePath --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastProgram $blastProgram --blastVendor $blastVendor --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile".($doNotExitOnBlastFailure =~ /yes/i ? " --doNotExitOnBlastFailure" : "");
-
-    my $printSimSeqsFile = $self->getProperty("printSimSeqsFile");
-    $cmd .= " --printSimSeqsFile" if $printSimSeqsFile eq 'yes';
+    my $cmd =  "multiSelfBlastSimilarity  --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile --tarFile";
 
     return $cmd;
 }
