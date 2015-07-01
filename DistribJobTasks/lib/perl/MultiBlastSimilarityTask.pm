@@ -18,12 +18,12 @@ my @properties =
 (
  ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
  ["blastBinDir",   "default",   "eg, /genomics/share/bin"],
+ ["blastProgram",   "blastp",     "this property is only included for compatibility with BlastSimilarityTask"
  ["fastasTarPath",   "",     "full path to tar file containing fasta files"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
  ["pValCutoff",      "1e-5",  "[1e-5]"],
  ["lengthCutoff",    "10",    "[10]"],
  ["percentCutoff",   "20",    "[20]"],
- ["blastProgram",    "",     "rpsblast if cdd | any wu-blast"],
  ["regex",           "'(\\S+)'",     "regex for id on defline after the >"],
  ["blastParamsFile", "",    "file holding blast params -relative to inputdir"],
  ["doNotExitOnBlastFailure", "no", "if 'yes' then prints error in output file rather than causing subtask to fail"],
@@ -42,7 +42,6 @@ sub initServer {
     my $blastBin = $self->getProperty("blastBinDir");
     my $fastasTarPath = $self->getProperty("fastasTarPath");
     my $dbType = $self->getProperty("dbType");
-    my $blastProgram = $self->getProperty("blastProgram");
     my $blastVendor = $self->getProperty("blastVendor");
 
     die "blastBinDir $blastBin doesn't exist" unless ( $blastBin eq 'default' ||  -e $blastBin);
@@ -59,16 +58,16 @@ sub getInputSetSize {
     my $tarredDir = $self->getProperty("fastasTarPath");
     $tarredDir =~ /(.*)\/(.*)\.tar\.gz/ || die "property fastasTarPath must be a .tar.gz file";
     my $baseDir = $1;
-    my $fastaDir = $2;
+    my $tarballsDir = $2;
     chdir $baseDir || die "Can't chdir to '$baseDir'";
-    my $cmd = "tar -xzf $fastaDir.tar.gz";
+    my $cmd = "tar -xzf $tarballsDir.tar.gz";
     print STDERR "running: $cmd";
 
     &runCmd($cmd);
 
-    opendir(DIR, $fastaDir) || die "can't open inputDir '$fastaDir'\n";
-    my @files = grep(/fasta/, readdir(DIR));
-    $self->{fastaFiles} = \@files;
+    opendir(DIR, $tarballsDir) || die "can't open inputDir '$tarballsDir'\n";
+    my @files = map { "$baseDir/$tarballsDir/$_"; } grep(/\w/, readdir(DIR)); # skip . and ..
+    $self->{tarFiles} = \@files;
     closedir(DIR);
     return scalar(@files);
 }
@@ -76,9 +75,9 @@ sub getInputSetSize {
 sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir, $subTask) = @_;
 
-    die "initSubTask:  end must equal start.  start=$start end=$end\n" unless $start = $end;
+    die "initSubTask error:  task size must be 1.  start=$start end=$end\n" unless $start +1 == $end;
 
-    $self->{tarFile} = $self->{fastaFiles}->[$start];
+    $self->{tarFile} = $self->{tarFiles}->[$start];
 }
 
 sub makeSubTaskCommand { 
@@ -89,9 +88,8 @@ sub makeSubTaskCommand {
     my $percentCutoff = $self->getProperty("percentCutoff");
     my $regex = $self->getProperty("regex");
     my $blastParamsFile = $self->getProperty("blastParamsFile");
-    my $dbFilePath = $self->getProperty("dbFilePath");
 
-    my $cmd =  "multiSelfBlastSimilarity  --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --regex $regex --blastParamsFile $nodeExecDir/$blastParamsFile --tarFile";
+    my $cmd =  "multiSelfBlastSimilarity --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --regex $regex --blastParamsFile $inputDir/$blastParamsFile --tarFile $self->{tarFile}";
 
     return $cmd;
 }
