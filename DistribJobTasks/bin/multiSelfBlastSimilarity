@@ -30,7 +30,7 @@ my $dirName = $1;
 mkdir $dirName || die "can't make directory '$dirName'";
 
 my $z = ($tarFile =~ /\.gz$/)? 'z' : '';
-my $cmd = "tar -x${z}f $tarFile -C $dirName";
+my $cmd = "tar x${z}f $tarFile -C $dirName";
 system($cmd) && die "Error running cmd $cmd\n$?\n";
 
 #my $pwd = cwd();
@@ -49,12 +49,12 @@ foreach my $fasta (@fasta) {
     $cmd = "blastSimilarity --database $dirName/$fasta --blastProgram blastp --seqFile $dirName/$fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex '$regex' --blastParamsFile $blastParamsFile --printSimSeqsFile";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
     
-    $cmd = "cat blastSimilarities.out >> gatheredResult";
+    $cmd = "cat blastSimilarity.out >> gatheredResult";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
 }
 
 # move gathered result to output file expected by the djob subtask
-$cmd = "mv gatheredResult blastSimilarities.out";
+$cmd = "mv gatheredResult blastSimilarity.out";
 system($cmd) && die "Error running cmd $cmd\n$?\n";
 
 #################################### sub routines ########################################
