@@ -228,7 +228,7 @@ sub error {
 sub stopKillBadBlast {
     print LOG "Attempting to stop killBadBlast\n";
     
-    foreach my $p (`ps -auxwww | grep killBad | grep -v "ps " | grep -v grep`){
+    foreach my $p (`ps auxwww | grep killBad | grep -v "ps " | grep -v grep`){
 	if($p =~ /^\S+\s+(\d+)/){
 	    system("kill -9 $1");
 	    print LOG "... Stopping killBadBlast process: $p\n";
