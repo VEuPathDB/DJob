@@ -36,9 +36,10 @@ system($cmd) && die "Error running cmd $cmd\n$?\n";
 #my $pwd = cwd();
 my @fasta;
 opendir(my $dh, $dirName) || die "Can't open dir '$dirName'\n";
-while(readdir $dh) {
-    next if /^\./;
-    push(@fasta, $_);
+my @files = readdir($dh);
+foreach my $file (@files) {
+    next if $file =~ /^\./;
+    push(@fasta, $file);
 }
 closedir $dh;
 
