@@ -15,7 +15,8 @@ my @properties =
  ["mateB",   "none",     "full path to paired reads file (optional)"],
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
- ["maskedFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for Cufflinks and HTseq"],
+ ["gtfFile",   "none",     "full path to the gtf file (rRNAs removed)"],
+ ["maskFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for Cufflinks and HTseq"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
  ["outputFileBasename", "results", "Base name for the results file"],
@@ -163,7 +164,7 @@ sub cleanUpServer {
 
   # Quantification
   if($runQuant && lc($runQuant) eq 'true') {
-    my $maskedFile = $self->getProperty("maskedFile");
+    my $maskedFile = $self->getProperty("maskFile");
     my $topLevelGeneFootprintFile = $self->getProperty("topLevelGeneFootprintFile");
 
    # Cufflinks
