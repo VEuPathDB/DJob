@@ -491,12 +491,18 @@ sub cleanUp {
   }
 }
 
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+  die "must be overridden by subclass";
+}
+
 # static method to extract Job Id from job id file text
 # used to get job id for distribjob itself
-sub parseJobIdFile {
-  my ($class, $jobIdString) = @_;
+sub getJobIdFromJobInfoString {
+  my ($class, $jobInfoString) = @_;
 
-  die "parseJobIdFile() must be overridden by subclass";
+  die "getJobIdFromJobInfoString() must be overridden by subclass";
 }
 
 # static method to provide command to run to get status of a job
@@ -509,17 +515,13 @@ sub getCheckStatusCmd {
 
 # static method to extract status from status file
 # used to check status of distribjob itself
+# return 1 if still running
 sub checkJobStatus {
-  my ($class, $statusFileString) = @_;
+  my ($class, $statusFileString, $jobId) = @_;
 
   die "checkJobStatus() must be overridden by subclass";
 }
 
-# static method
-sub getQueueSubmitCommand {
-  my ($class, $queue) = @_;
-  die "must be overridden by subclass";
-}
 
 sub deleteLogFilesAndTmpDir {
   die "must override the deleteLogFilesAndTmpDir method in the subclass\n";

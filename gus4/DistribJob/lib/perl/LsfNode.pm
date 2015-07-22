@@ -173,7 +173,8 @@ sub getQueueSubmitCommand {
 
 # static method to extract Job Id from job submitted file text
 # used to get job id for distribjob itself
-sub getJobIdFromJobSubmittedFile {
+# return job id
+sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
   # Job <356327> is submitted to default queue <normal>
@@ -190,6 +191,13 @@ sub getCheckStatusCmd {
   return "bjobs $jobId";
 }
 
+# static method to provide command to run kill jobs
+sub getKillJobCmd {
+  my ($class, $jobIds) = @_;
+
+  return "bkill $jobIds";
+}
+
 # static method to extract status from status file
 # used to check status of distribjob itself
 # return 1 if still running.
@@ -202,7 +210,7 @@ sub checkJobStatus {
   print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /$jobId/;
 
   my $flag = $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
-  print STDERR "Found non-running status '$1' for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
+  print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
   return $flag;
 }
 

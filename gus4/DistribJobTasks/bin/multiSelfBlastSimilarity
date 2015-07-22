@@ -23,35 +23,39 @@ usage() unless ($regex && $blastParamsFile && $tarFile);
 
 die "tar file '$tarFile' does not exist\n" unless -e $tarFile;
 
-die "tar file '$tarFile' does not end in .tar\n" unless $tarFile =~ /\.tar(\.gz)?$/;
+die "tar file '$tarFile' does not end in .tar or .tar.gz\n" unless $tarFile =~ /\.tar(\.gz)?$/;
+
+$tarFile =~/(\S+).tar/;
+my $dirName = $1;
+mkdir $dirName || die "can't make directory '$dirName'";
 
 my $z = ($tarFile =~ /\.gz$/)? 'z' : '';
-my $cmd = "tar -xf$z $tarFile";
+my $cmd = "tar x${z}f $tarFile -C $dirName";
 system($cmd) && die "Error running cmd $cmd\n$?\n";
 
-my $pwd = cwd();
+#my $pwd = cwd();
 my @fasta;
-opendir(my $dh, $pwd) || die "Can't open dir '$pwd'\n";
-while(readdir $dh) {
-    next if /^\./;
-    push(@fasta, $_);
+opendir(my $dh, $dirName) || die "Can't open dir '$dirName'\n";
+my @files = readdir($dh);
+foreach my $file (@files) {
+    next if $file =~ /^\./;
+    push(@fasta, $file);
 }
 closedir $dh;
 
 foreach my $fasta (@fasta) {
-    die "fasta file '$fasta' does not end in .fasta\n" unless $fasta =~ /\.fasta$/;
-    $cmd = "formatdb -i $fasta -p T";
+    $cmd = "formatdb -i $dirName/$fasta -p T";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
     
-    $cmd = "blastSimilarity --database $fasta --seqFile $fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex $regex --blastParamsFile $blastParamsFile --printSimSeqsFile";
+    $cmd = "blastSimilarity --database $dirName/$fasta --blastProgram blastp --seqFile $dirName/$fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex '$regex' --blastParamsFile $blastParamsFile --printSimSeqsFile";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
     
-    $cmd = "cat blastSimilarities.out >> gatheredResult";
+    $cmd = "cat blastSimilarity.out >> gatheredResult";
     system($cmd) && die "Error running cmd $cmd\n$?\n";
 }
 
 # move gathered result to output file expected by the djob subtask
-$cmd = "mv gatheredResult blastSimilarities.out";
+$cmd = "mv gatheredResult blastSimilarity.out";
 system($cmd) && die "Error running cmd $cmd\n$?\n";
 
 #################################### sub routines ########################################

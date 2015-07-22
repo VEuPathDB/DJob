@@ -233,7 +233,7 @@ sub run {
             }
             print "New node created to replace failed node (".$node->getJobid().")\n";
             $ctNewNodes++;
-            if($ctNewNodes >= 50){
+            if($ctNewNodes >= 100){
               print "ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n";
               $self->cleanupAndExitOnFailure($sock);
             }
