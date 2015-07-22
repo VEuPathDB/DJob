@@ -42,20 +42,25 @@ sub initServer {
   my ($self, $inputDir) = @_;
   ##need to download fastq from sra if sample ids passed in.
   my $sidlist = $self->getProperty('sraSampleIdQueryList');
+  my $isColorspace= $self->getProperty('isColorspace');
   if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
     if(!$mateA || $mateA eq 'none'){
-      $mateA = "$inputDir/reads_1.fastq";
+      $mateA = $isColorspace eq 'true' ? "$inputDir/reads_1.csfasta" : "$inputDir/reads_1.fastq";
       $self->setProperty('mateA',"$mateA");
-      $mateB = "$inputDir/reads_2.fastq";
+      $mateB = $isColorspace eq 'true' ? "$inputDir/reads_2.csfasta" : "$inputDir/reads_2.fastq";
       $self->setProperty('mateB',"$mateB");
     }
     if(-e "$mateA"){
       print "reads file $mateA already present so not retrieving from SRA\n";
     }else{  ##need to retrieve here
       print "retrieving reads from SRA for '$sidlist'\n";
-      $self->{nodeForInit}->runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+      my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'";
+      if($isColorspace eq 'true'){
+	   $sraCmd .= " --isColorspace";
+    }
+      $self->{nodeForInit}->runCmd($sraCmd);
     }
   } 
 }

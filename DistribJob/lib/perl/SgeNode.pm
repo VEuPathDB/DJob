@@ -163,9 +163,16 @@ sub deleteLogFilesAndTmpDir {
   }
 }
 
+# static method
+sub getQueueSubmitCommand {
+  my ($class, $queue) = @_;
+
+  return "qsub -V -cwd -q $queue"
+}
+
 # static method to extract Job Id from job submitted file text
 # used to get job id for distribjob itself
-sub getJobIdFromJobSubmittedFile {
+sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
   # Your job 1580354 ("script") has been submitted
@@ -181,6 +188,13 @@ sub getCheckStatusCmd {
   return "qstat -j $jobId";
 }
 
+# static method to provide command to run kill jobs
+sub getKillJobCmd {
+  my ($class, $jobIds) = @_;
+
+  return "qdel $jobIds";
+}
+
 # static method to extract status from status file
 # used to check status of distribjob itself
 # return 1 if still running.
@@ -190,13 +204,6 @@ sub checkJobStatus {
 #5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
 
   return $statusFileString =~ /$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
-}
-
-# static method
-sub getQueueSubmitCommand {
-  my ($class, $queue) = @_;
-
-  return "qsub -V -cwd -q $queue"
 }
 
 1;

@@ -25,7 +25,7 @@ while (1){
   my %currentSnapshot;
 
   # take snapshot
-  my @procs = `ps -auxwww`;
+  my @procs = `ps auxwww`;
   foreach my $p (@procs){
 #pinney    7035  0.0  8.3 947612 172572 ?     S    16:34   0:00 /genomics/share/pkg/bio/ncbi-blast/current/rpsblast -d /scratch/user/pinney/All -i seqTmp -a 2 -e .1 -p F 
     #pspinney    9803 99.5  0.4 45732 8992 ?        R    16:21   0:08 /genomics/share/pkg/bio/wu-blast/current/blastx /scratch/user/pinney/
