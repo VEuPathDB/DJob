@@ -1,0 +1,4 @@
+#!/bin/sh
+
+bjobs -u all -a | grep -v DONE | grep -v ZOMBI | grep -v EXIT | perl -e 'while(<STDIN>){my @tmp = split(/\s+/,$_);$user{$tmp[1]}->{$tmp[2]}++;$ct{$tmp[1]}++;$ctRun++ if $tmp[2] eq "RUN";$ctPend++ if $tmp[2] eq "PEND";} print "users\t\tRUN\tPEND\n";foreach my $u (sort{$ct{$b} <=> $ct{$a}}keys%ct){print "$u\t\t$user{$u}->{RUN}\t$user{$u}->{PEND}\n" if($user{$u}->{RUN} || $user{$u}->{PEND});} print "\nTotals:\t\t$ctRun\t$ctPend\n";'
+
