@@ -11,6 +11,7 @@ use File::Basename;
 my $KILLNOW = 2;
 
 
+
 $| = 1;
 
 # [name, default (or null if reqd), comment]
@@ -35,6 +36,10 @@ sub new {
 
   my $self = {};
   bless $self;
+
+  END { 
+    $self->cleanupOnExit();
+  }
 
   $self->{runTime} = $runTime;
   $self->{parInit} = $parInit;
@@ -116,6 +121,7 @@ $restartInstructions
                                      Reuse => 1,
                                     );
   } until ( $sock );
+  $self->{sock} = $sock;
   my $sel = IO::Select->new($sock);
 
   my $amRunning = 0;
@@ -234,8 +240,7 @@ sub run {
             print "New node created to replace failed node (".$node->getJobid().")\n";
             $ctNewNodes++;
             if($ctNewNodes >= 100){
-              print "ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n";
-              $self->cleanupAndExitOnFailure($sock);
+              die("ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n");
             }
             push(@nodes,$tmpNode);
             next;
@@ -344,8 +349,7 @@ sub getNodeMsgs {
       $ctFailedFileHandles++;
       print "ERROR: getNodeMsgs: There is no file handle from socket\n";
       if($ctFailedFileHandles >= 1000){
-        print "ERROR:  maximum number ($ctFailedFileHandles) of failed file handles reached so exiting\n";
-        $self->cleanupAndExitOnFailure($sock);
+        die("ERROR:  maximum number ($ctFailedFileHandles) of failed file handles reached so exiting\n");
       }
       next;
     }
@@ -373,17 +377,16 @@ sub getNodeMsgs {
   }
 }
 
-sub cleanupAndExitOnFailure {
-  my($self,$sock) = @_;  ##note that @nodes is global variable
-  print "  Cleaning up and exiting .... \n";
+sub cleanupOnExit {
+  my($self,$err) = @_;  ##note that @nodes is global variable
+##  print "  Cleaning up and exiting .... \n";
   ##cleanup all nodes
   foreach my $node (@nodes) {
     $node->cleanUp(1);
   }
   ##need to also cleanup any nodes that are in @failedNodes
   $self->manageFailedNodes(1);
-  close($sock);
-  exit(1);
+  close($self->{sock});
 }
 
 # return undef if failed
@@ -421,7 +424,7 @@ sub readPropFile {
 	if ($props->getProp('slotspernode') < 1 
 	    || $props->getProp('slotspernode') > 10);
 	
-    die "\nError: property 'subtasksize' in $propfile must be between 1 and 100000\n" 
+    die "\nError: property 'subtasksize' in $propfile must be between 1 and 10000000\n" 
 	if ($props->getProp('subtasksize') < 1 
 	    || $props->getProp('subtasksize') > 10000000);
 

@@ -178,8 +178,13 @@ if ($self->_fileExists($self->{workingDir})) {
   return 1;
 }
 
-sub runCmd {
+sub runCmdExitIfFail {
   my ($self, $cmd, $ignoreErr,$checkingNode) = @_;
+  $self->runCmd($cmd, $ignoreErr,$checkingNode,1);
+}
+
+sub runCmd {
+  my ($self, $cmd, $ignoreErr,$checkingNode,$exitIfFail) = @_;
 #  print "runCmd: '$cmd',$ignoreErr,$checkingNode\n";
   return undef if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
@@ -187,6 +192,7 @@ sub runCmd {
     print "Failed to get Sock for $self->{nodeNum} ($self->{jobid}) running command '$cmd'\n";
     $self->failNode();
     $self->setErr(1);
+    die "Failure making socket connection\n" if $exitIfFail;
     return undef;
   }
   print $sock "$cmd\n";
@@ -197,7 +203,10 @@ sub runCmd {
       $self->setErr($err) unless $checkingNode;
       if($err && !$ignoreErr){
         print "Node ".$self->getNodeAddress()." (".$self->getJobid()."): Failed with status $err running '$cmd' ... ";
-        if($self->checkNode()){
+        if($exitIfFail){
+          die "Command called in exit if failure mode so exiting\n";
+          
+        }elsif($self->checkNode()){
           print "node is OK so not inactivating\n";
           return undef;
         }else{
@@ -378,20 +387,21 @@ sub initializeTask {
   $self->setState($INITIALIZINGTASK);
   $self->{task} = $task;
   my $pid;
- FORK: {
-    if($pid = fork){
-      $self->{taskPid} = $pid;
-    }elsif(defined $pid) {  
-      $self->_initTask($task,$inputDir);
-      exit;
-    }elsif($! =~ /No more process/){
-      print "Forking failure: $!\n";
-      sleep 1;
-      redo FORK;
-    } else {
-      die "Unable to fork: $!\n";
-    }
-  } 
+  $self->_initTask($task,$inputDir);
+## FORK: {
+##    if($pid = fork){
+##      $self->{taskPid} = $pid;
+##    }elsif(defined $pid) {  
+##      $self->_initTask($task,$inputDir);
+##      exit;
+##    }elsif($! =~ /No more process/){
+##      print "Forking failure: $!\n";
+##      sleep 1;
+##      redo FORK;
+##    } else {
+##      die "Unable to fork: $!\n";
+##    }
+##  } 
 }
 
 ##returns stored task object for use later...
