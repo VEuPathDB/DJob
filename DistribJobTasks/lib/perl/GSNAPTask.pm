@@ -136,14 +136,14 @@ sub cleanUpServer {
   die "Did not find  bam files in $mainResultDir/*_node.bam" unless(scalar @bams > 0);
 
   if(scalar @bams > 1) {
-    $node->runCmd("samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
+    $node->runCmdExitIfFail("samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
   }
   else {
-    $node->runCmd("cp $bams[0] $mainResultDir/${outputFileBasename}.bam");
+    $node->runCmdExitIfFail("cp $bams[0] $mainResultDir/${outputFileBasename}.bam");
   }
 
   # sort bams by location
-  $node->runCmd("samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
+  $node->runCmdExitIfFail("samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*_node.bam";
@@ -170,17 +170,17 @@ sub cleanUpServer {
    # Cufflinks
 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$node->runCmdExitIfFail("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.firststrand.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.firststrand.fpkm_tracking";
 
-	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$node->runCmdExitIfFail("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.secondstrand.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.secondstrand.fpkm_tracking";
     }
 
     else {
-	$node->runCmd("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$node->runCmdExitIfFail("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.unstranded.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.unstranded.fpkm_tracking";
     }
@@ -191,24 +191,24 @@ sub cleanUpServer {
 
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
-	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
-	    $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
+	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
+	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
 
-	    $node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
+	    $node->runCmdExitIfFail("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
 	}
     }
     else {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
-        $node->runCmd("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
-	$node->runCmd("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
+        $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
+	$node->runCmdExitIfFail("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
       }
     }
   }
 
   # Junctions
   if($quantifyJunctions && lc($quantifyJunctions eq 'true')) {
-    $node->runCmd("gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_sorted.bam --output_file $mainResultDir/junctions.tab");
+    $node->runCmdExitIfFail("gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_sorted.bam --output_file $mainResultDir/junctions.tab");
   }
 
   # COVERAGE PLOTS
@@ -217,17 +217,17 @@ sub cleanUpServer {
     unless(-e $topLevelFastaFaiFile) {
       die "Top Level Genome fa.fai File $topLevelFastaFaiFile does not exist";
     }
-    $node->runCmd("samtools view $mainResultDir/${outputFileBasename}.bam > $mainResultDir/${outputFileBasename}.sam");
+    $node->runCmdExitIfFail("samtools view $mainResultDir/${outputFileBasename}.bam > $mainResultDir/${outputFileBasename}.sam");
     my $mateB = $self->getProperty('mateB');
     my $isPairedEnd = 1;
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
  
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-      $node->runCmd("sam2cov -s 1 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.firststrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
-      $node->runCmd("sam2cov -s 2 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.secondstrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmdExitIfFail("sam2cov -s 1 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.firststrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmdExitIfFail("sam2cov -s 2 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.secondstrand. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
     else {
-      $node->runCmd("sam2cov -s 0 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.unstranded. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
+      $node->runCmdExitIfFail("sam2cov -s 0 -e $isPairedEnd -p $mainResultDir/${outputFileBasename}.unstranded. $topLevelFastaFaiFile $mainResultDir/${outputFileBasename}.sam");
     }
     unlink("$mainResultDir/${outputFileBasename}.sam");
   }
