@@ -42,6 +42,7 @@ EOF
     $self->{script} = $runFile;
 
     my $q = $self->getQueue();
+	my $mem = int($self->{memPerNode} * 1024);
 
     my $bsubcmd = qq^
         bsub \\
@@ -49,6 +50,7 @@ EOF
         -o $localtmpdir/djob.%J.out \\
         -e $localtmpdir/djob.%J.err \\
         @{[($q ? " -q $q" : "")]} \\
+        @{[($mem ? " -M $mem" : "")]} \\
         @{[($self->{runTime} ? " -W $self->{runTime}" : "")]} \\
         $runFile
     ^;
@@ -171,7 +173,8 @@ sub getQueueSubmitCommand {
 
 # static method to extract Job Id from job submitted file text
 # used to get job id for distribjob itself
-sub getJobIdFromJobSubmittedFile {
+# return job id
+sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
   # Job <356327> is submitted to default queue <normal>
@@ -188,6 +191,13 @@ sub getCheckStatusCmd {
   return "bjobs $jobId";
 }
 
+# static method to provide command to run kill jobs
+sub getKillJobCmd {
+  my ($class, $jobIds) = @_;
+
+  return "bkill $jobIds";
+}
+
 # static method to extract status from status file
 # used to check status of distribjob itself
 # return 1 if still running.
@@ -197,7 +207,11 @@ sub checkJobStatus {
 #JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
 #282054  brunkb  EXIT  normal     node062.hpc node057.hpc DJob_18464 Oct  3 14:10
 
-  return $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /$jobId/;
+
+  my $flag = $statusFileString =~ /$jobId\s+\S+\s+(RUN|PEND|WAIT)/;
+  print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
+  return $flag;
 }
 
 
