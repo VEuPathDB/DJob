@@ -218,13 +218,15 @@ sub cleanUpServer {
 #      die "Top Level Genome fa.fai File $topLevelFastaFaiFile does not exist";
 #    }
 
+      $node->runCmdExitIfFail("samtools index $mainResultDir/${outputFileBasename}_sorted.bam");
+
     my $mateB = $self->getProperty('mateB');
     my $isPairedEnd = 1;
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
  
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true' && !$isPairedEnd) {
-      $node->runCmdExitIfFail("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
-      $node->runCmdExitIfFail("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
+      $node->runCmdExitIfFail("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
+      $node->runCmdExitIfFail("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
     }
 
     elsif($isStrandSpecific && lc($isStrandSpecific) eq 'true' && $isPairedEnd) {
@@ -233,10 +235,10 @@ sub cleanUpServer {
 
 	# 1. alignments of the second in pair if they map to the forward strand
 	# 2. alignments of the first in pair if they map to the reverse  strand
-	$node->runCmdExitIfFail("samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/fw1.bam");
+	$node->runCmdExitIfFail("samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fw1.bam");
 	$node->runCmdExitIfFail("samtools index $mainResultDir/fw1.bam");
 
-	$node->runCmdExitIfFail("samtools view -b -f 80 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/fwd2.bam");
+	$node->runCmdExitIfFail("samtools view -b -f 80 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd2.bam");
 	$node->runCmdExitIfFail("samtools index $mainResultDir/fwd2.bam");
 
 	$node->runCmdExitIfFail("samtools merge -f $mainResultDir/fwd.bam $mainResultDir/fwd1.bam $mainResultDir/fwd2.bam");
@@ -244,10 +246,10 @@ sub cleanUpServer {
 
 	# 1. alignments of the second in pair if they map to the reverse strand
 	# 2. alignments of the first in pair if they map to the forward strand
-	$node->runCmdExitIfFail("samtools view -b -f 144 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/rev1.bam");
+	$node->runCmdExitIfFail("samtools view -b -f 144 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev1.bam");
 	$node->runCmdExitIfFail("samtools index $mainResultDir/rev1.bam");
 
-	$node->runCmdExitIfFail("samtools view -b -f 64 -F 16 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/rev2.bam");
+	$node->runCmdExitIfFail("samtools view -b -f 64 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev2.bam");
 	$node->runCmdExitIfFail("samtools index $mainResultDir/rev2.bam");
 
 	$node->runCmdExitIfFail("samtools merge -f $mainResultDir/rev.bam $mainResultDir/rev1.bam $mainResultDir/rev2.bam");
@@ -261,7 +263,7 @@ sub cleanUpServer {
     }
 
     else {
-      $node->runCmdExitIfFail("bamutils tobedgraph $mainResultDir/${outputFileBasename}.bam >$mainResultDir/${outputFileBasename}.unstranded.cov");
+      $node->runCmdExitIfFail("bamutils tobedgraph $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.unstranded.cov");
     }
 
 
