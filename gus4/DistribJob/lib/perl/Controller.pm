@@ -47,7 +47,7 @@ sub new {
   $self->{hostname} = $hostname;
   $self->{procsPerNode} = $procsPerNode;
   $self->{memPerNode} = $memPerNode;
-  $self->{initNodeMem} = $initNodeMem;
+  $self->{initNodeMem} = $initNodeMem ? $initNodeMem : $memPerNode;
   $self->{queue} = $queue;
   $self->{propFile} = $propfile;
   $self->{kill} = $kill;
@@ -382,10 +382,10 @@ sub cleanupOnExit {
 ##  print "  Cleaning up and exiting .... \n";
   ##cleanup all nodes
   foreach my $node (@nodes) {
-    $node->cleanUp(1);
+    $node->cleanUp(1,undef,1);
   }
   ##need to also cleanup any nodes that are in @failedNodes
-  $self->manageFailedNodes(1);
+  $self->manageFailedNodes(1,1);
   close($self->{sock});
 }
 
@@ -549,7 +549,7 @@ sub removeNode {
 }
 
 sub manageFailedNodes {
-  my($self,$force) = @_;
+  my($self,$force,$quiet) = @_;
 #  return unless $force;
 #  print "--- manageFailedNodes($force) ---\n";
   my %tmp;
@@ -558,7 +558,7 @@ sub manageFailedNodes {
 #    print "  ".$n->[1]->getJobid().": $time -> nodeTime = $n->[0]\n";
     if($n->[0] + 300 < $time || $force){
       print "  Releasing failed node ".$n->[1]->getJobid()."\n";
-      $n->[1]->cleanUp(1);
+      $n->[1]->cleanUp(1,undef,$quiet);
     }else{
       $tmp{$n->[1]->getJobid()} = $n;
     }
