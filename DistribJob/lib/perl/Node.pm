@@ -463,7 +463,7 @@ sub getSaveForCleanup {
 
 ##want to only clean up if both slots are finished
 sub cleanUp {
-  my ($self,$force, $state) = @_;
+  my ($self,$force, $state, $quiet) = @_;
 
   return if $self->{cleanedUp}; #already cleaned up
     
@@ -487,7 +487,7 @@ sub cleanUp {
 
   if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
 
-    print "Cleaning up node $self->{nodeNum}...\n";
+    print "Cleaning up node $self->{nodeNum}...\n" unless $quiet;
     
     ##now call the task->cleanUpNode method to enable  users to stop processes running on node
     my $task = $self->getTask();
