@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# a simple wrapper to call distribjob and redirect standard out to a logfile. needed when calling distribjob through qsub
+logfile=$1
+shift
+echo "Running distribjob with this command line:" > $logfile
+echo "distribjob $*" >> $logfile
+echo "" >> $logfile
+distribjob $* &>> $logfile < /dev/null
