@@ -235,8 +235,8 @@ sub cleanUpServer {
 
 	# 1. alignments of the second in pair if they map to the forward strand
 	# 2. alignments of the first in pair if they map to the reverse  strand
-	$node->runCmdExitIfFail("samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fw1.bam");
-	$node->runCmdExitIfFail("samtools index $mainResultDir/fw1.bam");
+	$node->runCmdExitIfFail("samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd1.bam");
+	$node->runCmdExitIfFail("samtools index $mainResultDir/fwd1.bam");
 
 	$node->runCmdExitIfFail("samtools view -b -f 80 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd2.bam");
 	$node->runCmdExitIfFail("samtools index $mainResultDir/fwd2.bam");
