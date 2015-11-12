@@ -144,6 +144,7 @@ sub cleanUpServer {
 
   # sort bams by location
   $node->runCmdExitIfFail("samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
+  $node->runCmdExitIfFail("samtools sort -n $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sortedByName");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*_node.bam";
@@ -191,8 +192,8 @@ sub cleanUpServer {
 
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
-	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
-	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
+	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
+	    $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
 
 	    $node->runCmdExitIfFail("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
 	}
@@ -200,7 +201,7 @@ sub cleanUpServer {
     else {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
-        $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=pos --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sorted.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
+        $node->runCmdExitIfFail("python -m HTSeq.scripts.count --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
 	$node->runCmdExitIfFail("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
       }
     }
