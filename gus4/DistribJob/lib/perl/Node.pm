@@ -236,7 +236,7 @@ sub getPort {
   my $self = shift;
   if(!$self->{portCon}){
     ##note..need to try a couple of times here because the script may be running but the port is not ready on the nodes to receive connections...seems to take some time
-#    print STDERR "Creating new port connection\n";
+#    print STDERR $self->getNum().": Creating new port connection PeerAddr => ".$self->getNodeAddress().", PeerPort => ".$self->getLocalPort()."\n";
     my $sock;
     my $ct = 0;
     until($sock){

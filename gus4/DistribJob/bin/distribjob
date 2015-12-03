@@ -62,6 +62,8 @@ where:
                        job controller.  (See The Controller Properties File in full 
                        help).
 
+  --runTime            Number of minutes run is expected to take (make higher than anticipated)
+
   --numNodes|n         Number of nodes to run on ... only valid if there is no list of nodes
 
   --parallelInit|pi    Number of ndoes to initialize the task on at a time
