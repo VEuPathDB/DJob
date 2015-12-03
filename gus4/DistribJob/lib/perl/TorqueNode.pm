@@ -26,6 +26,7 @@ sub queueNode {
     }else{
       $runFile = "$runFile.run";
     }
+    $self->{script} = $runFile;
     if(!-e "$runFile"){
       open(R,">$runFile") || die "unable to create script file '$runFile'\n";
       print R "#!/bin/sh\n\n$ENV{GUS_HOME}/bin/nodeSocketServer.pl $self->{serverHost} $self->{serverPort}\n";
@@ -149,7 +150,6 @@ sub getQueueState {
 
 sub deleteLogFilesAndTmpDir {
   my $self = shift;
-  return;
   my $jobidfordel;
   if($self->{jobid} =~ /^(\d+)/){
     $jobidfordel = $1;
@@ -157,7 +157,9 @@ sub deleteLogFilesAndTmpDir {
     print "Unable to remove log files\n";
     return;
   }
-  unlink("DistribJob.o$jobidfordel") || print STDERR "Unable to unlink DistribJob.o$jobidfordel\n";
+  my $delFile = "DistribJob.o$jobidfordel";
+#  print "Unlinking $delFile\n";
+  unlink("delFile"); ## || print STDERR "Unable to unlink $delFile\n";
   my @outfiles = glob("DistribJob.*");
   if(scalar(@outfiles) == 0){
     ##remove the script file
