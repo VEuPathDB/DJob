@@ -144,7 +144,13 @@ sub cleanUpServer {
 
   # sort bams by location
   $node->runCmdExitIfFail("samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
-  $node->runCmdExitIfFail("samtools sort -n $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sortedByName");
+
+  $node->runCmdExitIfFail("samtools view -bh -F 4 -f 8 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair1.bam");
+  $node->runCmdExitIfFail("samtools view -bh -F 8 -f 4 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair2.bam");
+  $node->runCmdExitIfFail("samtools view -b -F 12 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pairs.bam");
+
+  $node->runCmdExitIfFail("samtools merge $mainResultDir/trimmed.bam $mainResultDir/pair*");
+  $node->runCmdExitIfFail("samtools sort -n $mainResultDir/trimmed.bam $mainResultDir/${outputFileBasename}_sortedByName");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*_node.bam";
