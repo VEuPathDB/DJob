@@ -1,0 +1,17 @@
+#!/usr/bin/perl
+
+my ($propFile, $logFile, $processIdFile, $numNodes, $time, $queue, $ppn, $maxMemoryGigs) = @ARGV;
+
+die "Usage: workflowRunDistribJob propFile logFile processIdFile numNodes time queue ppn maxMemGigs\n" unless scalar(@ARGV) == 8;
+
+open(F, ">$processIdFile") || die "can't open processIdFile '$processIdFile' for writing";
+print F "$$\n";
+close(F);
+
+my $cmd = "liniacsubmit $numNodes $time $propFile --memoryPerNode $maxMemoryGigs --queue $queue --ppn $ppn>& $logFile";
+
+print STDERR "\nRunning command: $cmd\n\n";
+
+system($cmd);
+
+
