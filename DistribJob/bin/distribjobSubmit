@@ -6,4 +6,4 @@ shift
 echo "Running distribjob with this command line:" > $logfile
 echo "distribjob $*" >> $logfile
 echo "" >> $logfile
-distribjob $* &>> $logfile < /dev/null
+distribjob $* >> $logfile < /dev/null
