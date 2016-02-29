@@ -18,7 +18,7 @@ my @properties =
 (
  ["blastVendor",   "wu",   "(wu | ncbi) [wu]"],
  ["blastBinDir",   "default",   "eg, /genomics/share/bin"],
- ["blastProgram",   "blastp",     "this property is only included for compatibility with BlastSimilarityTask"
+ ["blastProgram",   "blastp",     "this property is only included for compatibility with BlastSimilarityTask"],
  ["fastasTarPath",   "",     "full path to tar file containing fasta files"],
  ["dbType",          "",     "p or n (not nec. if cdd run)"],
  ["pValCutoff",      "1e-5",  "[1e-5]"],
