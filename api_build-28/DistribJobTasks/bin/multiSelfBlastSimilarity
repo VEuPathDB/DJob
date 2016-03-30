@@ -1,0 +1,87 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+use Cwd;
+
+my ($regex,$pValCutoff,$lengthCutoff,$percentCutoff,$blastParamsFile,$tarFile);
+
+&GetOptions("regex=s" => \$regex, 
+            "pValCutoff=f" => \$pValCutoff, 
+            "lengthCutoff=i"=> \$lengthCutoff,
+            "percentCutoff=i" => \$percentCutoff,
+            "blastParamsFile=s" => \$blastParamsFile,
+            "tarFile=s" => \$tarFile,
+            );
+
+###set the defaullts...
+$pValCutoff = $pValCutoff ? $pValCutoff : 1e-5;
+$lengthCutoff = $lengthCutoff ? $lengthCutoff : 10;
+$percentCutoff = $percentCutoff ? $percentCutoff : 20;  ##low for blastp
+
+usage() unless ($regex && $blastParamsFile && $tarFile);
+
+die "tar file '$tarFile' does not exist\n" unless -e $tarFile;
+
+die "tar file '$tarFile' does not end in .tar or .tar.gz\n" unless $tarFile =~ /\.tar(\.gz)?$/;
+
+$tarFile =~/(\S+).tar/;
+my $dirName = $1;
+mkdir $dirName || die "can't make directory '$dirName'";
+
+my $z = ($tarFile =~ /\.gz$/)? 'z' : '';
+my $cmd = "tar x${z}f $tarFile -C $dirName";
+system($cmd) && die "Error running cmd $cmd\n$?\n";
+
+#my $pwd = cwd();
+my @fasta;
+opendir(my $dh, $dirName) || die "Can't open dir '$dirName'\n";
+my @files = readdir($dh);
+foreach my $file (@files) {
+    next if $file =~ /^\./;
+    push(@fasta, $file);
+}
+closedir $dh;
+
+foreach my $fasta (@fasta) {
+    $cmd = "formatdb -i $dirName/$fasta -p T";
+    system($cmd) && die "Error running cmd $cmd\n$?\n";
+    
+    $cmd = "blastSimilarity --database $dirName/$fasta --blastProgram blastp --seqFile $dirName/$fasta --lengthCutoff $lengthCutoff --pValCutoff $pValCutoff --percentCutoff $percentCutoff --blastVendor ncbi --regex '$regex' --blastParamsFile $blastParamsFile --printSimSeqsFile";
+    system($cmd) && die "Error running cmd $cmd\n$?\n";
+    
+    $cmd = "cat blastSimilarity.out >> gatheredResult";
+    system($cmd) && die "Error running cmd $cmd\n$?\n";
+}
+
+# move gathered result to output file expected by the djob subtask
+$cmd = "mv gatheredResult blastSimilarity.out";
+system($cmd) && die "Error running cmd $cmd\n$?\n";
+
+#################################### sub routines ########################################
+
+sub usage {
+die "
+For each  FASTA file provided, do a self-self blast.  Create a blast database for each, and call blastSimilarity to do the blasting.  Merge the results of each self-self blast into one main result file.  The fasta files are provided in a tar file.
+
+Hard codes these blastSimilarities options:
+  - ncbi blast
+  - output simseqs file format
+  - protein fasta
+
+Untars into the cwd.
+
+Usage: multiSelfBlastSimilarity --tarFile tarfile --regex=regex [--pValCutoff=float] [--lengthCutoff=int] [--percentCutoff=int]
+Where:
+  tarfile:       a .tar or .tar.gz file containing a set of fasta files to do self-self blast on
+  regex:         regex following ^> to find ID
+  pValCutoff:    defaults to 1e-5
+  lengthCutoff:  defaults to 10
+  percentCutoff: defaults to 20
+  
+";
+}
+
+
+
+
