@@ -58,7 +58,7 @@ sub getInputSetSize {
 
   my $count = scalar(@fileArr);
 
-  $self->{fileArray} = @fileArr;
+  $self->{fileArray} = \@fileArr;
 
   return $count;
 }
