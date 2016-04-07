@@ -29,16 +29,13 @@ sub initServer {
 
     my $inputFileDir = $self->getProperty("inputFileDir");
 
-
     die "muscleBinDir $muscleBinDir doesn't exist" unless -e $muscleBinDir;
     die "inputFileDir $inputFileDir doesn't exist" unless -e $inputFileDir;
-
 }
 
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
-
 }
 
 
@@ -63,39 +60,35 @@ sub getInputSetSize {
   return $count;
 }
 
-
+# input is a set of multi-fasta files, potentially grouped into tarballs.
 sub initSubTask {
     my ($self, $start, $stop, $node, $inputDir, $serverSubTaskDir,$nodeExecDir,$subTask) = @_;
 
-
     if(!$subTask->getRedoSubtask()){
       my @files = @{$self->{fileArray}}[$start..$stop];
-      
+
       foreach my $file (@files) {
         $node->runCmd("cp $file $serverSubTaskDir");
-        
       }
     }
     $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
-
 }
 
 
-sub makeSubTaskCommand { 
-    my ($self, $node, $inputDir, $nodeExecDir) = @_;
+sub makeSubTaskCommand {
+    my ($self, $node, $inputDir, $nodeExecDir, $subtaskNumber) = @_;
 
     my $muscleDir = $self->getProperty("muscleBinDir");
 
-    my $cmd = "runMuscle --muscleDir $muscleDir --inputFileDir $nodeExecDir";
+    my $cmd = "runMuscle --muscleDir $muscleDir --inputFileDir $nodeExecDir --outputFilePrefix $subtaskNumber";
 
     return $cmd;
-
 }
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
     $node->runCmd("cp $nodeExecDir/*_out.tar.gz $mainResultDir/");
-
+    return $node->getErr();
 }
 
 # cleanUpNode is an optional method that is called when the node has completed

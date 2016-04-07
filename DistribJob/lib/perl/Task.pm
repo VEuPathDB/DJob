@@ -130,7 +130,7 @@ sub runNextSubtask {
   
   $nextSubTask->setRedoSubtask(0);
 
-  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir});
+  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir}, $subtaskNumber);
   ##note: with perl subtaskInvoker there seems to be a problem with quotes
 #  $cmd =~ s/\'/\\\'/g;
 #  $cmd =~ s/\s\'/ \'\\\'/g;
