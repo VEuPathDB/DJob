@@ -47,7 +47,7 @@ sub makeSubTaskCommand {
 
     my $genomicSeqsFile = $self->getProperty("genomicSeqsFile");
     my $bamFile = $self->getProperty("bamFile");
-    my $gtfFile = $self->getPropert("gtfFile");
+    my $gtfFile = $self->getProperty("gtfFile");
     my $samtoolsIndex = $self->getProperty("samtoolsIndex");
     my $sampleName = $self->getProperty("sampleName");
     my $window = $self->getProperty("window");
