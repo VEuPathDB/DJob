@@ -56,7 +56,7 @@ my $coverage = &getCoverage($bedFile, $bamFile, $out, $workingDir);
 ###tidy up###
 close L;
 &runCmd("/bin/rm $bedFile");
-&runCmd("/bin/rm $workingDir/genomes.txt");
+&runCmd("/bin/rm $workingDir/genome.txt");
 
 sub createBed {
     my ($index, $winLen, $workingDir) = @_;
