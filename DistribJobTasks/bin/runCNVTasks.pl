@@ -40,7 +40,7 @@ print L &getDate(). ": running Cufflinks...\n";
 my $cmd = "cufflinks -u -N -p 4 -b $genomicSeqsFile -G $gtfFile -o $workingDir/Cufflinks $bamFile";
 print L &getDate(). ": $cmd\n";
 if (-e "$workingDir/Cufflinks/genes.fpkm_tracking") {
-    print L "Command succeeded in previous run\n\n";
+    print L &getDate(). "Cufflinks command succeeded in previous run\n\n";
 } else {
     &runCmd ($cmd); print L "\n";
 }
@@ -51,18 +51,19 @@ my $bedFile = &createBed($samtoolsIndex, $window, $workingDir);
 unless (-e $bedFile) {
     die "Bed file $bedFile was not successfully created\n";
 }
-my $coverage = &getCoverage($bedFile, $bamFile, $out);
+my $coverage = &getCoverage($bedFile, $bamFile, $out, $workingDir);
 
 ###tidy up###
 close L;
 &runCmd("/bin/rm $bedFile");
+&runCmd("/bin/rm $workingDir/genomes.txt");
 
 sub createBed {
     my ($index, $winLen, $workingDir) = @_;
     my $bedfile = (split /\./, $index)[0]."_$winLen.bed";
-    $bedfile = "$workingDir/$bedfile";
-    open (OUT, ">$bedfile") or die "Cannot write to temporary file\n$!\n";
-    open (IN, "$index") or die "Cannot open samtools index for reading\n$!\n";
+    $bedfile = "$bedfile";
+    open (OUT, ">$bedfile") or die "Cannot write to temporary file $bedfile\n$!\n";
+    open (IN, "$index") or die "Cannot open samtools index $index for reading\n$!\n";
     while (<IN>) {
         my ($chr, $length, $cumulative, $lineLength, $lineBLength) = split(/\t/, $_);
         die "Chromosome and length are not defined for line $. in $index. [$chr, $length]\n" unless(defined($chr) && defined($length));
@@ -77,9 +78,10 @@ sub createBed {
 }
 
 sub getCoverage {
-    my ($bed, $bam, $out) = @_;
-    my @coverageBed = split(/\n/, &runCmd("bedtoolsCoverage -counts -sorted -a $bed -b $bam"));
-    my $totalMapped = runCmd("samtools view -c -F 4 $bam");
+    my ($bed, $bam, $out, $workingDir) = @_;
+    my $genomeFile = &getGenomeFile($bam, $workingDir);
+    my @coverageBed = split(/\n/, &runCmd("bedtools coverage -counts -sorted -g $genomeFile -a $bed -b $bam"));
+    my $totalMapped = &runCmd("samtools view -c -F 4 $bam");
     open (OUT, ">$out") or die "Cannot write output file\n$!\n";
     foreach (@coverageBed) {
         my ($chr, $start, $end, $mapped, $numNonZero, $lenB, $propNonZero) = split(/\t/, $_);
@@ -89,7 +91,21 @@ sub getCoverage {
     }
     close OUT;
 }
-    
+
+sub getGenomeFile {
+    my ($bam, $workingDir) = @_;
+    open (G, ">$workingDir/genome.txt") or die "Cannot open genome file $workingDir/genome.txt for writing\n";
+    my @header = split(/\n/, &runCmd("samtools view -H $bam"));
+    foreach my $line (@header) {
+        if ($line =~ m/\@SQ\tSN:/) {
+            $line =~ s/\@SQ\tSN://;
+            $line =~ s/\tLN:/\t/;
+            print G $line;
+        }
+    }
+    close G;
+    return "$workingDir/genome.txt";
+}
 sub getParams {
   return &getDate().": runCNVTasks.pl ... parameter values:\n\tgenomicSeqsFile=$genomicSeqsFile\n\tbamFile=$bamFile\n\tgtfFile=$gtfFile\n\tsampleName=$sampleName\n\tworkingDir=$workingDir\n\n";
 }
