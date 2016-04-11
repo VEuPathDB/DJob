@@ -100,7 +100,7 @@ sub getGenomeFile {
         if ($line =~ m/\@SQ\tSN:/) {
             $line =~ s/\@SQ\tSN://;
             $line =~ s/\tLN:/\t/;
-            print G $line;
+            print G "$line\n";
         }
     }
     close G;
