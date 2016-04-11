@@ -66,12 +66,13 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
+    
+      my $bamFile = $self->getProperty("bamFile");
 
       #Delete Bam file from cluster 
       $node->runCmd("/bin/rm $bamFile");
-  }
+}
 
 
-  }
 
 1;
