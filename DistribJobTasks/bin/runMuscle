@@ -33,9 +33,11 @@ my @resultFiles;
 
 while (defined (my $file = readdir (DIR))) {
   next if $file =~ /^\./;
-  my $cmd = "$muscleDir/muscle -in $file -out ${file}.msa -clw -quiet";
-  system($cmd) && die "Failed running '$cmd' \n $!";
-  push(@resultFiles,"${file}.msa");
+  if ($file =~ /OG/){
+     my $cmd = "$muscleDir/muscle -in $file -out ${file}.msa -clw -quiet";
+     system($cmd) && die "Failed running '$cmd' \n $!";
+     push(@resultFiles,"${file}.msa");
+  }
 }
 
 closedir(DIR);
