@@ -508,6 +508,14 @@ sub cleanUp {
   }
 }
 
+# run a command to check the status of the job with this job id.
+# return 1 if job id is found and valid, otherwise return 0
+sub runJobStatusCheck {
+  my ($self, $jobId) = @_;
+  die "must be implemented by subclass";
+}
+
+
 # static method
 sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
