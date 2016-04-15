@@ -8,46 +8,44 @@ use strict;
 $| = 1;
 
 
-my ($muscleDir,$inputFileDir);
-&GetOptions("muscleDir=s" => \$muscleDir, 
-            "inputFileDir=s" => \$inputFileDir);
+my ($muscleDir,$inputFileDir, $outputFilePrefix);
+&GetOptions("muscleDir=s" => \$muscleDir,
+            "inputFileDir=s" => \$inputFileDir,
+	   "outputFilePrefix=s" => \$outputFilePrefix);
 
 opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
 
 chdir $inputFileDir;
 
-my $outTar;
-
+# if input files are tarballs, untar
 while (defined (my $file = readdir (DIR))) {
-
-    if ($file =~ /tarrBall/) {
-	system("tar zxf $file");
-	$outTar = "$file";
-	$outTar =~ s/\.tar\.gz//;
-    }
+  if ($file =~ /\.tar\.gz/) {
+    my $cmd = "tar zxf $file";
+    system($cmd) && die "failed running cmd '$cmd'";
+  }
 }
 
 closedir(DIR);
 
 opendir(DIR, $inputFileDir) || die "Can't open directory $inputFileDir";
 
-my @tarBall;
+my @resultFiles;
 
 while (defined (my $file = readdir (DIR))) {
-    if ($file =~ /OG\d+/){
-
-	system("$muscleDir/muscle -in $file -out ${file}.msa -clw -quiet");
-
-	push(@tarBall,"${file}.msa");
-    }
-
+  next if $file =~ /^\./;
+  if ($file =~ /OG/){
+     my $cmd = "$muscleDir/muscle -in $file -out ${file}.msa -clw -quiet";
+     system($cmd) && die "Failed running '$cmd' \n $!";
+     push(@resultFiles,"${file}.msa");
+  }
 }
 
 closedir(DIR);
 
-my $list = join (' ',@tarBall);
+my $list = join (' ',@resultFiles);
 
-system("tar zcf ${outTar}_out.tar.gz $list"); 
+my $cmd = "tar zcf ${outputFilePrefix}_out.tar.gz $list";
+system($cmd) && die "Failed running '$cmd' \n $!";
 
 
 
