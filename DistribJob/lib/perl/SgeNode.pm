@@ -66,21 +66,15 @@ EOF
   $self->setState($QUEUED);
 }
 
-sub getQueueState {
-  my $self = shift;
-  return 1 if $self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE;  ##should not be in queue
-  my $jobid = $self->getJobid();
-  if(!$jobid){
-    print STDERR "SgeNode->getQueueState: unable to checkQueueStatus as can't retrieve JobID\n";
-    return 0;
-  }
-  my $checkCmd = "qstat -j $jobid 2> /dev/null";
-  my $res = `$checkCmd`;
+sub runJobStatusCheck {
+  my ($self, $jobid) = @_;
+
+  my $res = `qstat -j $jobid 2> /dev/null`;
   return $? >> 8 ? 0 : 1;  ##returns 0 if error running qstat with this jobid
 }
 
 
-##over ride this because want to delete those pesky *.OU files
+##override this because want to delete those pesky *.OU files
 sub cleanUp {
   my ($self,$force, $state) = @_;
 
@@ -92,11 +86,6 @@ sub cleanUp {
     }
   }
 
-
-
-#  my $host = $self->runCmd("hostname");
-#  chomp $host;
-  
   ##want to kill any child processes still running to quit cleanly
   if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
@@ -109,16 +98,12 @@ sub cleanUp {
   }
 
   $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
-    
-  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
-  
 
-    
+  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
+  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it
     my $task = $self->getTask();
     $task->cleanUpNode($self) if $task;
-    
-    
+
     if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
       $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
       $self->runCmd("closeAndExit",1);

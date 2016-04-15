@@ -78,6 +78,7 @@ EOF
   $self->setState($QUEUED);
 }
 
+# QUESTION: why is this method needed.  SgeNode does not implement it?
 sub getNodeAddress {
   my $self = shift;
   if (!defined $self->{nodeNum}) {
@@ -88,6 +89,14 @@ sub getNodeAddress {
   }
   DEBUG && warn "DEBUG: nodeNum $self->{nodeNum}\n";
   return $self->{nodeNum};
+}
+
+sub runJobStatusCheck {
+  my ($self, $jobid) = @_;
+
+  "bjobs $jobid 2> /dev/null";
+  my $res = `bjobs $jobid 2> /dev/null`;
+  return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
 }
 
 ##over ride this because want to delete those pesky *.OU files
@@ -134,20 +143,6 @@ sub cleanUp {
     $self->setState($state ? $state : $COMPLETE); ##complete
 
   }
-}
-
-sub getQueueState {
-  my $self = shift;
-  return 1 if $self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE;  ##should not be in queue
-  my $jobid = $self->getJobid();
-  if(!$jobid){
-    print STDERR "LsfNode->getQueueState: unable to checkQueueStatus as can't retrieve JobID\n";
-    return 0;
-  }
-  my $checkCmd = "bjobs $jobid 2> /dev/null";
-  my $res = `$checkCmd`;
-  return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
-  return $? >> 8 ? 0 : 1;  ##returns 0 if error running bjobs with this jobid
 }
 
 ### delete the log files here ... since it didn't fail won't need them

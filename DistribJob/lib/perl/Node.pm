@@ -106,9 +106,16 @@ sub manageNodeBasedOnQueueState {
 ##NOTE: this method simply returns whether the job scheduler still has this node in the queue irrexpective of it's state: could be running, queued, waiting etc but returns 1.
 sub getQueueState {
   my $self = shift;
-  print STDERR "WARNING: node->getQueueState has not been implemented for this nodeClass\n" if $self->{countMissingQueueStates} >= 1;
-  $self->{countMissingQueueStates}++;
-  return 1
+
+  return 1 if $self->getState() == $FAILEDNODE || $self->getState() == $COMPLETE; 
+
+  ##should not be in queue
+  my $jobid = $self->getJobid();
+  if(!$jobid){
+    print STDERR "SgeNode->getQueueState: unable to checkQueueStatus as can't retrieve JobID\n";
+    return 0;
+  }
+  return $self->runJobStatusCheck($jobid);
 }
 
 sub initialize {
