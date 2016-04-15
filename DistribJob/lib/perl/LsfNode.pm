@@ -91,14 +91,6 @@ sub getNodeAddress {
   return $self->{nodeNum};
 }
 
-sub runJobStatusCheck {
-  my ($self, $jobid) = @_;
-
-  "bjobs $jobid 2> /dev/null";
-  my $res = `bjobs $jobid 2> /dev/null`;
-  return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
-}
-
 ##over ride this because want to delete those pesky *.OU files
 sub cleanUp {
   my ($self,$force, $state) = @_;
@@ -143,6 +135,14 @@ sub cleanUp {
     $self->setState($state ? $state : $COMPLETE); ##complete
 
   }
+}
+
+sub runJobStatusCheck {
+  my ($self, $jobid) = @_;
+
+  "bjobs $jobid 2> /dev/null";
+  my $res = `bjobs $jobid 2> /dev/null`;
+  return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
 }
 
 ### delete the log files here ... since it didn't fail won't need them

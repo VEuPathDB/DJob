@@ -66,14 +66,6 @@ EOF
   $self->setState($QUEUED);
 }
 
-sub runJobStatusCheck {
-  my ($self, $jobid) = @_;
-
-  my $res = `qstat -j $jobid 2> /dev/null`;
-  return $? >> 8 ? 0 : 1;  ##returns 0 if error running qstat with this jobid
-}
-
-
 ##override this because want to delete those pesky *.OU files
 sub cleanUp {
   my ($self,$force, $state) = @_;
@@ -133,6 +125,13 @@ sub cleanUp {
     $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
   }
 
+}
+
+sub runJobStatusCheck {
+  my ($self, $jobid) = @_;
+
+  my $res = `qstat -j $jobid 2> /dev/null`;
+  return $? >> 8 ? 0 : 1;  ##returns 0 if error running qstat with this jobid
 }
 
 sub deleteLogFilesAndTmpDir {
