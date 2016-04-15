@@ -140,7 +140,6 @@ sub cleanUp {
 sub runJobStatusCheck {
   my ($self, $jobid) = @_;
 
-  "bjobs $jobid 2> /dev/null";
   my $res = `bjobs $jobid 2> /dev/null`;
   return $res =~ /RUN/ || $res =~ /PEND/ ? 1 : 0;
 }
