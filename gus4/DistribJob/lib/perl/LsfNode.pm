@@ -78,7 +78,6 @@ EOF
   $self->setState($QUEUED);
 }
 
-# QUESTION: why is this method needed.  SgeNode does not implement it?
 sub getNodeAddress {
   my $self = shift;
   if (!defined $self->{nodeNum}) {
@@ -91,50 +90,10 @@ sub getNodeAddress {
   return $self->{nodeNum};
 }
 
-##over ride this because want to delete those pesky *.OU files
-sub cleanUp {
-  my ($self,$force, $state) = @_;
-
-  return if $self->{cleanedUp}; #already cleaned up
-    
-  if (!$force) {
-    foreach my $slot (@{$self->getSlots()}) {
-      return unless $slot->isFinished();
-    }
-  }
-  
-  ##want to kill any child processes still running to quit cleanly
-  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
-    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
-  }
-
-  ## if saving this one so don't clean up further and release
-  if($self->getSaveForCleanup() && !$force){
-    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
-    return;
-  }
-
-  $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
-
-  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
-
-  my $task = $self->getTask();
-  $task->cleanUpNode($self) if $task;
-
-  
-  if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
-    $self->runCmd("closeAndExit");
-    $self->closePort();
-  }else{
-    system("bkill $self->{jobid} > /dev/null 2>&1");
-  }
-
-  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $FAILEDNODE;
-  }else{
-    $self->setState($state ? $state : $COMPLETE); ##complete
-
-  }
+# remove this node's job from the queue
+sub removeFromQueue {
+  my $cmd = "bkill $self->{jobid} > /dev/null 2>&1";
+  system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
 }
 
 sub runJobStatusCheck {

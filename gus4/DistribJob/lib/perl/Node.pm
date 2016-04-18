@@ -470,10 +470,10 @@ sub getSaveForCleanup {
 
 ##want to only clean up if both slots are finished
 sub cleanUp {
-  my ($self,$force, $state, $quiet) = @_;
+  my ($self,$force, $state) = @_;
 
   return if $self->{cleanedUp}; #already cleaned up
-    
+
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
       return unless $slot->isFinished();
@@ -485,27 +485,53 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  $self->setState($state ? $state : $COMPLETE); ##complete
-
   ## if saving this one so don't clean up further and release
-  return if($self->getSaveForCleanup() && !$force);  
+  if($self->getSaveForCleanup() && !$force){
+    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
+    return;
+  }
 
   $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
 
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
-
-    print "Cleaning up node $self->{nodeNum}...\n" unless $quiet;
-    
-    ##now call the task->cleanUpNode method to enable  users to stop processes running on node
+  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
+  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it
     my $task = $self->getTask();
     $task->cleanUpNode($self) if $task;
 
-    if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{workingDir}", 1); 
+    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
+      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
   }
+
+  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
+    $state = $FAILEDNODE;
+  }else{
+    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
+  }
+
+  ## if subclass is inclined, give it a chance to report statistics
+  $self->reportJobStats();
+
+  # node should be off queue already, because we stopped running the node script
+  # but, to be safe, try to remove it from queue.
+  if ($self->getQueueState()) { $self->removeFromQueue() }
+}
+
+# remove this node's job from the queue
+# must be implemented by subclass
+sub removeJobFromQueue {
+  my ($self) = @_;
+  die "removeJobFromQueue must be implemented by Node subclass";
+}
+
+# an optional method for subclasses to implement
+# called at the end of node->cleanUp
+# can query the que to return stats about this run
+# print results to stdout
+sub reportJobStats {
+  my ($self) = @_;
 }
 
 # run a command to check the status of the job with this job id.
