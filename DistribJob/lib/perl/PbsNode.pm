@@ -6,14 +6,6 @@ use strict;
 
 our @ISA = qw(DJob::DistribJob::Node);
 
-################################################################################
-##NOTE: sites should set the following variable according to how many slots / node
-##      their implementation for PBS has
-##  NOTE:  THIS HAS BEEN DISCONTINUED...THE NODE CONSTRUCTOR  NOW TAKES AN ARGUMENT (AS DOES DISTRIBJOB)
-##     AND SETS THE PROCSPERNODE.  THE DEFAULT IS 2
-## my $pbsSlotsPerNode = 2; 
-################################################################################
-
 sub queueNode {
   my $self = shift;
   if (!$self->getJobid()) {     ##need to run qsub 
@@ -60,47 +52,15 @@ sub getNodeAddress {
   return $self->{nodeNum};
 }
 
-##over ride this because want to delete those pesky *.OU files
-sub cleanUp {
-  my ($self,$force, $state) = @_;
+# remove this node's job from the queue
+sub removeFromQueue {
+  my $cmd = "qdel $self->{jobid} > /dev/null 2>&1";
+  system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
+}
 
-  if(!$self->getSaveForCleanup() || ($self->getSaveForCleanup() && !$force)) { 
-    return if $self->getState() >= $COMPLETE; #already cleaned up
-  }
-    
-  if (!$force) {
-    foreach my $slot (@{$self->getSlots()}) {
-      return unless $slot->isFinished();
-    }
-  }
-  
-  ##want to kill any child processes still running to quit cleanly
-  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
-    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
-  }
-
-  $self->setState($state ? $state : $COMPLETE); ##complete
-
-  ## if saving this one so don't clean up further and release
-  return if($self->getSaveForCleanup() && !$force);  
-
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
-  
-    print "Cleaning up node $self->{nodeNum}...\n";
-    
-    my $task = $self->getTask();
-    $task->cleanUpNode($self) if $task;
-    
-    
-    if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{workingDir}", 1);
-      $self->runCmd("closeAndExit",1);
-      $self->closePort();
-    }
-  }
-
-  system("qdel $self->{jobid} > /dev/null 2>&1");
-  
+# the code in this method is suspect.  copied some old code from the old cleanUp method, before it was lost
+sub deleteLogFilesAndTmpDir {
+  my $self = shift;
   ##delete those pesky OU files that don't do anything
   my $jid = $self->{jobid};
   if($self->{jobid} =~ /^(\d+)/){
@@ -109,5 +69,7 @@ sub cleanUp {
   my $delCmd = "/bin/rm $ENV{HOME}/DistribJob.o$jid > /dev/null 2>&1";
   system($delCmd); 
 }
+
+
 
 1;

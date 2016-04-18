@@ -6,14 +6,6 @@ use strict;
 
 our @ISA = qw(DJob::DistribJob::Node);
 
-################################################################################
-##NOTE: sites should set the following variable according to how many slots / node
-##      their implementation for PBS has
-##  NOTE:  THIS HAS BEEN DISCONTINUED...THE NODE CONSTRUCTOR  NOW TAKES AN ARGUMENT (AS DOES DISTRIBJOB)
-##     AND SETS THE PROCSPERNODE.  THE DEFAULT IS 2
-## my $pbsSlotsPerNode = 2; 
-################################################################################
-
 sub queueNode {
   my $self = shift;
   if (!$self->getJobid()) {     ##need to run qsub 
@@ -62,78 +54,11 @@ sub getNodeAddress {
   return $self->{nodeNum};
 }
 
-
-##over ride this because want to delete those pesky *.OU files
-sub cleanUp {
-  my ($self,$force, $state) = @_;
-
-  return if $self->{cleanedUp}; #already cleaned up
-
-  if (!$force) {
-    foreach my $slot (@{$self->getSlots()}) {
-      return unless $slot->isFinished();
-    }
-  }
-
-
-
-#  my $host = $self->runCmd("hostname");
-#  chomp $host;
-  
-  ##want to kill any child processes still running to quit cleanly
-  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
-    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
-  }
-
-  ## if saving this one so don't clean up further and release
-  if($self->getSaveForCleanup() && !$force){
-    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
-    return;
-  }
-
-  $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
-    
-  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
-  
-
-    
-    my $task = $self->getTask();
-    $task->cleanUpNode($self) if $task;
-    
-    
-    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
-      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
-      $self->runCmd("closeAndExit",1);
-      $self->closePort();
-    }
-  }
-
-  ##now want to get stats and print them:
-  ##TODO:  need to sort this out for Torque
-  if($self->getQueueState()){
-##    my @stats = `qstat -f -j $self->{jobid}`;
-##    foreach my $line (@stats){
-##      if($line =~ /^usage.*?(cpu.*)$/){
-##        print "  qstat -f -j $self->{jobid}: $1\n";
-##        last;
-##      }
-##    }
-    system("qdel $self->{jobid} > /dev/null 2>&1");  
-  } ## else{
-##    my @stats = `qacct -j $self->{jobid}`;
-##    foreach my $line (@stats){
-##      print "qacct -j $self->{jobid}: $line" if $line =~ /(maxvmem|failed)/i;
-##    }
-##  }
-  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $FAILEDNODE;
-  }else{
-    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
-  }
-
+# remove this node's job from the queue
+sub removeFromQueue {
+  my $cmd = "qdel $self->{jobid} > /dev/null 2>&1";
+  system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
 }
-
 
 sub getQueueState {
   my $self = shift;
