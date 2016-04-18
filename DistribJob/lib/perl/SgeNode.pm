@@ -68,6 +68,7 @@ EOF
 
 # remove this node's job from the queue
 sub removeFromQueue {
+  my ($self) = @_;
   my $cmd = "qdel $self->{jobid} > /dev/null 2>&1";
   system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
 }
@@ -77,6 +78,7 @@ sub removeFromQueue {
 # can query the que to return stats about this run
 # print results to stdout
 sub reportJobStats {
+  my ($self) = @_;
   if($self->getQueueState()){
     my @stats = `qstat -f -j $self->{jobid}`;
     foreach my $line (@stats){
