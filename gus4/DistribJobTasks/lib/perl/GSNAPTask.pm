@@ -120,7 +120,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $self->runCmdOnNode("samtools view -Sb $nodeExecDir/subtask.output > $mainResultDir/${subTaskNum}_node.bam 2>>$nodeExecDir/subtask.stderr");
+    $self->runCmdOnNode($node, "samtools view -Sb $nodeExecDir/subtask.output > $mainResultDir/${subTaskNum}_node.bam 2>>$nodeExecDir/subtask.stderr");
 
     return $node->getErr();
 }
@@ -136,21 +136,21 @@ sub cleanUpServer {
   die "Did not find  bam files in $mainResultDir/*_node.bam" unless(scalar @bams > 0);
 
   if(scalar @bams > 1) {
-    $self->runCmdOnNode("samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
+    $self->runCmdOnNode($node, "samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
   }
   else {
-    $self->runCmdOnNode("cp $bams[0] $mainResultDir/${outputFileBasename}.bam");
+    $self->runCmdOnNode($node, "cp $bams[0] $mainResultDir/${outputFileBasename}.bam");
   }
 
   # sort bams by location
-  $self->runCmdOnNode("samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
+  $self->runCmdOnNode($node, "samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
 
-  $self->runCmdOnNode("samtools view -bh -F 4 -f 8 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair1.bam");
-  $self->runCmdOnNode("samtools view -bh -F 8 -f 4 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair2.bam");
-  $self->runCmdOnNode("samtools view -b -F 12 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pairs.bam");
+  $self->runCmdOnNode($node, "samtools view -bh -F 4 -f 8 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair1.bam");
+  $self->runCmdOnNode($node, "samtools view -bh -F 8 -f 4 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair2.bam");
+  $self->runCmdOnNode($node, "samtools view -b -F 12 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pairs.bam");
 
-  $self->runCmdOnNode("samtools merge $mainResultDir/trimmed.bam $mainResultDir/pair*");
-  $self->runCmdOnNode("samtools sort -n $mainResultDir/trimmed.bam $mainResultDir/${outputFileBasename}_sortedByName");
+  $self->runCmdOnNode($node, "samtools merge $mainResultDir/trimmed.bam $mainResultDir/pair*");
+  $self->runCmdOnNode($node, "samtools sort -n $mainResultDir/trimmed.bam $mainResultDir/${outputFileBasename}_sortedByName");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*_node.bam";
@@ -177,17 +177,17 @@ sub cleanUpServer {
    # Cufflinks
 
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-	$self->runCmdOnNode("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.firststrand.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.firststrand.fpkm_tracking";
 
-	$self->runCmdOnNode("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.secondstrand.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.secondstrand.fpkm_tracking";
     }
 
     else {
-	$self->runCmdOnNode("cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
 	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.unstranded.fpkm_tracking";
 	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.unstranded.fpkm_tracking";
     }
@@ -198,24 +198,24 @@ sub cleanUpServer {
 
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
-	    $self->runCmdOnNode("python -m HTSeq.scripts.count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
-	    $self->runCmdOnNode("python -m HTSeq.scripts.count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
+	    $self->runCmdOnNode($node, "python -m HTSeq.scripts.count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
+	    $self->runCmdOnNode($node, "python -m HTSeq.scripts.count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
 
-	    $self->runCmdOnNode("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
+	    $self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
 	}
     }
     else {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
-        $self->runCmdOnNode("python -m HTSeq.scripts.count --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
-	$self->runCmdOnNode("makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
+        $self->runCmdOnNode($node, "python -m HTSeq.scripts.count --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
+	$self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
       }
     }
   }
 
   # Junctions
   if($quantifyJunctions && lc($quantifyJunctions eq 'true')) {
-    $self->runCmdOnNode("gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_sorted.bam --output_file $mainResultDir/junctions.tab");
+    $self->runCmdOnNode($node, "gsnapSam2Junctions.pl  --is_bam  --input_file $mainResultDir/${outputFileBasename}_sorted.bam --output_file $mainResultDir/junctions.tab");
   }
 
   # COVERAGE PLOTS
@@ -225,15 +225,15 @@ sub cleanUpServer {
 #      die "Top Level Genome fa.fai File $topLevelFastaFaiFile does not exist";
 #    }
 
-      $self->runCmdOnNode("samtools index $mainResultDir/${outputFileBasename}_sorted.bam");
+      $self->runCmdOnNode($node, "samtools index $mainResultDir/${outputFileBasename}_sorted.bam");
 
     my $mateB = $self->getProperty('mateB');
     my $isPairedEnd = 1;
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
  
     if($isStrandSpecific && lc($isStrandSpecific) eq 'true' && !$isPairedEnd) {
-      $self->runCmdOnNode("bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
-      $self->runCmdOnNode("bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
+      $self->runCmdOnNode($node, "bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
+      $self->runCmdOnNode($node, "bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
     }
 
     elsif($isStrandSpecific && lc($isStrandSpecific) eq 'true' && $isPairedEnd) {
@@ -242,35 +242,35 @@ sub cleanUpServer {
 
 	# 1. alignments of the second in pair if they map to the forward strand
 	# 2. alignments of the first in pair if they map to the reverse  strand
-	$self->runCmdOnNode("samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd1.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/fwd1.bam");
+	$self->runCmdOnNode($node, "samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd1.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd1.bam");
 
-	$self->runCmdOnNode("samtools view -b -f 80 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd2.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/fwd2.bam");
+	$self->runCmdOnNode($node, "samtools view -b -f 80 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd2.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd2.bam");
 
-	$self->runCmdOnNode("samtools merge -f $mainResultDir/fwd.bam $mainResultDir/fwd1.bam $mainResultDir/fwd2.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/fwd.bam");
+	$self->runCmdOnNode($node, "samtools merge -f $mainResultDir/fwd.bam $mainResultDir/fwd1.bam $mainResultDir/fwd2.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd.bam");
 
 	# 1. alignments of the second in pair if they map to the reverse strand
 	# 2. alignments of the first in pair if they map to the forward strand
-	$self->runCmdOnNode("samtools view -b -f 144 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev1.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/rev1.bam");
+	$self->runCmdOnNode($node, "samtools view -b -f 144 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev1.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev1.bam");
 
-	$self->runCmdOnNode("samtools view -b -f 64 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev2.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/rev2.bam");
+	$self->runCmdOnNode($node, "samtools view -b -f 64 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev2.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev2.bam");
 
-	$self->runCmdOnNode("samtools merge -f $mainResultDir/rev.bam $mainResultDir/rev1.bam $mainResultDir/rev2.bam");
-	$self->runCmdOnNode("samtools index $mainResultDir/rev.bam");
+	$self->runCmdOnNode($node, "samtools merge -f $mainResultDir/rev.bam $mainResultDir/rev1.bam $mainResultDir/rev2.bam");
+	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev.bam");
 
-	$self->runCmdOnNode("bamutils tobedgraph $mainResultDir/fwd.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
-	$self->runCmdOnNode("bamutils tobedgraph -minus $mainResultDir/rev.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
+	$self->runCmdOnNode($node, "bamutils tobedgraph $mainResultDir/fwd.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
+	$self->runCmdOnNode($node, "bamutils tobedgraph -minus $mainResultDir/rev.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
 
 	unlink("$mainResultDir/rev*.bam");
 	unlink("$mainResultDir/fwd*.bam");
     }
 
     else {
-      $self->runCmdOnNode("bamutils tobedgraph $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.unstranded.cov");
+      $self->runCmdOnNode($node, "bamutils tobedgraph $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.unstranded.cov");
     }
 
 

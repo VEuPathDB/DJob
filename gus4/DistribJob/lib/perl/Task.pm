@@ -106,9 +106,9 @@ sub countRemainingSubtasks {
 }
 
 sub runCmdOnNode {
-  my ($self, $cmd, $ignoreError) = @_;
-  my $value = $nodeSlot->getNode()->runCmd($cmd, $ignoreError);
-  my $err = $nodeSlot->getNode()->getErr();
+  my ($self, $node, $cmd, $ignoreError) = @_;
+  my $value = $node->runCmd($cmd, $ignoreError);
+  my $err = $node->getErr();
   die "Failed running cmd \n'$cmd'\nError: '$err'\n" if ($err && !$ignoreError);
   return $value;
 }

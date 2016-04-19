@@ -58,9 +58,9 @@ sub initSubTask {
       $self->{fastaFile}->writeSeqsToFile($start, $end, 
 					"$subTaskDir/seqsubset.fa");
     }
-    $self->runCmdOnNode("touch $subTaskDir/seqsubset.fa.touch",1);
-    $self->runCmdOnNode("/bin/rm $subTaskDir/seqsubset.fa.touch",1);
-    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "touch $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -78,8 +78,8 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
     my $prefixOutputFiles = $self->getProperty("prefixFilesPath");
-    $self->runCmdOnNode("cat $nodeExecDir/seqsubset.xsignal >> $prefixOutputFiles.xsignal");
-    $self->runCmdOnNode("cat $nodeExecDir/seqsubset.xsigscores >> $prefixOutputFiles.xsigscores");
-    $self->runCmdOnNode("cat $nodeExecDir/subtask.stderr >> $prefixOutputFiles.stderr");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/seqsubset.xsignal >> $prefixOutputFiles.xsignal");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/seqsubset.xsigscores >> $prefixOutputFiles.xsigscores");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/subtask.stderr >> $prefixOutputFiles.stderr");
 }
 1;
