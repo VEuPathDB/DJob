@@ -59,9 +59,9 @@ sub initSubTask {
       my $rmParamsFile = $self->getProperty("rmParamsFile");
       &runCmd("cp $inputDir/$rmParamsFile $subTaskDir");
     }
-    $node->runCmd("touch $subTaskDir/seqsubset.fsa.touch",1);
-    $node->runCmd("/bin/rm $subTaskDir/seqsubset.fsa.touch",1);
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode("touch $subTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode("/bin/rm $subTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -81,8 +81,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/blocked.seq >> $mainResultDir/blocked.seq");
-    return 1 if $node->getErr();
-    $node->runCmd("cat $nodeExecDir/blocked.err >> $mainResultDir/blocked.err");
+    $self->runCmdOnNode("cat $nodeExecDir/blocked.seq >> $mainResultDir/blocked.seq");
+    $self->runCmdOnNode("cat $nodeExecDir/blocked.err >> $mainResultDir/blocked.err");
 }
 1;

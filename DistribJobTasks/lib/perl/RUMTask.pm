@@ -257,10 +257,10 @@ sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
     my $subtaskNum = int($start / $self->{subTaskSize}) + 1;
-    $node->runCmd("touch $inputDir/subtasks/reads.$subtaskNum.touch",1);
-    $node->runCmd("/bin/rm $inputDir/subtasks/reads.$subtaskNum.touch",1);
-    $node->runCmd("cp $inputDir/subtasks/reads.$subtaskNum $nodeExecDir/seqSubset.fa");
-    $node->runCmd("cp $inputDir/subtasks/quals.$subtaskNum $nodeExecDir/qualsSubset.fa") if $self->{quals};
+    $self->runCmdOnNode("touch $inputDir/subtasks/reads.$subtaskNum.touch",1);
+    $self->runCmdOnNode("/bin/rm $inputDir/subtasks/reads.$subtaskNum.touch",1);
+    $self->runCmdOnNode("cp $inputDir/subtasks/reads.$subtaskNum $nodeExecDir/seqSubset.fa");
+    $self->runCmdOnNode("cp $inputDir/subtasks/quals.$subtaskNum $nodeExecDir/qualsSubset.fa") if $self->{quals};
 
 }
 
@@ -298,13 +298,12 @@ sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
   if($self->getProperty("saveIntermediateFiles") =~ /true/i){
     mkdir("$mainResultDir/subtask.$subTaskNum");
-    $node->runCmd("cp $nodeExecDir/* $mainResultDir/subtask.$subTaskNum");
-    return 1 if $node->getErr();
+    $self->runCmdOnNode("cp $nodeExecDir/* $mainResultDir/subtask.$subTaskNum");
   }
 }
 
 # do all post-processing here:
-# a node is now passed in that can be used to run commands on a node using $node->runCmd("cmd")
+# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode("cmd")
 # NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 
 sub cleanUpServer {
@@ -316,7 +315,7 @@ sub cleanUpServer {
     my $geneAnnotationFile = $self->getProperty("geneAnnotationFile");
     my $perlScriptsDir = $self->getProperty("perlScriptsDir");
 
-    $node->runCmd("postProcessRUMTask --genomeFastaFile $genomeFastaFile --geneAnnotationFile $geneAnnotationFile --mainResultDir $mainResultDir --perlScriptsDir $perlScriptsDir --createJunctions".($self->{bowtie_transcript} ? " --haveTranscripts" : ""));
+    $self->runCmdOnNode("postProcessRUMTask --genomeFastaFile $genomeFastaFile --geneAnnotationFile $geneAnnotationFile --mainResultDir $mainResultDir --perlScriptsDir $perlScriptsDir --createJunctions".($self->{bowtie_transcript} ? " --haveTranscripts" : ""));
     
 }
 

@@ -74,9 +74,9 @@ sub initSubTask {
     my ($newName) = $line =~ /\>([a-zA-Z0-9_\.]+) /;
 
     $newName = $newName . ".fsa";
-    $node->runCmd("touch $subTaskDir/seqsubset.fsa");
+    $self->runCmdOnNode("touch $subTaskDir/seqsubset.fsa");
 
-    $node->runCmd("cp -r $subTaskDir/seqsubset.fsa $nodeSlotDir/$newName");
+    $self->runCmdOnNode("cp -r $subTaskDir/seqsubset.fsa $nodeSlotDir/$newName");
 }
 
 
@@ -101,12 +101,11 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    ##if move fails want to return 1 so that the task will fail the subtask 
     ##check to see that outputfile exists using ls
-    return 1 unless $node->runCmd("ls $nodeExecDir/*.ss2",1);
+    if ($self->runCmdOnNode("ls $nodeExecDir/*.ss2",1;) {
 
-    $node->runCmd("cp $nodeExecDir/*.ss2 $mainResultDir/");
-    return 1 if $node->getErr();
+    	$self->runCmdOnNode("cp $nodeExecDir/*.ss2 $mainResultDir/");
+	}
 }
 
 
