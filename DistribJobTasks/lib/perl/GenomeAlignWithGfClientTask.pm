@@ -74,10 +74,10 @@ sub initSubTask {
     if(!$subTask->getRedoSubtask()){
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
     }
-    $self->runCmdOnNode("touch $subTaskDir/seqsubset.fsa.touch",1);
-    $self->runCmdOnNode("/bin/rm $subTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode($node, "touch $subTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $subTaskDir/seqsubset.fsa.touch",1);
 
-    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand {
@@ -100,7 +100,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $self->runCmdOnNode("cat $nodeExecDir/out.psl >> $mainResultDir/out.psl");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/out.psl >> $mainResultDir/out.psl");
 }
 
 sub cleanUpNode {
@@ -109,7 +109,7 @@ sub cleanUpNode {
     my $port = $node->{gfport};
     my $gaBinPath = $self->getProperty('gaBinPath');
 
-    $self->runCmdOnNode(($gaBinPath eq 'default' ? "" : "$gaBinPath/")."gfServer stop localhost $port");
+    $self->runCmdOnNode($node, ($gaBinPath eq 'default' ? "" : "$gaBinPath/")."gfServer stop localhost $port");
 }
 
 

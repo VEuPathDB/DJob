@@ -96,10 +96,10 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-    $self->runCmdOnNode("cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
 
     # ignore error if this fails... though probably we shouldn't
-    $self->runCmdOnNode("cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log", 1);
+    $self->runCmdOnNode($node, "cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log", 1);
 }
 
 

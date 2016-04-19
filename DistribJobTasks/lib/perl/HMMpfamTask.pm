@@ -55,7 +55,7 @@ sub initSubTask {
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
     }
 
-    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -73,6 +73,6 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $self->runCmdOnNode("cat $nodeExecDir/subtask.output >> $mainResultDir/hmmpfam.out");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/subtask.output >> $mainResultDir/hmmpfam.out");
 }
 1;

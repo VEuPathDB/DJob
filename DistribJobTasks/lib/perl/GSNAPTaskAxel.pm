@@ -182,13 +182,13 @@ sub initSubTask {
     my ($self, $start, $end, $node, $inputDir, $serverSubTaskDir, $nodeExecDir,$subTask) = @_;
 
     my $subtaskNum = int($start / $self->{subTaskSize}) + 1;
-    $self->runCmdOnNode("touch $inputDir/subtasks/reads1.$subtaskNum.touch",1);
-    $self->runCmdOnNode("/bin/rm $inputDir/subtasks/reads1.$subtaskNum.touch",1);
-    $self->runCmdOnNode("cp $inputDir/subtasks/reads1.$subtaskNum $nodeExecDir/seqSubset1.fa");
-    $self->runCmdOnNode("cp $inputDir/contigs.len $nodeExecDir");
+    $self->runCmdOnNode($node, "touch $inputDir/subtasks/reads1.$subtaskNum.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $inputDir/subtasks/reads1.$subtaskNum.touch",1);
+    $self->runCmdOnNode($node, "cp $inputDir/subtasks/reads1.$subtaskNum $nodeExecDir/seqSubset1.fa");
+    $self->runCmdOnNode($node, "cp $inputDir/contigs.len $nodeExecDir");
 
     if($self->{pairedEnd} eq "paired") {
-	$self->runCmdOnNode("cp $inputDir/subtasks/reads2.$subtaskNum $nodeExecDir/seqSubset2.fa");
+	$self->runCmdOnNode($node, "cp $inputDir/subtasks/reads2.$subtaskNum $nodeExecDir/seqSubset2.fa");
     }	
 }
 
@@ -216,7 +216,7 @@ sub integrateSubTaskResults {
 
 
 # do all post-processing here:
-# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode("cmd")
+# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode($node, "cmd")
 # NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 
 sub cleanUpServer {
@@ -233,7 +233,7 @@ sub cleanUpServer {
     for($stNum = 1; $stNum <= $self->{numSubtasks}; $stNum++) {
 	my $outfile = "$mainResultDir/GSNAP.$stNum.aln";
 	die "file $outfile cannot be found" unless -e "$outfile";
-	$self->runCmdOnNode("cat $outfile >> $mainResultDir/GSNAP.aln");
+	$self->runCmdOnNode($node, "cat $outfile >> $mainResultDir/GSNAP.aln");
     }
 
     if($createSAMFile eq "true") {
@@ -241,7 +241,7 @@ sub cleanUpServer {
 	for($stNum = 1; $stNum <= $self->{numSubtasks}; $stNum++) {
 	    my $outfile = "$mainResultDir/GSNAP.$stNum.sam";
 	    die "file $outfile cannot be found" unless -e "$outfile";
-	    $self->runCmdOnNode("cat $outfile >> $mainResultDir/GSNAP.sam");
+	    $self->runCmdOnNode($node, "cat $outfile >> $mainResultDir/GSNAP.sam");
 	}
     }
 	
@@ -250,22 +250,22 @@ sub cleanUpServer {
 
     print "Postprocessing output for $genomeDB\n";
     my $cmd = "postProcessGSNAPTask.pl".($createJunctionsFile eq "true" ? " --createJunctionsFile " : "").($createBigWigFiles eq "true" ? " --createBigWigFiles " : "")." --mainResultDir $mainResultDir --output GSNAP --numContigs $self->{numContigs} --numSubTasks $self->{numSubtasks}";
-    $self->runCmdOnNode($cmd);
+    $self->runCmdOnNode($node, $cmd);
     print "done!\n";
     my $buff_size = $self->{numSubtasks} + 1000;
     print "Removing temporary files .. ";
     $cmd = "find $mainResultDir -iname \"GSNAP.*.al*\" -print0 | xargs -0 -s $buff_size rm -f";
-    $self->runCmdOnNode($cmd);
+    $self->runCmdOnNode($node, $cmd);
     $cmd = "find $mainResultDir -iname \"GSNAP.*.Unique.cov\" -print0 | xargs -0 -s $buff_size rm -f";
-    $self->runCmdOnNode($cmd);
+    $self->runCmdOnNode($node, $cmd);
     if($createSAMFile eq "true") {
 	$cmd = "find $mainResultDir -iname \"GSNAP.*.sam\" -print0 | xargs -0 -s $buff_size rm -f";
-	$self->runCmdOnNode($cmd);
+	$self->runCmdOnNode($node, $cmd);
     }
 
     $buff_size = $self->{numContigs} + 1000;
     $cmd = "find $mainResultDir -iname \"GSNAP.Unique.cov.*\" -print0 | xargs -0 -s $buff_size rm -f";
-    $self->runCmdOnNode($cmd);
+    $self->runCmdOnNode($node, $cmd);
     print "Postprocessing Done!\n";
 }
 

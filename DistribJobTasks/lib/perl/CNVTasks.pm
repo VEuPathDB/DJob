@@ -70,7 +70,7 @@ sub cleanUpServer {
       my $bamFile = $self->getProperty("bamFile");
 
       #Delete Bam file from cluster 
-      $self->runCmdOnNode("/bin/rm $bamFile");
+      $self->runCmdOnNode($node, "/bin/rm $bamFile");
 }
 
 

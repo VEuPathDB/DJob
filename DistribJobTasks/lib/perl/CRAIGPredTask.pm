@@ -59,9 +59,9 @@ sub initSubTask {
       $self->{fastaFile}->writeSeqsToFile($start, $end, 
 					"$subTaskDir/seqsubset.fa");
     }
-    $self->runCmdOnNode("touch $subTaskDir/seqsubset.fa.touch",1);
-    $self->runCmdOnNode("/bin/rm $subTaskDir/seqsubset.fa.touch",1);
-    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "touch $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -82,7 +82,7 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-    $self->runCmdOnNode("cat $nodeExecDir/seqsubset.locs >> $mainResultDir/output0.locs");
-    $self->runCmdOnNode("cat $nodeExecDir/subtask.stderr >> $mainResultDir/stderr0", 1);
+    $self->runCmdOnNode($node, "cat $nodeExecDir/seqsubset.locs >> $mainResultDir/output0.locs");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/subtask.stderr >> $mainResultDir/stderr0", 1);
 }
 1;

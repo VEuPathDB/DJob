@@ -63,7 +63,7 @@ sub initSubTask {
     my @cmds = @commands[$start..$end - 1];
     print O "@cmds\n";
     close O; 
-    $self->runCmdOnNode("cp $subTaskDir/run.sh $nodeSlotDir/");
+    $self->runCmdOnNode($node, "cp $subTaskDir/run.sh $nodeSlotDir/");
 }
 
 sub makeSubTaskCommand { 
@@ -79,11 +79,11 @@ sub integrateSubTaskResults {
 
     my $out = $self->getProperty('outputFile') eq 'none' ? "subtask.output" : $self->getProperty('outputFile'); 
     my $cmd = "cat $nodeExecDir/$out >> $mainResultDir/$out";
-    $self->runCmdOnNode($cmd); 
+    $self->runCmdOnNode($node, $cmd); 
 }
 
 
-# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode("cmd")
+# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode($node, "cmd")
 # NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
