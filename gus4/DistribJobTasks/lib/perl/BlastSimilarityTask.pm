@@ -126,10 +126,10 @@ sub initSubTask {
       &runCmd("cp $inputDir/$blastParamsFile $serverSubTaskDir");
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
     }
-    $node->runCmd("touch $serverSubTaskDir/seqsubset.fsa.touch",1);
-    $node->runCmd("/bin/rm $serverSubTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode("touch $serverSubTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode("/bin/rm $serverSubTaskDir/seqsubset.fsa.touch",1);
 
-    $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
+    $self->runCmdOnNode("cp -r $serverSubTaskDir/* $nodeExecDir");
 }
 
 sub makeSubTaskCommand { 
@@ -159,10 +159,11 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-    $node->runCmd("cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
-    return 1 if $node->getErr();
-    $node->runCmd("cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log");
-    return 0;
+    
+    $self->runCmdOnNode("cat $nodeExecDir/blastSimilarity.out >> $mainResultDir/blastSimilarity.out");
+
+    # ignore error if this fails, but probably shouldn't
+    $self->runCmdOnNode("cat $nodeExecDir/blastSimilarity.log >> $mainResultDir/blastSimilarity.log", 1);
 }
 
 
@@ -170,7 +171,7 @@ sub integrateSubTaskResults {
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
 #  print "BlastSimilarity:  Cleaning up server method called using node: ".$node->getNum()."\n" if $node;
-#  print "getting hostname; '".$node->runCmd("hostname")."'\n";
+#  print "getting hostname; '".$self->runCmdOnNode("hostname")."'\n";
 }
 
 1;

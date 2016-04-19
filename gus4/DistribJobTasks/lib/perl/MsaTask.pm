@@ -70,10 +70,10 @@ sub initSubTask {
       my $inputFileDir = $self->getProperty("inputFileDir");
 
       foreach my $file (@files) {
-        $node->runCmd("cp $inputFileDir/$file $serverSubTaskDir");
+        $self->runCmdOnNode("cp $inputFileDir/$file $serverSubTaskDir");
       }
     }
-    $node->runCmd("cp -r $serverSubTaskDir/* $nodeExecDir");
+    $self->runCmdOnNode("cp -r $serverSubTaskDir/* $nodeExecDir");
 }
 
 
@@ -89,8 +89,7 @@ sub makeSubTaskCommand {
 
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
-    $node->runCmd("cp $nodeExecDir/*_out.tar.gz $mainResultDir/");
-    return $node->getErr();
+    $self->runCmdOnNode("cp $nodeExecDir/*_out.tar.gz $mainResultDir/");
 }
 
 # cleanUpNode is an optional method that is called when the node has completed

@@ -110,7 +110,7 @@ sub initServer {
 # "node directory" provided by $node->getDir()
 #
 # The only way to access the node directory is by executing commands on the
-# node itself.  To do this, use $node->runCmd("my command").  
+# node itself.  To do this, use $self->runCmdOnNode("my command").  
 #
 # param node The node object.
 # param inputDir The input directory where you may expect the user to place resources.
@@ -175,12 +175,12 @@ sub initSubTask {
     
     my $mgfFile = $self->{"files"}->[$start];
     my $configFileDir =  $self->getProperty("configDir");
-    $node->runCmd("mkdir $nodeExecDir/mgfFiles/");
+    $self->runCmdOnNode("mkdir $nodeExecDir/mgfFiles/");
     my $cmd = "cp $mgfFile $nodeExecDir/mgfFiles/subtaskMgf.mgf";
 #    print STDERR "initSubTask : my command is :".$cmd."\n";
-    $node->runCmd("$cmd");
+    $self->runCmdOnNode("$cmd");
     my $cmdLine = "find $configFileDir/ -maxdepth 1 -exec ln -s {} $nodeExecDir \\;";
-    $node->runCmd("$cmdLine");
+    $self->runCmdOnNode("$cmdLine");
 } 
 
 # Actually run the subtask by issuing a command on a node. This method
@@ -210,15 +210,15 @@ sub makeSubTaskCommand {
     my $searchConfigFile =$configFileDir.$self->getProperty("searchConfigFile");
     my $databaseConfigFile =$configFileDir.$self->getProperty("databaseConfigFile");
     my $mgfFile = "$nodeExecDir/mgfFiles/subtaskMgf.mgf";
-    my $fileSuccess = $node->runCmd("ls -la $nodeExecDir/mgfFiles/subtaskMgf.mgf");
-    $node->runCmd("source /gpfs/fs121/h/jcade/setenv");
+    my $fileSuccess = $self->runCmdOnNode("ls -la $nodeExecDir/mgfFiles/subtaskMgf.mgf");
+    $self->runCmdOnNode("source /gpfs/fs121/h/jcade/setenv");
     if($fileSuccess)
     {
 #	print STDERR "my ls :". $fileSuccess."\n";
     }
     my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
    
-    $node->runCmd("rm $nodeExecDir/output -r"); 
+    $self->runCmdOnNode("rm $nodeExecDir/output -r"); 
     
     my $cmd = "java -jar $jarFile single_mode -searchInput $searchConfigFile -databaseInput $databaseConfigFile -inputMgf $mgfFile -outputResultDir $nodeExecDir/output/";
 
@@ -244,7 +244,7 @@ sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
      ##could check to make sure that the number of files is correct, otherwise throw an error.
     ##need to go back and look at how to get this to copy into failures ... simply return non-zero in this method
-    my @files=$node->runCmd("ls $nodeExecDir/output/dirsubtaskMgf/");
+    my @files=$self->runCmdOnNode("ls $nodeExecDir/output/dirsubtaskMgf/");
    print STDERR Dumper @files;
     print STDERR "My subtask number = $subTaskNum\n";
     foreach my $file (@files){	
@@ -260,7 +260,7 @@ sub integrateSubTaskResults {
 	    print STDERR "New File Name : $uniqueFileName \n\n ";
 	    $cmdLine = "cp $nodeExecDir/output/dirsubtaskMgf/$file $mainResultDir/$uniqueFileName";
 	}
-	$node->runCmd("$cmdLine") if $cmdLine;
+	$self->runCmdOnNode("$cmdLine") if $cmdLine;
 	
     }
 
@@ -281,9 +281,9 @@ sub cleanUpNode {
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir,$node) = @_;
   my $jarFile =  "$ENV{GUS_HOME}/lib/java/proteoannotator.jar";
-  my $mainFiles = $node->runCmd("ls $mainResultDir");
+  my $mainFiles = $self->runCmdOnNode("ls $mainResultDir");
   print STDERR $mainFiles;
-  $node->runCmd("java -jar $jarFile create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
+  $self->runCmdOnNode("java -jar $jarFile create_summary -resultDir $mainResultDir -summaryFile $mainResultDir/WholeSummary.txt");
   
   #generate summary
   return 1;

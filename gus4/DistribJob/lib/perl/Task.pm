@@ -105,39 +105,53 @@ sub countRemainingSubtasks {
   return $num;
 }
 
+sub runCmdOnNode {
+  my ($self, $cmd, $ignoreError) = @_;
+  my $value = $nodeSlot->getNode()->runCmd($cmd, $ignoreError);
+  my $err = $nodeSlot->getNode()->getErr();
+  die "Failed running cmd \n'$cmd'\nError: '$err'\n" if ($err && !$ignoreError);
+  return $value;
+}
+
 sub runNextSubtask {
   my($self,$nextSubTask) = @_;
 
-  my $nodeSlot = $nextSubTask->getNodeSlot();
-  my $node = $nodeSlot->getNode();
-  my $nodeNum = $node->getNum();
-  my $slotNum = $nodeSlot->getNum();
-  my $nodeSlotDir = $nodeSlot->getDir();
-  my $serverSubTaskDir = $nextSubTask->getDir();
-  my $subtaskNumber = $nextSubTask->getNum();
+  eval {
+    my $nodeSlot = $nextSubTask->getNodeSlot();
+    my $node = $nodeSlot->getNode();
+    my $nodeNum = $node->getNum();
+    my $slotNum = $nodeSlot->getNum();
+    my $nodeSlotDir = $nodeSlot->getDir();
+    my $serverSubTaskDir = $nextSubTask->getDir();
+    my $subtaskNumber = $nextSubTask->getNum();
   
-  my $date = `date`;
-  chomp $date;
-  print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\tsubTask $subtaskNumber dispatching to node\n";
+    my $date = `date`;
+    chomp $date;
+    print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\tsubTask $subtaskNumber dispatching to node\n";
   
-  $node->runCmd("/bin/rm -rf $nodeSlotDir");
-  $node->runCmd("mkdir $nodeSlotDir");
-  ##also touch the serverSubtaskDir to refresh nfs mounts to node .. problem on rcluster
-  $node->runCmd("touch $serverSubTaskDir.touch",1);
-  $node->runCmd("/bin/rm $serverSubTaskDir.touch",1);
-  $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
-                     $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir, $nextSubTask);
+    $self->runCmdOnNode("/bin/rm -rf $nodeSlotDir");
+    $self->runCmdOnNode("mkdir $nodeSlotDir");
+    ##also touch the serverSubtaskDir to refresh nfs mounts to node .. problem on rcluster
+    $self->runCmdOnNode("touch $serverSubTaskDir.touch",1);
+    $self->runCmdOnNode("/bin/rm $serverSubTaskDir.touch",1);
+    $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
+		       $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir, $nextSubTask);
   
-  $nextSubTask->setRedoSubtask(0);
+    $nextSubTask->setRedoSubtask(0);
 
-  my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir}, $subtaskNumber);
-  ##note: with perl subtaskInvoker there seems to be a problem with quotes
-#  $cmd =~ s/\'/\\\'/g;
-#  $cmd =~ s/\s\'/ \'\\\'/g;
-#  $cmd =~ s/\'\s/\\\'\' /g;
-#  $cmd =~ s/\"/\"\\\"/g;
-  print "Task.pm command: $cmd\n" if $subtaskNumber == 1;
-  $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
+    my $cmd = $self->makeSubTaskCommand($node, $self->{inputDir}, $nodeSlotDir,$subtaskNumber,$self->{mainResultDir}, $subtaskNumber);
+    ##note: with perl subtaskInvoker there seems to be a problem with quotes
+    #  $cmd =~ s/\'/\\\'/g;
+    #  $cmd =~ s/\s\'/ \'\\\'/g;
+    #  $cmd =~ s/\'\s/\\\'\' /g;
+    #  $cmd =~ s/\"/\"\\\"/g;
+    print "Task.pm command: $cmd\n" if $subtaskNumber == 1;
+    $node->execSubTask($nodeSlotDir, $serverSubTaskDir, $cmd);
+  };
+  if ($@) {
+    print "Failing subtask because of: $@";
+    $self->failSubTask();
+  }
 }
 
 sub failSubTask {
@@ -170,10 +184,12 @@ sub passSubTask {
       return undef;
     }
 
-    my $integRes = $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
-                                                  $self->{mainResultDir});
+    eval {
+      $self->integrateSubTaskResults($subTaskNum, $node, $nodeSlotDir,
+				     $self->{mainResultDir});
+    };
     ##default is for $integRes to be null if command succeeded ... if returns 1 then want to fail subtask
-    if($integRes == 1){
+    if($@){
       print "Method integrateSubTask returned 1... Failing.\n";
       $self->failSubTask($subTask);
       return;

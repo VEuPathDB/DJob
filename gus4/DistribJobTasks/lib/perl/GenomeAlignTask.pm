@@ -57,7 +57,7 @@ sub initSubTask {
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$subTaskDir/seqsubset.fsa");
     }
 
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode("cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -76,7 +76,7 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
   my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-  my @files = split /\n/, $node->runCmd("ls -1 $nodeExecDir");
+  my @files = split /\n/, $self->runCmdOnNode("ls -1 $nodeExecDir");
 
   # expect output file name to be like blat-chr5.psl
   my @seqs = grep(/\-.+\./i, @files);
@@ -84,15 +84,15 @@ sub integrateSubTaskResults {
     chomp $seq;
     my $outdir = "$mainResultDir/per-seq";
     my $outfile = "$outdir/$seq";
-    $node->runCmd("mkdir -p $outdir") unless -d $outdir;
+    $self->runCmdOnNode("mkdir -p $outdir") unless -d $outdir;
 
     # workaround to odd bpsh problem:
     # cat >> $file fails if $file does not exist,
     # even if we "touch $file" first.
     if (-e $outfile) {
-	$node->runCmd("cat $nodeExecDir/$seq >> $outfile");
+	$self->runCmdOnNode("cat $nodeExecDir/$seq >> $outfile");
     } else {
-	$node->runCmd("cp $nodeExecDir/$seq $outfile");
+	$self->runCmdOnNode("cp $nodeExecDir/$seq $outfile");
     }
 
  }

@@ -108,7 +108,7 @@ sub cleanUpServer {
 	  die "Top Level Seq Size FIle $topLevelSeqSizeFile does not exist";
       }
 
-      $node->runCmd("bamutils tobedgraph $mainResultDir/${sampleName}.bam >$mainResultDir/${sampleName}.bed");
+      $self->runCmdOnNode("bamutils tobedgraph $mainResultDir/${sampleName}.bam >$mainResultDir/${sampleName}.bed");
   }
 
 
