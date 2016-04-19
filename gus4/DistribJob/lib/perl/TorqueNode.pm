@@ -100,7 +100,7 @@ sub getQueueSubmitCommand {
   return "qsub -V -cwd".$queue ? " -q $queue" : "";
 }
 
-# static method to extract Job Id from job submitted file text
+# static method to extract Job Id from the output of the commmand run by getQueueSubmitCommand()
 # used to get job id for distribjob itself
 sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
@@ -110,7 +110,7 @@ sub getJobIdFromJobInfoString {
   return $1;
 }
 
-# static method to provide command to run to get status of a job
+# static method to provide command to run to get status of a job, ie, running or done
 # used to get status of distribjob itself
 sub getCheckStatusCmd {
   my ($class, $jobId) = @_;
@@ -125,8 +125,7 @@ sub getKillJobCmd {
   return "qdel $jobIds";
 }
 
-# static method to extract status from status file
-# used to check status of distribjob itself
+# static method to extract status from the output of the command provided by getCheckStatusCmd()
 # return 1 if still running.
 sub checkJobStatus {
   my ($class, $statusFileString, $jobId) = @_;
