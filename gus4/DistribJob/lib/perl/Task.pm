@@ -150,7 +150,7 @@ sub runNextSubtask {
   };
   if ($@) {
     print "Failing subtask because of: $@";
-    $self->failSubTask();
+    $self->failSubTask($nextSubTask);
   }
 }
 
