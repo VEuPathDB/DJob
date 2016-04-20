@@ -129,11 +129,11 @@ sub runNextSubtask {
     chomp $date;
     print "\n[$date] node:$nodeNum slot:$slotNum ($node->{jobid})\tsubTask $subtaskNumber dispatching to node\n";
   
-    $self->runCmdOnNode("/bin/rm -rf $nodeSlotDir");
-    $self->runCmdOnNode("mkdir $nodeSlotDir");
+    $self->runCmdOnNode($node, "/bin/rm -rf $nodeSlotDir");
+    $self->runCmdOnNode($node, "mkdir $nodeSlotDir");
     ##also touch the serverSubtaskDir to refresh nfs mounts to node .. problem on rcluster
-    $self->runCmdOnNode("touch $serverSubTaskDir.touch",1);
-    $self->runCmdOnNode("/bin/rm $serverSubTaskDir.touch",1);
+    $self->runCmdOnNode($node, "touch $serverSubTaskDir.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $serverSubTaskDir.touch",1);
     $self->initSubTask($nextSubTask->getStart(), $nextSubTask->getEnd(), $node, 
 		       $self->{inputDir}, $serverSubTaskDir, $nodeSlotDir, $nextSubTask);
   

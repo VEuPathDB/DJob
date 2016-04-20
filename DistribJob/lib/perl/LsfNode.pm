@@ -94,7 +94,7 @@ sub getNodeAddress {
 sub removeFromQueue {
   my ($self) = @_;
   my $cmd = "bkill $self->{jobid} > /dev/null 2>&1";
-  system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
+  system($cmd);
 }
 
 sub runJobStatusCheck {
