@@ -70,7 +70,7 @@ EOF
 sub removeFromQueue {
   my ($self) = @_;
   my $cmd = "qdel $self->{jobid} > /dev/null 2>&1";
-  system($cmd) && print STDERR "Failed running command to delete job from queue.  '$cmd'";
+  system($cmd);
 }
 
 # an optional method for subclasses to implement
