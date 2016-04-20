@@ -25,8 +25,8 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
-##    print STDERR "\n$qsubcmd\n\n";
+    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}:AMD".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
+    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
     $self->{workingDir} = "/$self->{nodeWorkingDirsHome}/$jid";
@@ -97,7 +97,8 @@ sub deleteLogFilesAndTmpDir {
 sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
 
-  return "qsub -V -cwd".$queue ? " -q $queue" : "";
+  #return "qsub -V -cwd".$queue ? " -q $queue" : "";
+  return "qsub -V ".$queue ? " -q $queue" : "";
 }
 
 # static method to extract Job Id from the output of the commmand run by getQueueSubmitCommand()
@@ -105,8 +106,9 @@ sub getQueueSubmitCommand {
 sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
-  # Your job 1580354 ("script") has been submitted
-  $jobInfoString =~ /Your job (\S+)/;
+  # output message after qsub - 955273.pbs.scm
+  #$jobInfoString =~ /Your job (\S+)/;
+  $jobInfoString =~ /(\d+\.pbs).scm/;
   return $1;
 }
 
@@ -132,9 +134,18 @@ sub checkJobStatus {
 
 #5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
 
+#[hwang@75-108 ~]$ qstat -n 955309.pbs
+#pbs.scm: 
+#                                                                                  Req'd    Req'd       Elap
+#Job ID                  Username    Queue    Jobname          SessID  NDS   TSK   Memory   Time    S   Time
+#----------------------- ----------- -------- ---------------- ------ ----- ------ ------ --------- - ---------
+#955309.pbs.scm          hwang       batch    DistribJob       541093     1      1    --        --  R  00:00:00
+#   n74/19
+
   print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /^\s*$jobId/;
 
-  my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+  #my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+  my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+.*[R|Q]/;
   print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
   return $flag;
 }
