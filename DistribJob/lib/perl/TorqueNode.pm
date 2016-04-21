@@ -95,7 +95,7 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getQueueSubmitCommand {
-  my ($class, $queue) = @_;
+  my ($self, $queue) = @_;
 
   #return "qsub -V -cwd".$queue ? " -q $queue" : "";
   return "qsub -V -j oe -l nodes=1:ppn=1".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "");
