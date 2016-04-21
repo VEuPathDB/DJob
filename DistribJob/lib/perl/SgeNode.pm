@@ -118,9 +118,9 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getQueueSubmitCommand {
-  my ($class, $queue) = @_;
+  my ($class, $queue, $cmdToSubmit) = @_;
 
-  return "qsub -V -cwd -q $queue";
+  return "qsub -V -cwd -q $queue $cmdToSubmit";
 }
 
 # static method to extract Job Id from job submitted file text
