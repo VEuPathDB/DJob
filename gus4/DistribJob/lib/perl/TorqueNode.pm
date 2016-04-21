@@ -108,7 +108,7 @@ sub getJobIdFromJobInfoString {
 
   # output message after qsub - 955273.pbs.scm
   #$jobInfoString =~ /Your job (\S+)/;
-  $jobInfoString =~ /(\d+\.pbs).scm/;
+  $jobInfoString =~ /(\d+).pbs.scm/;
   return $1;
 }
 
@@ -134,7 +134,7 @@ sub checkJobStatus {
 
 #5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
 
-#[hwang@75-108 ~]$ qstat -n 955309.pbs
+#[hwang@75-108 ~]$ qstat -n 955309
 #pbs.scm: 
 #                                                                                  Req'd    Req'd       Elap
 #Job ID                  Username    Queue    Jobname          SessID  NDS   TSK   Memory   Time    S   Time
