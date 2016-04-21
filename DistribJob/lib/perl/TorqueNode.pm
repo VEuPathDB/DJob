@@ -98,7 +98,7 @@ sub getQueueSubmitCommand {
   my ($class, $queue) = @_;
 
   #return "qsub -V -cwd".$queue ? " -q $queue" : "";
-  return "qsub -V ".$queue ? " -q $queue" : "";
+  return "qsub -V -q $queue";
 }
 
 # static method to extract Job Id from the output of the commmand run by getQueueSubmitCommand()
