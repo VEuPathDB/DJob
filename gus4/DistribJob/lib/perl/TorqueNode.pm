@@ -97,8 +97,6 @@ sub deleteLogFilesAndTmpDir {
 sub getQueueSubmitCommand {
   my ($class, $queue, $cmdToSubmit) = @_;
 
-  #return "qsub -V -cwd".$queue ? " -q $queue" : "";
-  #return "qsub -V -j oe -l nodes=1:ppn=1".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{queue} ? " -q $self->{queue}" : "");
   return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1,walltime=350:00:00 -q batch";
 }
 
@@ -107,8 +105,7 @@ sub getQueueSubmitCommand {
 sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
-  # output message after qsub - 955273.pbs.scm
-  #$jobInfoString =~ /Your job (\S+)/;
+  # qsub output - 955273.pbs.scm
   $jobInfoString =~ /(\d+).pbs.scm/;
   return $1;
 }
@@ -118,7 +115,7 @@ sub getJobIdFromJobInfoString {
 sub getCheckStatusCmd {
   my ($class, $jobId) = @_;
 
-  return "qstat -n $jobId";
+  return "qstat | grep $jobId";
 }
 
 # static method to provide command to run kill jobs
@@ -133,20 +130,12 @@ sub getKillJobCmd {
 sub checkJobStatus {
   my ($class, $statusFileString, $jobId) = @_;
 
-#5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
-
-#[hwang@75-108 ~]$ qstat -n 955309
-#pbs.scm: 
-#                                                                                  Req'd    Req'd       Elap
-#Job ID                  Username    Queue    Jobname          SessID  NDS   TSK   Memory   Time    S   Time
-#----------------------- ----------- -------- ---------------- ------ ----- ------ ------ --------- - ---------
-#955309.pbs.scm          hwang       batch    DistribJob       541093     1      1    --        --  R  00:00:00
-#   n74/19
+#output of getCheckStatusCmd()
+#957014.pbs                 STDIN            hwang           00:00:00 R batch
 
   print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /^\s*$jobId/;
 
-  #my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
-  my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+.*[R|Q]/m;
+  my $flag = $statusFileString =~ /^\s*$jobId.*[R|Q]/;
   print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
   return $flag;
 }
