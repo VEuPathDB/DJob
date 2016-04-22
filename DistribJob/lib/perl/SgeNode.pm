@@ -138,7 +138,8 @@ sub getJobIdFromJobInfoString {
 sub getCheckStatusCmd {
   my ($class, $jobId) = @_;
 
-  return "qstat -j $jobId";
+  #return "qstat -j $jobId";
+  return "qstat | grep $jobId";
 }
 
 # static method to provide command to run kill jobs
