@@ -123,7 +123,7 @@ sub integrateSubTaskResults {
     my $output_part_file = $outputfile;
     $output_part_file =~ s/\.tsv$//i;
     $output_part_file .= "_" . $subTaskNum . ".tsv";
-    $self->runCmdOnNode ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
+    $self->runCmdOnNode ($node, "cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
 }
 
 sub cleanUpServer {

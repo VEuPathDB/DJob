@@ -127,7 +127,7 @@ sub integrateSubTaskResults {
     my $output_part_file = $outputfile;
     $output_part_file =~ s/\.xml$//i;
     $output_part_file .= "_" . $subTaskNum . ".xml";
-    $self->runCmdOnNode ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
+    $self->runCmdOnNode ($node, "cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
 }
 
 sub cleanUpServer {
