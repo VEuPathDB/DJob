@@ -190,7 +190,7 @@ sub passSubTask {
     };
     ##default is for $integRes to be null if command succeeded ... if returns 1 then want to fail subtask
     if($@){
-      print "Method integrateSubTask returned 1... Failing.\n";
+      print "Method integrateSubTask failed because of:\n $@";
       $self->failSubTask($subTask);
       return;
     }
