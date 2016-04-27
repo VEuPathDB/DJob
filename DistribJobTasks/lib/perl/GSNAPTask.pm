@@ -71,6 +71,18 @@ sub getInputSetSize {
     my ($self, $inputDir) = @_;
 
     my $reads = $self->getProperty('mateA');
+    my $paired = $self->getProperty('mateB');
+
+    if (-e "$reads.gz"){
+      print "unzipping $reads.gz\n";
+      `gunzip $reads.gz`;
+    }
+
+    if (-e "$paired.gz"){
+      print "unzipping $paired.gz\n";
+      `gunzip $paired.gz`;
+    }
+
     my $readLineCount = `wc -l $reads`;
 
     # Try to process ~ 1 Million reads or less per node.  div by 4 because of fastq.  Fasta files will have up to 2 million reads per process
