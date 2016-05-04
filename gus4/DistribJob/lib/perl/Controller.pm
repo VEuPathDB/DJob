@@ -39,6 +39,7 @@ sub new {
 
   END { 
     $self->cleanupOnExit();
+    print  $self->{failures}? "Failed\n" : "Done\n";;
   }
 
   $self->{runTime} = $runTime;
@@ -54,7 +55,10 @@ sub new {
 
   ($self->{inputDir}, $self->{masterDir}, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}) = $self->readPropFile($propfile, \@properties);
 
-  return if ($self->kill($kill));
+  if ($self->kill($kill)) {
+    $self->{failures} = 1;
+    return;
+  }
 
   $self->{processIdFile} = "$self->{masterDir}/distribjobProcessId"; 
 
@@ -298,10 +302,10 @@ sub run {
     }
     $self->manageFailedNodes(1);
 
-    my $failures = $self->reportFailures($propfile);
+    my $self->{failures} = $self->reportFailures($propfile);
 
     my $numRedoRemaining = $task->haveRedoSubtasks();
-    $failures += $numRedoRemaining;
+    $self->{failures} += $numRedoRemaining;
     if($numRedoRemaining){  ##there are still tasks from failed nodes that didn't get assigned
       print "
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -338,7 +342,7 @@ ERROR: the following subtasks were not run\n";
       $n->deleteLogFilesAndTmpDir();
     }
 
-    print "Done\n" unless $failures;
+    return $self->{failures};
 }
 
 sub getNodeMsgs {
