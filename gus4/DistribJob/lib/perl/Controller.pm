@@ -37,7 +37,7 @@ sub new {
   my $self = {};
   bless $self;
 
-  END { 
+  END {
     $self->cleanupOnExit();
     print  ($self->{failures} || $?)? "Failed\n" : "Done\n";;
     sleep(30);   # prevent race condition that we exit before log file update is visible
@@ -303,7 +303,7 @@ sub run {
     }
     $self->manageFailedNodes(1);
 
-    my $self->{failures} = $self->reportFailures($propfile);
+    $self->{failures} = $self->reportFailures($propfile);
 
     my $numRedoRemaining = $task->haveRedoSubtasks();
     $self->{failures} += $numRedoRemaining;
