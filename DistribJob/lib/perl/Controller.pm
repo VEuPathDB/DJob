@@ -39,7 +39,7 @@ sub new {
 
   END { 
     $self->cleanupOnExit();
-    print  $self->{failures}? "Failed\n" : "Done\n";;
+    print  ($self->{failures} || $?)? "Failed\n" : "Done\n";;
     sleep(30);   # prevent race condition that we exit before log file update is visible
   }
 
