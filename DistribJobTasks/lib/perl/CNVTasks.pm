@@ -16,6 +16,7 @@ my @properties =
     ["samtoolsIndex", "none", "full path to samtools index of reference fasta file"],
     ["sampleName", "", "sample or strain to be analysed"],
     ["window", 1000, "window size for binned coverage"],
+    ["snpsClusterDir", "", "Dir containing snps data on cluster"],
 );
 
 
@@ -51,10 +52,11 @@ sub makeSubTaskCommand {
     my $samtoolsIndex = $self->getProperty("samtoolsIndex");
     my $sampleName = $self->getProperty("sampleName");
     my $window = $self->getProperty("window");
+    my $snpsClusterDir = $self->getProperty("snpsClusterDir");
     my $workingDir = "$node->{masterDir}/mainresult";
        
     
-    my $cmd = "runCNVTasks.pl --genomicSeqsFile $genomicSeqsFile --bamFile $bamFile --gtfFile $gtfFile --samtoolsIndex $samtoolsIndex --workingDir $workingDir --sampleName $sampleName --window $window";
+    my $cmd = "runCNVTasks.pl --genomicSeqsFile $genomicSeqsFile --bamFile $bamFile --gtfFile $gtfFile --samtoolsIndex $samtoolsIndex --workingDir $workingDir --sampleName $sampleName --window $window --snpsClusterDir $snpsClusterDir";
       
     return $cmd;
 }
@@ -66,11 +68,7 @@ sub integrateSubTaskResults {
 
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
-    
-      my $bamFile = $self->getProperty("bamFile");
-
-      #Delete Bam file from cluster 
-      $self->runCmdOnNode($node, "/bin/rm $bamFile");
+  return 1;  
 }
 
 
