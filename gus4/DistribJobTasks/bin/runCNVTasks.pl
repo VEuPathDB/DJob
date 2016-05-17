@@ -47,7 +47,7 @@ if (-e "$workingDir/Cufflinks/genes.fpkm_tracking") {
 
 ###make binned coverage file###
 print L &getDate(). ": creating binned coverage file\n";
-my $bedFile = &createBed($samtoolsIndex, $window, $workingDir);
+my $bedFile = &createBed($samtoolsIndex, $window, $workingDir, $sampleName);
 unless (-e $bedFile) {
     die "Bed file $bedFile was not successfully created\n";
 }
@@ -59,9 +59,8 @@ close L;
 &runCmd("/bin/rm $workingDir/genome.txt");
 
 sub createBed {
-    my ($index, $winLen, $workingDir) = @_;
-    my $bedfile = (split /\./, $index)[0]."_$winLen.bed";
-    $bedfile = "$bedfile";
+    my ($index, $winLen, $workingDir, $sampleName) = @_;
+    my $bedfile = "$workingDir/$sampleName"."_$winLen.bed";
     open (OUT, ">$bedfile") or die "Cannot write to temporary file $bedfile\n$!\n";
     open (IN, "$index") or die "Cannot open samtools index $index for reading\n$!\n";
     while (<IN>) {
