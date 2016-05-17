@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my ($genomicSeqsFile, $bamFile, $gtfFile, $samtoolsIndex, $sampleName, $window);
+my ($genomicSeqsFile, $bamFile, $gtfFile, $samtoolsIndex, $sampleName, $window, $snpsClusterDir);
 my $workingDir = ".";
 
 #get args
@@ -17,6 +17,7 @@ my $workingDir = ".";
             "workingDir|w=s"=>\$workingDir,
             "sampleName=s"=>\$sampleName,
             "window=s"=>\$window,
+            "snpsClusterDir"=>\$snpsClusterDir,
             );
 die "Genomic Sequence file not found\n".&getParams() unless -e $genomicSeqsFile;
 die "Bam file not found\n".&getParams() unless -e $bamFile;
@@ -55,8 +56,7 @@ my $coverage = &getCoverage($bedFile, $bamFile, $out, $workingDir);
 
 ###tidy up###
 close L;
-&runCmd("/bin/rm $bedFile");
-&runCmd("/bin/rm $workingDir/genome.txt");
+&cleanUp($snpsClusterDir, $bedFile, $workingDir);
 
 sub createBed {
     my ($index, $winLen, $workingDir, $sampleName) = @_;
@@ -111,6 +111,13 @@ sub getGenomeFile {
 }
 sub getParams {
   return &getDate().": runCNVTasks.pl ... parameter values:\n\tgenomicSeqsFile=$genomicSeqsFile\n\tbamFile=$bamFile\n\tgtfFile=$gtfFile\n\tsampleName=$sampleName\n\tworkingDir=$workingDir\n\n";
+}
+
+sub cleanUp {
+    my ($snpsClusterDir, $bedFile, $workingDir) = @_;
+    &runCmd("/bin/rm $bedFile");
+    &runCmd("/bin/rm $workingDir/genome.txt");
+    &runCmd("/bin/rm -r $snpsClusterDir");
 }
 
 sub getDate {
