@@ -327,9 +327,13 @@ ERROR: the following subtasks were not run\n";
         last;
       }
     }
-    print "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
-    $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
-    
+    if(!$self->{failures}){
+      print "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
+      $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
+      
+    }else{
+      print "There are failures so skipping cleanUpServer method call\n";
+    }
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
     close($sock);
