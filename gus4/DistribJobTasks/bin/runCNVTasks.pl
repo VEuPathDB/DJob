@@ -17,7 +17,7 @@ my $workingDir = ".";
             "workingDir|w=s"=>\$workingDir,
             "sampleName=s"=>\$sampleName,
             "window=s"=>\$window,
-            "snpsClusterDir"=>\$snpsClusterDir,
+            "snpsClusterDir=s"=>\$snpsClusterDir,
             );
 die "Genomic Sequence file not found\n".&getParams() unless -e $genomicSeqsFile;
 die "Bam file not found\n".&getParams() unless -e $bamFile;
