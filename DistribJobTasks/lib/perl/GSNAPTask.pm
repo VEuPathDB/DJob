@@ -16,13 +16,13 @@ my @properties =
  ["genomeDatabase",   "",     "full path to the genome database"],
  ["iitFile",   "none",     "full path to the iit file for splice sites"],
  ["gtfFile",   "none",     "full path to the gtf file (rRNAs removed)"],
- ["maskFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for Cufflinks and HTseq"],
+ ["maskFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for HTseq"],
  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
  ["extraGsnapParams", "none", "GSNAP parameters other than default"],
  ["outputFileBasename", "results", "Base name for the results file"],
  ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
  ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
- ["quantify", "true", "[true]|false: if true then runs Cufflinks and HTSeq"],
+ ["quantify", "true", "[true]|false: if true then runs HTSeq"],
  ["writeCovFiles", "true", "[true]|false: if true then runs bamutils"],
  ["isStrandSpecific", "false", "[true]|false"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
@@ -187,25 +187,23 @@ sub cleanUpServer {
     my $topLevelGeneFootprintFile = $self->getProperty("topLevelGeneFootprintFile");
 
    # Cufflinks
-
-    if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
-	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
-	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.firststrand.fpkm_tracking";
-	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.firststrand.fpkm_tracking";
-
-	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
-	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.secondstrand.fpkm_tracking";
-	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.secondstrand.fpkm_tracking";
-    }
-
-    else {
-	$self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
-	rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.unstranded.fpkm_tracking";
-	rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.unstranded.fpkm_tracking";
-    }
+    # if($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+    #     $self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-firststrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    #     rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.firststrand.fpkm_tracking";
+    #     rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.firststrand.fpkm_tracking";
+    #     $self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-secondstrand -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    #     rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.secondstrand.fpkm_tracking";
+    #     rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.secondstrand.fpkm_tracking";
+    # }
+    # else {
+    #     $self->runCmdOnNode($node, "cufflinks --no-effective-length-correction --compatible-hits-norm --library-type fr-unstranded -o $mainResultDir -G $maskedFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    #     rename "$mainResultDir/genes.fpkm_tracking", "$mainResultDir/genes.cuff.unstranded.fpkm_tracking";
+    #     rename "$mainResultDir/isoforms.fpkm_tracking", "$mainResultDir/isoforms.cuff.unstranded.fpkm_tracking";
+    # }
     
     # HTSeq
-    my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
+    my @modes = ('union');
+#    my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
 
 	for (my $i=0; $i<@modes; $i++) {
