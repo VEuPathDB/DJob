@@ -25,7 +25,11 @@ sub queueNode {
       close R;
       system("chmod +x $runFile");
     }
-    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").($self->{memPerNode} ? ",mem=$self->{memPerNode}gb" : "").($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
+
+    my $num = $self->{memPerNode} ? $self->{memPerNode} : 2; # default is 2GB
+    $num = int($num) + ($num > int($num));  # ceil since sapelo cannot take decimal 
+ 
+    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb".($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
     print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
