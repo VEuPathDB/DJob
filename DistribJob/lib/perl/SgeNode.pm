@@ -138,7 +138,6 @@ sub getJobIdFromJobInfoString {
 sub getCheckStatusCmd {
   my ($class, $jobId) = @_;
 
-  #return "qstat -j $jobId";
   return "qstat | grep $jobId";
 }
 
@@ -157,7 +156,11 @@ sub checkJobStatus {
 
 #5728531 0.50085 runLiniacJ i_wei        r     10/03/2014
 
-  return $statusFileString =~ /$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+  print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /^\s*$jobId/;
+
+  my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
+  print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
+  return $flag;
 }
 
 1;
