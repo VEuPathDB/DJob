@@ -586,7 +586,7 @@ sub manageNodesBasedOnQueueState {
   foreach my $node (@nodes){
     $ct++;
     next if ($node->getState() == $FAILEDNODE || $node->getState() == $COMPLETE);
-    push(@bad,$node) unless $node->getQueueState();
+    push(@bad,$node) unless $node->checkNode();  ## NOTE: this is checking that node is still running, not whether it is in queue. 
   }
   ##want to exit gracefully if number of bad nodes == $ct || $ct == 0
   ##unless scalar(@nodes) == 1 then want to manage nodes on node and allow to requeue.
