@@ -566,7 +566,7 @@ sub getCheckStatusCmd {
 
 # static method to extract status from status file
 # used to check status of distribjob itself
-# return 1 if still running
+# return ($flag, $msg).  $flag=1 if still running.  else, $msg explains why not
 sub checkJobStatus {
   my ($class, $statusFileString, $jobId) = @_;
 
