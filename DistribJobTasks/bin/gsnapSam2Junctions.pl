@@ -39,21 +39,21 @@ while(my $line = <INFILE>) {
     
     my $xs; 
 
-    my $xo;
+    my $nh;
     foreach my $tag (@tags) {
 	if($tag =~ /XS:A:([+-])/) {
 	    $xs = $1;
 	}
-	if($tag =~ /XO:Z:(\w\w)/) {
-	    $xo = $1;
+	if($tag =~ /NH:i:(\d+)/) {
+	    $nh = $1;
 	}
     }
 
     die "XS:A tag not found for read $qname" unless($xs);
-    die "XO:Z tag not found for read $qname" unless($xo);
+    die "NH:i tag not found for read $qname" unless($nh);
 
     my $mapperType = "nu";
-    if($xo eq "CT" || $xo eq "CU" || $xo eq "HT" || $xo eq "HU" || $xo eq "PC" || $xo eq "PI" || $xo eq "PL" || $xo eq "PS" || $xo eq "UT" || $xo eq "UU") {
+    if($nh == 1) {
 	$mapperType = "unique";
     }
 
