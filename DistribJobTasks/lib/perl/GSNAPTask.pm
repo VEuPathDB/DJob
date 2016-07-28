@@ -28,6 +28,7 @@ my @properties =
  ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
  ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
  ["topLevelGeneFootprintFile", "none", "required if quantify is true"]
+ ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"]
 );
 
 sub new {
@@ -124,7 +125,13 @@ sub makeSubTaskCommand {
 
     my $extraGsnapParams = $self->getProperty("extraGsnapParams") eq "none" ? undef : $self->getProperty("extraGsnapParams");
 
-    my $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 -s $iitFile -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
+    my $dashSParam;
+    my $hasKnownSpliceSites = $self->getProperty("hasKnownSpliceSites");
+    if($hasKnownSpliceSites && lc($hasKnownSpliceSites) eq 'true') {
+      $dashSParam = "-s $iitFile";
+    }
+
+    my $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
 
     return $cmd;
 }
