@@ -27,7 +27,7 @@ my @properties =
  ["isStrandSpecific", "false", "[true]|false"],
  ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
  ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
- ["topLevelGeneFootprintFile", "none", "required if quantify is true"]
+ ["topLevelGeneFootprintFile", "none", "required if quantify is true"],
  ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"]
 );
 
