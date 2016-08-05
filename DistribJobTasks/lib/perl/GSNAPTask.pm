@@ -5,6 +5,7 @@ use CBIL::Bio::FastaFileSequential;
 use File::Basename;
 use Cwd;
 use CBIL::Util::Utils;
+use CBIL::TranscriptExpression::SplitBamUniqueNonUnique qw(splitBamUniqueNonUnique);
 
 @ISA = (DJob::DistribJob::Task);
 use strict;
@@ -237,6 +238,8 @@ sub cleanUpServer {
 
   # COVERAGE PLOTS
   if($writeCovFiles && lc($writeCovFiles) eq 'true') {
+
+
 #    my $topLevelFastaFaiFile = $self->getProperty("topLevelFastaFaiFile");
 #    unless(-e $topLevelFastaFaiFile) {
 #      die "Top Level Genome fa.fai File $topLevelFastaFaiFile does not exist";
@@ -245,53 +248,16 @@ sub cleanUpServer {
       $self->runCmdOnNode($node, "samtools index $mainResultDir/${outputFileBasename}_sorted.bam");
 
     my $mateB = $self->getProperty('mateB');
+
     my $isPairedEnd = 1;
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
+
+    my $strandSpecific;
+    if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
+      $strandSpecific = 1;
+    }
  
-    if($isStrandSpecific && lc($isStrandSpecific) eq 'true' && !$isPairedEnd) {
-      $self->runCmdOnNode($node, "bamutils tobedgraph -plus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
-      $self->runCmdOnNode($node, "bamutils tobedgraph -minus $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
-    }
-
-    elsif($isStrandSpecific && lc($isStrandSpecific) eq 'true' && $isPairedEnd) {
-	# modified bash script from Istvan Albert to get for.bam and rev.bam
-	# https://www.biostars.org/p/92935/
-
-	# 1. alignments of the second in pair if they map to the forward strand
-	# 2. alignments of the first in pair if they map to the reverse  strand
-	$self->runCmdOnNode($node, "samtools view -b -f 128 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd1.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd1.bam");
-
-	$self->runCmdOnNode($node, "samtools view -b -f 80 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/fwd2.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd2.bam");
-
-	$self->runCmdOnNode($node, "samtools merge -f $mainResultDir/fwd.bam $mainResultDir/fwd1.bam $mainResultDir/fwd2.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/fwd.bam");
-
-	# 1. alignments of the second in pair if they map to the reverse strand
-	# 2. alignments of the first in pair if they map to the forward strand
-	$self->runCmdOnNode($node, "samtools view -b -f 144 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev1.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev1.bam");
-
-	$self->runCmdOnNode($node, "samtools view -b -f 64 -F 16 $mainResultDir/${outputFileBasename}_sorted.bam > $mainResultDir/rev2.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev2.bam");
-
-	$self->runCmdOnNode($node, "samtools merge -f $mainResultDir/rev.bam $mainResultDir/rev1.bam $mainResultDir/rev2.bam");
-	$self->runCmdOnNode($node, "samtools index $mainResultDir/rev.bam");
-
-	$self->runCmdOnNode($node, "bamutils tobedgraph $mainResultDir/fwd.bam >$mainResultDir/${outputFileBasename}.firststrand.cov");
-	$self->runCmdOnNode($node, "bamutils tobedgraph -minus $mainResultDir/rev.bam >$mainResultDir/${outputFileBasename}.secondstrand.cov");
-
-	unlink("$mainResultDir/rev*.bam");
-	unlink("$mainResultDir/fwd*.bam");
-    }
-
-    else {
-      $self->runCmdOnNode($node, "bamutils tobedgraph $mainResultDir/${outputFileBasename}_sorted.bam >$mainResultDir/${outputFileBasename}.unstranded.cov");
-    }
-
-
-
+    my $splitExpDir = splitBamUniqueNonUnique($mainResultDir, $strandSpecific, $isPairedEnd, "$mainResultDir/${outputFileBasename}_sorted.bam");
   }
 
   return 1;
