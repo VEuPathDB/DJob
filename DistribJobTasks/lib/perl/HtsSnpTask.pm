@@ -60,7 +60,7 @@ sub initServer {
       if($isColorspace eq 'true'){
 	   $sraCmd .= " --isColorspace";
     }
-      $self->{nodeForInit}->runCmd($sraCmd);
+      &runCmd($sraCmd);
     }
   } 
 }

@@ -95,8 +95,8 @@ sub initServer {
     if(!(-e "$inputDir/subtasks/sequenceCount")){ ##file will exist if have already done this
       $date = `date`; chomp $date;
       print "[$date] parsing reads file(s) to fasta and qual files\n";
-      $self->{nodeForInit}->runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
-      $self->{nodeForInit}->runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem reads --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}");
+      &runCmd("perl $perlScriptsDir/fastq2qualities.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
+      &runCmd("perl $perlScriptsDir/parse2fasta.pl $readFilePath".(-e $pairedReadFilePath ? " $pairedReadFilePath" : "")." | makeSubtasksFromFAFileForRUM.pl --stdin --outStem reads --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}");
       $madeReadFile = 1;
     }
 
@@ -185,7 +185,7 @@ sub initServer {
 	if (scalar(@lsg) != 2 || $lsg[0] ne $genomeFastaFile) { 
           $date = `date`; chomp $date;
 	    print "$date: Building bowtie index for genome\n";
-	    $self->{nodeForInit}->runCmd("bowtie-build $genomeFastaFile $self->{bowtie_genome}");
+	    &runCmd("bowtie-build $genomeFastaFile $self->{bowtie_genome}");
 	}
     }
     
@@ -204,7 +204,7 @@ sub initServer {
 	    if (scalar(@lst) != 2 || $lst[0] ne $transcriptFastaFile) { 
               $date = `date`; chomp $date;
 		print "$date: Building bowtie index for transcriptome\n";
-		$self->{nodeForInit}->runCmd("bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
+		&runCmd("bowtie-build $transcriptFastaFile $self->{bowtie_transcript}");
 	    }
 	}
     }

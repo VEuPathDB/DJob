@@ -78,10 +78,10 @@ sub initServer {
     }
     close(OC);
     $self->{numContigs} = $numContigs;
-    $self->{nodeForInit}->runCmd("cat $inputDir/contigs_tmp.fa | sed 1,1d | sed -e '\$a\\' > $inputDir/contigs.fa && rm -f $inputDir/contigs_tmp.fa");
-    $self->{nodeForInit}->runCmd("contigLength.pl -ctg $inputDir/contigs.fa > $inputDir/contigs.len");
+    &runCmd("cat $inputDir/contigs_tmp.fa | sed 1,1d | sed -e '\$a\\' > $inputDir/contigs.fa && rm -f $inputDir/contigs_tmp.fa");
+    &runCmd("contigLength.pl -ctg $inputDir/contigs.fa > $inputDir/contigs.len");
     ## initializing database or genome directory if fasta and annotation files are provided
-    my $dirDatabases = $self->{nodeForInit}->runCmd("gmap -d \'?\' | grep Available | cut -f6 -d \" \" | cut -f1 -d \":\"");
+    my $dirDatabases = &runCmd("gmap -d \'?\' | grep Available | cut -f6 -d \" \" | cut -f1 -d \":\"");
     chomp($dirDatabases);
 
     if(!(-e "$dirDatabases/$genomeDB/$genomeDB.maps/$genomeDB.splicesites.iit")) {
@@ -89,12 +89,12 @@ sub initServer {
 	die "geneAnnotationFile $geneAnnotationFile does not exist" unless -e "$geneAnnotationFile";
 	rmtree("$inputDir/contigs") unless !(-d "$inputDir/contigs");
 	rmtree("$dirDatabases/$genomeDB") unless !(-d "$dirDatabases/$genomeDB");
-	$self->{nodeForInit}->runCmd("formatFastaFile.pl < $inputDir/contigs.fa |  fastalike2files.pl -dir $inputDir/contigs");
-	$self->{nodeForInit}->runCmd("ls $inputDir/contigs/* > $inputDir/contigs.list");
-	$self->{nodeForInit}->runCmd("gmap_build -d $genomeDB -k 15 $inputDir/contigs.list");
-	$self->{nodeForInit}->runCmd("cat $geneAnnotationFile | grep -P \"\t$cdsTag\t\" | gff32GTF.pl -all | sed 's/\tCDS\t/\texon\t/g' | gtf_splicesites > $inputDir/$genomeDB.splicesites");
-	$self->{nodeForInit}->runCmd("cat $inputDir/$genomeDB.splicesites | iit_store -o $inputDir/$genomeDB.splicesites.iit");
-	$self->{nodeForInit}->runCmd("cp $inputDir/$genomeDB.splicesites.iit $dirDatabases/$genomeDB/$genomeDB.maps");
+	&runCmd("formatFastaFile.pl < $inputDir/contigs.fa |  fastalike2files.pl -dir $inputDir/contigs");
+	&runCmd("ls $inputDir/contigs/* > $inputDir/contigs.list");
+	&runCmd("gmap_build -d $genomeDB -k 15 $inputDir/contigs.list");
+	&runCmd("cat $geneAnnotationFile | grep -P \"\t$cdsTag\t\" | gff32GTF.pl -all | sed 's/\tCDS\t/\texon\t/g' | gtf_splicesites > $inputDir/$genomeDB.splicesites");
+	&runCmd("cat $inputDir/$genomeDB.splicesites | iit_store -o $inputDir/$genomeDB.splicesites.iit");
+	&runCmd("cp $inputDir/$genomeDB.splicesites.iit $dirDatabases/$genomeDB/$genomeDB.maps");
 	print " Done!\n";
     }
 
@@ -111,10 +111,10 @@ sub initServer {
        ((-e $pairedReadFilePath) && !(-e "$inputDir/subtasks/sequenceCount2"))) {  ##file will exist if have already done this
       $date = `date`; chomp $date;
       print "[$date] parsing reads file(s) to fasta and qual files\n";
-#      $self->{nodeForInit}->runCmd("cat $inputDir/quals | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
-      $self->{nodeForInit}->runCmd("makeSubtasksFromFastQ.pl --fileName $readFilePath --outStem reads1 --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize} > $inputDir/subtasks/sequenceCount1");
+#      &runCmd("cat $inputDir/quals | makeSubtasksFromFAFileForRUM.pl --stdin --outStem quals --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize}") if $self->{quals};
+      &runCmd("makeSubtasksFromFastQ.pl --fileName $readFilePath --outStem reads1 --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize} > $inputDir/subtasks/sequenceCount1");
       if(-e $pairedReadFilePath) {
-	  $self->{nodeForInit}->runCmd("makeSubtasksFromFastQ.pl --fileName $pairedReadFilePath --outStem reads2 --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize} > $inputDir/subtasks/sequenceCount2");
+	  &runCmd("makeSubtasksFromFastQ.pl --fileName $pairedReadFilePath --outStem reads2 --directory $inputDir/subtasks --subtaskSize $self->{subTaskSize} > $inputDir/subtasks/sequenceCount2");
       }
       $madeReadFile = 1;
     }

@@ -121,8 +121,8 @@ sub initServer {
     $cmd2 = $cmd2." $species $dataDirOutput/config";
 #    exit(0);  ##for testin
     print "CRAIG Run Command: $cmd1 && $cmd2\n";
-    $self->{nodeForInit}->runCmd($cmd1." && ".$cmd2);
-#    $self->{nodeForInit}->runCmd($cmd1);
+    &runCmd($cmd1." && ".$cmd2);
+#    &runCmd($cmd1);
 }
 
 sub initNode {

@@ -81,7 +81,7 @@ sub initServer {
     ##split file
     my $mgfFile = $self->getProperty("mgfFile");
     my $limit = $self->getProperty("mgfSplitterSizeLimit");
-    $self->{nodeForInit}->runCmd("perl gus_home/bin/mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt"; 
+    &runCmd("perl gus_home/bin/mgfSplitter.pl --inputMgfFile $mgfFile --outputDir $inputDir/subtasks --limit $limit") unless -e "$inputDir/subtasks/success.txt"; 
     my @files = glob("$inputDir/subtasks/*.mgf");
     $self->{"files"} = \@files;
 #    print STDERR "My File List is ".join(',',@files)."\n";

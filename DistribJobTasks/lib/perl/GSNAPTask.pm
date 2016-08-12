@@ -59,7 +59,7 @@ sub initServer {
       print "reads file $mateA already present so not retrieving from SRA\n";
     }else{  ##need to retrieve here
       print "retrieving reads from SRA for '$sidlist'\n";
-      $self->{nodeForInit}->runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+      &runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
     }
   } 
 
