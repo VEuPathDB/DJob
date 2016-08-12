@@ -30,7 +30,7 @@ sub queueNode {
     $num = int($num) + ($num > int($num));  # ceil since sapelo cannot take decimal 
  
     my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb".($self->{queue} ? " -q $self->{queue}" : "")." $runFile";
-    print STDERR "\n$qsubcmd\n\n";
+#    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
     $self->{workingDir} = "/$self->{nodeWorkingDirsHome}/$jid";
