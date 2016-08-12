@@ -153,35 +153,10 @@ $restartInstructions
   }
   
   ## get an init node before initializing the task so this can be done on a node
-  print "Waiting for init node\n";
-  my $initNode;
-  if(!$nodes[0]->getState()){
-    print "Submitting node to scheduler ";
-    ##NOTE: need to set the memory of the init node here iif differet than rest.
-    
-    $nodes[0]->queueNode();
-  }
-  
-  my $ctInitNode = 0;
-  until($initNode){
-    $ctInitNode++;
-    if($ctInitNode % 10 == 0){ print "."; }
-    die "ERROR Queueing init node ... check error logs\n" if $ctInitNode % 20 == 0 && !$nodes[0]->getQueueState();
-    $self->getNodeMsgs($sel,$sock);
-    if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
-      if($nodes[0]->checkNode()){
-        $initNode = $nodes[0];
-        print "\n";
-      }else{
-        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{initNodeMem}, $self->{queue},$self->{masterDir}); 
-        print "\nNew node created to replace failed node (".$nodes[0]->getJobid().")\n";
-        $nodes[0] = $tmpNode;
-        print "Submitting node to scheduler ";
-        $nodes[0]->queueNode();
-      }
-    }
-    sleep 1;
-  }
+  ## NOTE: no longer need an initNode due to running the controller on a node
+  ## set to first node though since the memory of this one may be different
+  my $initNode = $nodes[0];
+
   $nodes[0]->setSaveForCleanup(1);  ##want to save the initNode for cleanup since has initNodeMem
 
   my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$initNode);
