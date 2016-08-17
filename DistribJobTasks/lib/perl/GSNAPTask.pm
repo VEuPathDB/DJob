@@ -163,14 +163,14 @@ sub cleanUpServer {
   }
 
   # sort bams by location
-  $self->runCmdOnNode($node, "samtools sort $mainResultDir/${outputFileBasename}.bam $mainResultDir/${outputFileBasename}_sorted");
+  $self->runCmdOnNode($node, "samtools sort -o $mainResultDir/${outputFileBasename}_sorted.bam $mainResultDir/${outputFileBasename}.bam");
 
   $self->runCmdOnNode($node, "samtools view -bh -F 4 -f 8 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair1.bam");
   $self->runCmdOnNode($node, "samtools view -bh -F 8 -f 4 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pair2.bam");
   $self->runCmdOnNode($node, "samtools view -b -F 12 $mainResultDir/${outputFileBasename}.bam > $mainResultDir/pairs.bam");
 
   $self->runCmdOnNode($node, "samtools merge $mainResultDir/trimmed.bam $mainResultDir/pair*");
-  $self->runCmdOnNode($node, "samtools sort -n $mainResultDir/trimmed.bam $mainResultDir/${outputFileBasename}_sortedByName");
+  $self->runCmdOnNode($node, "samtools sort -n -o $mainResultDir/${outputFileBasename}_sortedByName.bam $mainResultDir/trimmed.bam");
 
   # clean up some extra files
   unlink glob "$mainResultDir/*_node.bam";
@@ -214,7 +214,7 @@ sub cleanUpServer {
 #    my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
 
-	for (my $i=0; $i<@modes; $i++) {
+	for (my nn$i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
 	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
 	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
