@@ -214,7 +214,7 @@ sub cleanUpServer {
 #    my @modes = ('union', 'intersection-nonempty', 'intersection-strict');
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
 
-	for (my nn$i=0; $i<@modes; $i++) {
+	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
 	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
 	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
