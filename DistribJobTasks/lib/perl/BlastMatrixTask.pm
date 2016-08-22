@@ -76,7 +76,7 @@ sub initSubTask {
 					"$subTaskDir/seqsubset.fsa");
     }
 
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -98,6 +98,6 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
-    $node->runCmd("cat $nodeExecDir/blastMatrix.out >> $mainResultDir/blastMatrix.out");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/blastMatrix.out >> $mainResultDir/blastMatrix.out");
 }
 1;

@@ -67,10 +67,10 @@ sub initSubTask {
     if(!$subTask->getRedoSubtask()){
       $self->{fastaFile}->writeSeqsToFile($start, $end, "$serverSubTaskDir/seqsubset.fsa");
     }
-    $node->runCmd("touch $serverSubTaskDir/seqsubset.fsa.touch",1);
-    $node->runCmd("/bin/rm $serverSubTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode($node, "touch $serverSubTaskDir/seqsubset.fsa.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $serverSubTaskDir/seqsubset.fsa.touch",1);
 
-    $node->runCmd("cp -r $serverSubTaskDir/seqsubset.fsa $nodeExecDir");
+    $self->runCmdOnNode($node, "cp -r $serverSubTaskDir/seqsubset.fsa $nodeExecDir");
 
 	# print "Created subtask fasta file at: $nodeExecDir/seqsubset.fsa\n";
 }
@@ -123,8 +123,7 @@ sub integrateSubTaskResults {
     my $output_part_file = $outputfile;
     $output_part_file =~ s/\.tsv$//i;
     $output_part_file .= "_" . $subTaskNum . ".tsv";
-    $node->runCmd ("cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
-    return 1 if $node->getErr();
+    $self->runCmdOnNode ($node, "cp $nodeExecDir/$outputfile $mainResultDir/$output_part_file");
 }
 
 sub cleanUpServer {

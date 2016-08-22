@@ -66,44 +66,19 @@ EOF
   $self->setState($QUEUED);
 }
 
-##override this because want to delete those pesky *.OU files
-sub cleanUp {
-  my ($self,$force, $state) = @_;
+# remove this node's job from the queue
+sub removeFromQueue {
+  my ($self) = @_;
+  my $cmd = "qdel $self->{jobid} > /dev/null 2>&1";
+  system($cmd);
+}
 
-  return if $self->{cleanedUp}; #already cleaned up
-
-  if (!$force) {
-    foreach my $slot (@{$self->getSlots()}) {
-      return unless $slot->isFinished();
-    }
-  }
-
-  ##want to kill any child processes still running to quit cleanly
-  if($self->getState() == $INITIALIZINGTASK && $self->{taskPid}){
-    kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
-  }
-
-  ## if saving this one so don't clean up further and release
-  if($self->getSaveForCleanup() && !$force){
-    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
-    return;
-  }
-
-  $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
-
-  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it
-    my $task = $self->getTask();
-    $task->cleanUpNode($self) if $task;
-
-    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
-      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
-      $self->runCmd("closeAndExit",1);
-      $self->closePort();
-    }
-  }
-
-  ##now want to get stats and print them:
+# an optional method for subclasses to implement
+# called at the end of node->cleanUp
+# can query the que to return stats about this run
+# print results to stdout
+sub reportJobStats {
+  my ($self) = @_;
   if($self->getQueueState()){
     my @stats = `qstat -f -j $self->{jobid}`;
     foreach my $line (@stats){
@@ -112,17 +87,11 @@ sub cleanUp {
         last;
       }
     }
-    system("qdel $self->{jobid} > /dev/null 2>&1");  
   }else{
     my @stats = `qacct -j $self->{jobid}`;
     foreach my $line (@stats){
       print "qacct -j $self->{jobid}`: $line" if $line =~ /(maxvmem|failed)/i;
     }
-  }
-  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
-    $state = $FAILEDNODE;
-  }else{
-    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
   }
 
 }
@@ -149,9 +118,9 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getQueueSubmitCommand {
-  my ($class, $queue) = @_;
+  my ($class, $queue, $cmdToSubmit) = @_;
 
-  return "qsub -V -cwd -q $queue"
+  return "qsub -V -cwd -q $queue $cmdToSubmit";
 }
 
 # static method to extract Job Id from job submitted file text
@@ -190,8 +159,8 @@ sub checkJobStatus {
   print STDERR "Status string '$statusFileString' does not contain expected job ID $jobId" unless  $statusFileString =~ /^\s*$jobId/;
 
   my $flag = $statusFileString =~ /^\s*$jobId\s+\S+\s+\S+\s+\S+\s+[r|h|w]/;
-  print STDERR "Found non-running status for job '$jobId' in status string\n $statusFileString\n" if (!$flag);
-  return $flag;
+  my $msg = $flag? "" : "Found non-running status for job '$jobId' in status string\n $statusFileString";
+  return ($flag, $msg);
 }
 
 1;

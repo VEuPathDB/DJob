@@ -11,6 +11,7 @@ use File::Basename;
 my $KILLNOW = 2;
 
 
+
 $| = 1;
 
 # [name, default (or null if reqd), comment]
@@ -36,20 +37,30 @@ sub new {
   my $self = {};
   bless $self;
 
+  END {
+    my $haveCalledDie = $?;  #if died before coming here
+    $self->cleanupOnExit();
+    print  (($self->{failures} || $haveCalledDie)? "Failed\n" : "Done\n");
+    sleep(30);   # prevent race condition that we exit before log file update is visible
+  }
+
   $self->{runTime} = $runTime;
   $self->{parInit} = $parInit;
   $self->{fileName} = $fileName;
   $self->{hostname} = $hostname;
   $self->{procsPerNode} = $procsPerNode;
   $self->{memPerNode} = $memPerNode;
-  $self->{initNodeMem} = $initNodeMem;
+  $self->{initNodeMem} = $initNodeMem ? $initNodeMem : $memPerNode;
   $self->{queue} = $queue;
   $self->{propFile} = $propfile;
   $self->{kill} = $kill;
 
   ($self->{inputDir}, $self->{masterDir}, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{subTaskSize}, $self->{taskClass}, $self->{nodeClass}, $self->{keepNodeForPostProcessing}) = $self->readPropFile($propfile, \@properties);
 
-  return if ($self->kill($kill));
+  if ($self->kill($kill)) {
+    $self->{failures} = 1;
+    return;
+  }
 
   $self->{processIdFile} = "$self->{masterDir}/distribjobProcessId"; 
 
@@ -116,6 +127,7 @@ $restartInstructions
                                      Reuse => 1,
                                     );
   } until ( $sock );
+  $self->{sock} = $sock;
   my $sel = IO::Select->new($sock);
 
   my $amRunning = 0;
@@ -141,35 +153,10 @@ $restartInstructions
   }
   
   ## get an init node before initializing the task so this can be done on a node
-  print "Waiting for init node\n";
-  my $initNode;
-  if(!$nodes[0]->getState()){
-    print "Submitting node to scheduler ";
-    ##NOTE: need to set the memory of the init node here iif differet than rest.
-    
-    $nodes[0]->queueNode();
-  }
-  
-  my $ctInitNode = 0;
-  until($initNode){
-    $ctInitNode++;
-    if($ctInitNode % 10 == 0){ print "."; }
-    die "ERROR Queueing init node ... check error logs\n" if $ctInitNode % 20 == 0 && !$nodes[0]->getQueueState();
-    $self->getNodeMsgs($sel,$sock);
-    if($nodes[0]->getState() >= $READYTORUN || $nodes[0]->getState() == $FAILEDNODE){
-      if($nodes[0]->checkNode()){
-        $initNode = $nodes[0];
-        print "\n";
-      }else{
-        my $tmpNode = $self->{nodeClass}->new(undef, $self->{nodeWorkingDirsHome}, $self->{slotsPerNode}, $self->{runTime}, $self->{fileName}, $self->{hostname}, $self->{localPort}, $self->{procsPerNode}, $self->{initNodeMem}, $self->{queue},$self->{masterDir}); 
-        print "\nNew node created to replace failed node (".$nodes[0]->getJobid().")\n";
-        $nodes[0] = $tmpNode;
-        print "Submitting node to scheduler ";
-        $nodes[0]->queueNode();
-      }
-    }
-    sleep 1;
-  }
+  ## NOTE: no longer need an initNode due to running the controller on a node
+  ## set to first node though since the memory of this one may be different
+  my $initNode = $nodes[0];
+
   $nodes[0]->setSaveForCleanup(1);  ##want to save the initNode for cleanup since has initNodeMem
 
   my $task = $self->{taskClass}->new($self->{inputDir}, $self->{subTaskSize}, $restart, $self->{masterDir},$initNode);
@@ -234,8 +221,7 @@ sub run {
             print "New node created to replace failed node (".$node->getJobid().")\n";
             $ctNewNodes++;
             if($ctNewNodes >= 100){
-              print "ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n";
-              $self->cleanupAndExitOnFailure($sock);
+              die("ERROR:  maximum number ($ctNewNodes) of new nodes reached so exiting\n");
             }
             push(@nodes,$tmpNode);
             next;
@@ -293,10 +279,10 @@ sub run {
     }
     $self->manageFailedNodes(1);
 
-    my $failures = $self->reportFailures($propfile);
+    $self->{failures} = $self->reportFailures($propfile);
 
     my $numRedoRemaining = $task->haveRedoSubtasks();
-    $failures += $numRedoRemaining;
+    $self->{failures} += $numRedoRemaining;
     if($numRedoRemaining){  ##there are still tasks from failed nodes that didn't get assigned
       print "
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -317,9 +303,13 @@ ERROR: the following subtasks were not run\n";
         last;
       }
     }
-    print "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
-    $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
-    
+    if(!$self->{failures}){
+      print "Cleaning up server ... ". ($cNode ? "running post-processing steps on node ".$cNode->getNum()."\n" : "\n");
+      $task->cleanUpServer($self->{inputDir},"$self->{masterDir}/mainresult",$cNode); ##allows user to clean up at end of run if desired
+      
+    }else{
+      print "There are failures so skipping cleanUpServer method call\n";
+    }
     $cNode->cleanUp(1) if $cNode; ##cleanup this node if have it
 
     close($sock);
@@ -333,7 +323,7 @@ ERROR: the following subtasks were not run\n";
       $n->deleteLogFilesAndTmpDir();
     }
 
-    print "Done\n" unless $failures;
+    return $self->{failures};
 }
 
 sub getNodeMsgs {
@@ -344,8 +334,7 @@ sub getNodeMsgs {
       $ctFailedFileHandles++;
       print "ERROR: getNodeMsgs: There is no file handle from socket\n";
       if($ctFailedFileHandles >= 1000){
-        print "ERROR:  maximum number ($ctFailedFileHandles) of failed file handles reached so exiting\n";
-        $self->cleanupAndExitOnFailure($sock);
+        die("ERROR:  maximum number ($ctFailedFileHandles) of failed file handles reached so exiting\n");
       }
       next;
     }
@@ -373,17 +362,16 @@ sub getNodeMsgs {
   }
 }
 
-sub cleanupAndExitOnFailure {
-  my($self,$sock) = @_;  ##note that @nodes is global variable
-  print "  Cleaning up and exiting .... \n";
+sub cleanupOnExit {
+  my($self,$err) = @_;  ##note that @nodes is global variable
+##  print "  Cleaning up and exiting .... \n";
   ##cleanup all nodes
   foreach my $node (@nodes) {
-    $node->cleanUp(1);
+    $node->cleanUp(1,undef,1);
   }
   ##need to also cleanup any nodes that are in @failedNodes
-  $self->manageFailedNodes(1);
-  close($sock);
-  exit(1);
+  $self->manageFailedNodes(1,1);
+  close($self->{sock});
 }
 
 # return undef if failed
@@ -421,7 +409,7 @@ sub readPropFile {
 	if ($props->getProp('slotspernode') < 1 
 	    || $props->getProp('slotspernode') > 10);
 	
-    die "\nError: property 'subtasksize' in $propfile must be between 1 and 100000\n" 
+    die "\nError: property 'subtasksize' in $propfile must be between 1 and 10000000\n" 
 	if ($props->getProp('subtasksize') < 1 
 	    || $props->getProp('subtasksize') > 10000000);
 
@@ -546,7 +534,7 @@ sub removeNode {
 }
 
 sub manageFailedNodes {
-  my($self,$force) = @_;
+  my($self,$force,$quiet) = @_;
 #  return unless $force;
 #  print "--- manageFailedNodes($force) ---\n";
   my %tmp;
@@ -555,7 +543,7 @@ sub manageFailedNodes {
 #    print "  ".$n->[1]->getJobid().": $time -> nodeTime = $n->[0]\n";
     if($n->[0] + 300 < $time || $force){
       print "  Releasing failed node ".$n->[1]->getJobid()."\n";
-      $n->[1]->cleanUp(1);
+      $n->[1]->cleanUp(1,undef,$quiet);
     }else{
       $tmp{$n->[1]->getJobid()} = $n;
     }
@@ -573,7 +561,7 @@ sub manageNodesBasedOnQueueState {
   foreach my $node (@nodes){
     $ct++;
     next if ($node->getState() == $FAILEDNODE || $node->getState() == $COMPLETE);
-    push(@bad,$node) unless $node->getQueueState();
+    push(@bad,$node) unless  $node->getQueueState() || ($node->getState() >= $READYTORUN && $node->checkNode()); 
   }
   ##want to exit gracefully if number of bad nodes == $ct || $ct == 0
   ##unless scalar(@nodes) == 1 then want to manage nodes on node and allow to requeue.

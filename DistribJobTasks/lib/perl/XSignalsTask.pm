@@ -27,9 +27,9 @@ sub new {
 sub initServer {
     my ($self, $inputDir) = @_;
     my $prefixOutputFiles = $self->getProperty("prefixFilesPath");
-    $self->{nodeForInit}->runCmd("rm -f $prefixOutputFiles.xsignal");
-    $self->{nodeForInit}->runCmd("rm -f $prefixOutputFiles.xsigscores");
-    $self->{nodeForInit}->runCmd("rm -f ;$prefixOutputFiles.stderr");
+    &runCmd("rm -f $prefixOutputFiles.xsignal");
+    &runCmd("rm -f $prefixOutputFiles.xsigscores");
+    &runCmd("rm -f ;$prefixOutputFiles.stderr");
 }
 
 sub initNode {
@@ -58,9 +58,9 @@ sub initSubTask {
       $self->{fastaFile}->writeSeqsToFile($start, $end, 
 					"$subTaskDir/seqsubset.fa");
     }
-    $node->runCmd("touch $subTaskDir/seqsubset.fa.touch",1);
-    $node->runCmd("/bin/rm $subTaskDir/seqsubset.fa.touch",1);
-    $node->runCmd("cp -r $subTaskDir/* $nodeSlotDir");
+    $self->runCmdOnNode($node, "touch $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "/bin/rm $subTaskDir/seqsubset.fa.touch",1);
+    $self->runCmdOnNode($node, "cp -r $subTaskDir/* $nodeSlotDir");
 }
 
 sub makeSubTaskCommand { 
@@ -78,9 +78,8 @@ sub makeSubTaskCommand {
 sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
     my $prefixOutputFiles = $self->getProperty("prefixFilesPath");
-    $node->runCmd("cat $nodeExecDir/seqsubset.xsignal >> $prefixOutputFiles.xsignal");
-    $node->runCmd("cat $nodeExecDir/seqsubset.xsigscores >> $prefixOutputFiles.xsigscores");
-    return 1 if $node->getErr();
-    $node->runCmd("cat $nodeExecDir/subtask.stderr >> $prefixOutputFiles.stderr");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/seqsubset.xsignal >> $prefixOutputFiles.xsignal");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/seqsubset.xsigscores >> $prefixOutputFiles.xsigscores");
+    $self->runCmdOnNode($node, "cat $nodeExecDir/subtask.stderr >> $prefixOutputFiles.stderr");
 }
 1;

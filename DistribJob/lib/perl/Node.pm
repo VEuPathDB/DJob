@@ -185,8 +185,13 @@ if ($self->_fileExists($self->{workingDir})) {
   return 1;
 }
 
-sub runCmd {
+sub runCmdExitIfFail {
   my ($self, $cmd, $ignoreErr,$checkingNode) = @_;
+  $self->runCmd($cmd, $ignoreErr,$checkingNode,1);
+}
+
+sub runCmd {
+  my ($self, $cmd, $ignoreErr,$checkingNode,$exitIfFail) = @_;
 #  print "runCmd: '$cmd',$ignoreErr,$checkingNode\n";
   return undef if $self->getState() >= $COMPLETE || $self->getState() == $FAILEDNODE;
   my $sock = $self->getPort();
@@ -194,6 +199,7 @@ sub runCmd {
     print "Failed to get Sock for $self->{nodeNum} ($self->{jobid}) running command '$cmd'\n";
     $self->failNode();
     $self->setErr(1);
+    die "Failure making socket connection\n" if $exitIfFail;
     return undef;
   }
   print $sock "$cmd\n";
@@ -204,7 +210,10 @@ sub runCmd {
       $self->setErr($err) unless $checkingNode;
       if($err && !$ignoreErr){
         print "Node ".$self->getNodeAddress()." (".$self->getJobid()."): Failed with status $err running '$cmd' ... ";
-        if($self->checkNode()){
+        if($exitIfFail){
+          die "Command called in exit if failure mode so exiting\n";
+          
+        }elsif($self->checkNode()){
           print "node is OK so not inactivating\n";
           return undef;
         }else{
@@ -234,7 +243,7 @@ sub getPort {
   my $self = shift;
   if(!$self->{portCon}){
     ##note..need to try a couple of times here because the script may be running but the port is not ready on the nodes to receive connections...seems to take some time
-#    print STDERR "Creating new port connection\n";
+#    print STDERR $self->getNum().": Creating new port connection PeerAddr => ".$self->getNodeAddress().", PeerPort => ".$self->getLocalPort()."\n";
     my $sock;
     my $ct = 0;
     until($sock){
@@ -385,20 +394,21 @@ sub initializeTask {
   $self->setState($INITIALIZINGTASK);
   $self->{task} = $task;
   my $pid;
- FORK: {
-    if($pid = fork){
-      $self->{taskPid} = $pid;
-    }elsif(defined $pid) {  
-      $self->_initTask($task,$inputDir);
-      exit;
-    }elsif($! =~ /No more process/){
-      print "Forking failure: $!\n";
-      sleep 1;
-      redo FORK;
-    } else {
-      die "Unable to fork: $!\n";
-    }
-  } 
+  $self->_initTask($task,$inputDir);
+## FORK: {
+##    if($pid = fork){
+##      $self->{taskPid} = $pid;
+##    }elsif(defined $pid) {  
+##      $self->_initTask($task,$inputDir);
+##      exit;
+##    }elsif($! =~ /No more process/){
+##      print "Forking failure: $!\n";
+##      sleep 1;
+##      redo FORK;
+##    } else {
+##      die "Unable to fork: $!\n";
+##    }
+##  } 
 }
 
 ##returns stored task object for use later...
@@ -463,7 +473,7 @@ sub cleanUp {
   my ($self,$force, $state) = @_;
 
   return if $self->{cleanedUp}; #already cleaned up
-    
+
   if (!$force) {
     foreach my $slot (@{$self->getSlots()}) {
       return unless $slot->isFinished();
@@ -475,28 +485,62 @@ sub cleanUp {
     kill(1, $self->{taskPid}) unless waitpid($self->{taskPid},1);
   }
 
-  $self->setState($state ? $state : $COMPLETE); ##complete
-
   ## if saving this one so don't clean up further and release
-  return if($self->getSaveForCleanup() && !$force);  
+  if($self->getSaveForCleanup() && !$force){
+    $self->setState($COMPLETE);  ##note that controller monitors state and resets to running once all subtasks are finished.
+    return;
+  }
 
   $self->{cleanedUp} = 1;  ##indicates that have cleaned up this node already
 
-  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it ...
-
-    print "Cleaning up node $self->{nodeNum}...\n";
-    
-    ##now call the task->cleanUpNode method to enable  users to stop processes running on node
+  print "Cleaning up node $self->{nodeNum} ($self->{jobid})\n";
+  if($state != $FAILEDNODE){  ## if the node has failed don't want to run commands on it
     my $task = $self->getTask();
     $task->cleanUpNode($self) if $task;
 
-    if($self->{nodeNum} && $self->getPort()){
-      $self->runCmd("/bin/rm -r $self->{workingDir}", 1); 
+    if($self->{nodeNum} && $self->getState() > $QUEUED && $self->getPort()){
+      $self->runCmd("/bin/rm -rf $self->{workingDir}",1);
       $self->runCmd("closeAndExit",1);
       $self->closePort();
     }
   }
+
+  if($self->getState() == $FAILEDNODE){ ##don't want to change if is failed node
+    $state = $FAILEDNODE;
+  }else{
+    $self->setState($state == $FAILEDNODE ? $state : $COMPLETE); ##complete
+  }
+
+  ## if subclass is inclined, give it a chance to report statistics
+  $self->reportJobStats();
+
+  # node should be off queue already, because we stopped running the node script
+  # but, to be safe, try to remove it from queue.
+  if ($self->getQueueState()) { $self->removeFromQueue() }
 }
+
+# remove this node's job from the queue
+# must be implemented by subclass
+sub removeJobFromQueue {
+  my ($self) = @_;
+  die "removeJobFromQueue must be implemented by Node subclass";
+}
+
+# an optional method for subclasses to implement
+# called at the end of node->cleanUp
+# can query the que to return stats about this run
+# print results to stdout
+sub reportJobStats {
+  my ($self) = @_;
+}
+
+# run a command to check the status of the job with this job id.
+# return 1 if job id is found and valid, otherwise return 0
+sub runJobStatusCheck {
+  my ($self, $jobId) = @_;
+  die "must be implemented by subclass";
+}
+
 
 # static method
 sub getQueueSubmitCommand {
@@ -522,7 +566,7 @@ sub getCheckStatusCmd {
 
 # static method to extract status from status file
 # used to check status of distribjob itself
-# return 1 if still running
+# return ($flag, $msg).  $flag=1 if still running.  else, $msg explains why not
 sub checkJobStatus {
   my ($class, $statusFileString, $jobId) = @_;
 

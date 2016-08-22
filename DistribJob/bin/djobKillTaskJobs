@@ -38,7 +38,7 @@ while(<F>) {
       push(@jobsToKill, $controllerJobId);
     }
   }
-  push(@jobsToKill, $1) if (/\((\d+)\).*dispatching to node/);
+  push(@jobsToKill, $1) if (/\((\d+)(.pbs.scm)*\).*dispatching to node/);
 }
 close(F);
 

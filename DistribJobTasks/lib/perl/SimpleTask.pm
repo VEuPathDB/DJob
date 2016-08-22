@@ -49,7 +49,7 @@ sub initSubTask {
     ##need to copy work to be doneinto $subTaskDir before copying to node
     my $cmd = "cp -r $subTaskDir/* $nodeSlotDir";
     print "DEBUG: SimpleTask::initSubTask: running command $cmd...\n" if $self->{'debug'};
-    $node->runCmd("$cmd");
+    $self->runCmdOnNode($node, "$cmd");
     print "DEBUG: done\n" if $self->{'debug'};
 }
 
@@ -70,14 +70,14 @@ sub integrateSubTaskResults {
 
     my $cmd = "cp -r $nodeExecDir/* $mainResultDir";
     print "DEBUG: SimpleTask::integrateSubTaskResults: running command $cmd...\n" if $self->{'debug'};
-    $node->runCmd("$cmd");
+    $self->runCmdOnNode($node, "$cmd");
     $cmd = "mv $mainResultDir/subtask.output $mainResultDir/task.out";
     &runCmd($cmd) if -f "$mainResultDir/subtask.output";
     print "DEBUG: done\n" if $self->{'debug'};
 }
 
 
-# a node is now passed in that can be used to run commands on a node using $node->runCmd("cmd")
+# a node is now passed in that can be used to run commands on a node using $self->runCmdOnNode($node, "cmd")
 # NOTE that in order to use this must add keepNodeForPostProcessing=yes to controller.prop file
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;

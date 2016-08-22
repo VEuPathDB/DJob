@@ -113,7 +113,12 @@ print L &getDate().": $cmd\n";
 if(-e "$fastaFile.fai"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
 
-$cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort - $workingDir/$tmpOut) >& $workingDir/$tmpOut.samtools_view.err";
+# if paired end, run samtools rmdup
+if (-e "$mateB") {
+    $cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort $workingDir/$tmpOut | samtools rmdup - $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
+} else {
+    $cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort -o $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
+}
 print L &getDate().": $cmd\n";
 if(-e "$workingDir/complete" || -e "$workingDir/$tmpOut.bam.bai"){ print L "  succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
@@ -141,7 +146,7 @@ if($isColorspace){  ##need to mv the bam file
   if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
 
-  $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals --maxReadsInMemory 300000 -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
+  $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T IndelRealigner -targetIntervals $workingDir/forIndelRealigner.intervals -o $workingDir/$out.bam >& $workingDir/indelRealigner.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
