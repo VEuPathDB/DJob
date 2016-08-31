@@ -74,7 +74,7 @@ if($isColorspace && -e "$bowtieIndex.1.ebwt"){
 }
 
 # Convert to bam and sort
-$cmd = "(samtools view -buS $workingDir/$tmpOut.sam | samtools sort - $workingDir/$tmpOut) >& $workingDir/$tmpOut.samtools_view.err";
+$cmd = "(samtools view -buS $workingDir/$tmpOut.sam | samtools sort -o $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
 print L &getDate().": $cmd\n";
 if (-e "$workingDir/$out.bam"){print L " succeeded in previous run\n\n";
 }else{ &runCmd($cmd); print L "\n"; }
