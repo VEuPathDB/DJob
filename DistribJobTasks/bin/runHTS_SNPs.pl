@@ -115,7 +115,7 @@ if(-e "$fastaFile.fai"){ print L "  succeeded in previous run\n\n";
 
 # if paired end, run samtools rmdup
 if (-e "$mateB") {
-    $cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort $workingDir/$tmpOut | samtools rmdup - $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
+    $cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort | samtools rmdup - $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
 } else {
     $cmd = "(samtools view -t $fastaFile.fai -uS $workingDir/$tmpOut.sam | samtools sort -o $workingDir/$tmpOut.bam) >& $workingDir/$tmpOut.samtools_view.err";
 }
