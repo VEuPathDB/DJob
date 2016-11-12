@@ -99,9 +99,9 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getQueueSubmitCommand {
-  my ($self, $queue, $cmdToSubmit) = @_;
+  my ($class, $queue, $cmdToSubmit) = @_;
 
-  return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($self->{queue} ? ":$self->{queue}" : "").($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "");
+  return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($queue ? ":$queue" : ""). ",walltime=480:00:00";
 }
 
 # static method to extract Job Id from the output of the commmand run by getQueueSubmitCommand()
