@@ -258,9 +258,9 @@ sub cleanUpServer {
     }
  
 
-    $self->runCmdOnNode("gsnapSplitBam.pl --mainResultDir $mainResultDir --strandSpecific $strandSpecific --isPairedEnd $isPairedEnd --bamFile $mainResultDir/${outputFileBasename}_sorted.bam");
+    $self->runCmdOnNode($node, "gsnapSplitBam.pl --mainResultDir $mainResultDir --strandSpecific $strandSpecific --isPairedEnd $isPairedEnd --bamFile $mainResultDir/${outputFileBasename}_sorted.bam");
       
-    my $splitExpDir = splitBamUniqueNonUnique($mainResultDir, $strandSpecific, $isPairedEnd, "$mainResultDir/${outputFileBasename}_sorted.bam");
+#    my $splitExpDir = splitBamUniqueNonUnique($mainResultDir, $strandSpecific, $isPairedEnd, "$mainResultDir/${outputFileBasename}_sorted.bam");
   }
 
   return 1;
