@@ -9,7 +9,7 @@ use CBIL::TranscriptExpression::SplitBamUniqueNonUnique qw(splitBamUniqueNonUniq
 
 my ($mainResultDir, $strandSpecific, $isPairedEnd, $bamFile);
 
-&GetOptions("mainResultDir=s"=> \$mainResultDir
+&GetOptions("mainResultDir=s"=> \$mainResultDir,
             "strandSpecific=s" => \$strandSpecific,
             "isPairedEnd=s" => \$isPairedEnd,
             "bamFile" => \$bamFile,
