@@ -12,7 +12,7 @@ my ($mainResultDir, $strandSpecific, $isPairedEnd, $bamFile);
 &GetOptions("mainResultDir=s"=> \$mainResultDir,
             "strandSpecific=s" => \$strandSpecific,
             "isPairedEnd=s" => \$isPairedEnd,
-            "bamFile" => \$bamFile,
+            "bamFile=s" => \$bamFile,
     );
 
 
