@@ -252,7 +252,7 @@ sub cleanUpServer {
     my $isPairedEnd = 1;
     $isPairedEnd = 0 if(lc($mateB) eq 'none');
 
-    my $strandSpecific;
+    my $strandSpecific = 0;
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
       $strandSpecific = 1;
     }
