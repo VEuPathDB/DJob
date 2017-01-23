@@ -39,30 +39,84 @@ sub new {
 
 # called once 
 sub initServer {
-  my ($self, $inputDir) = @_;
-  ##need to download fastq from sra if sample ids passed in.
-  my $sidlist = $self->getProperty('sraSampleIdQueryList');
-
-  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+    my ($self, $inputDir) = @_;
+    my $baseName;
+    ##need to download fastq from sra if sample ids passed in.
+    my $sidlist = $self->getProperty('sraSampleIdQueryList');
+    
+    if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+	my $mateA = $self->getProperty('mateA');
+	my $mateB = $self->getProperty('mateB');
+	
+	if(!$mateA || $mateA eq 'none'){
+	    $mateA = "$inputDir/reads_1.fastq";
+	    $self->setProperty('mateA',"$mateA");
+	    
+	    $mateB = "$inputDir/reads_2.fastq";
+	    $self->setProperty('mateB',"$mateB");
+	    $baseName = "reads";
+	}
+	if(-e "$mateA"){
+	    print "reads file $mateA already present so not retrieving from SRA\n";
+	}
+	else{  ##need to retrieve here
+	    print "retrieving reads from SRA for '$sidlist'\n";
+	    &runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+	}
+	
+	
+    }
+    else {
+	my $mateA = $self->getProperty('mateA');
+	my $mateB = $self->getProperty('mateB');
+	my $basemateA = basename($mateA);
+	my $basemateB = basename($mateB);
+	my @A= split "", $basemateA;
+	my @B= split "", $basemateB;
+	my $count = 0;
+	foreach my $element (@A) {
+	    if ($element eq $B[$count]) {
+		$baseName.=$element;
+		$count ++;
+	    }
+	    else {
+		last;
+	    }
+	}
+    }
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
+	
+print "running FastQC on raw reads output files can be found in the main results folder \n";
+    &runCmd("fastqc $mateA $mateB -o $inputDir");	    
+    
+	
 
-    if(!$mateA || $mateA eq 'none'){
-      $mateA = "$inputDir/reads_1.fastq";
-      $self->setProperty('mateA',"$mateA");
-
-      $mateB = "$inputDir/reads_2.fastq";
-      $self->setProperty('mateB',"$mateB");
+#want to do the trimming here and want to set the properties mateA and mateB here. this propery it already set for those with no sidlist
+    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
+	print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
     }
-
-    if(-e "$mateA"){
-      print "reads file $mateA already present so not retrieving from SRA\n";
-    }else{  ##need to retrieve here
-      print "retrieving reads from SRA for '$sidlist'\n";
-      &runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
+	print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
     }
-  } 
-
+    else {
+	"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+    }
+    my $trimmedA = $inputDir."/".$baseName."_1P";
+    my $trimmedB = $inputDir."/".$baseName."_2P";
+    if ((! -e $mateB || $mateB eq 'none')) {
+	$self->setProperty('mateB',"$mateB");
+    }
+    else {
+	$self->setProperty('mateB',"$trimmedB");
+    }
+    $self->setProperty('mateA',"$trimmedA");
+print "running FastQC on trimmed reads output files can be found in the main results folder\n";
+    &runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
+    
+    
 }
 
 sub initNode {
@@ -150,10 +204,12 @@ sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
 
   my $outputFileBasename = $self->getProperty("outputFileBasename");
-
+    print "output file base is $outputFileBasename\n";
   my @bams = glob "$mainResultDir/*_node.bam";
 
   die "Did not find  bam files in $mainResultDir/*_node.bam" unless(scalar @bams > 0);
+  print "moving fastqc files to results directory\n";
+  &runCmd("mv $inputDir/*.html  $mainResultDir/"); 
 
   if(scalar @bams > 1) {
     $self->runCmdOnNode($node, "samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
