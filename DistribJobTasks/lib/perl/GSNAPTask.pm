@@ -86,12 +86,13 @@ sub initServer {
     }
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
-	
-print "running FastQC on raw reads output files can be found in the main results folder \n";
-    &runCmd("fastqc $mateA $mateB -o $inputDir");	    
     
-	
-
+    print "running FastQC on raw reads output files can be found in the main results folder \n";
+    &runCmd("fastqc $mateA $mateB -o $inputDir");	    
+  #   &runCmd("fastqc $mateB -o $inputDir");	    
+    
+    
+    
 #want to do the trimming here and want to set the properties mateA and mateB here. this propery it already set for those with no sidlist
     if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
 	print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
@@ -99,7 +100,7 @@ print "running FastQC on raw reads output files can be found in the main results
     }
     elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
 	print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
     }
     else {
 	"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
@@ -113,7 +114,7 @@ print "running FastQC on raw reads output files can be found in the main results
 	$self->setProperty('mateB',"$trimmedB");
     }
     $self->setProperty('mateA',"$trimmedA");
-print "running FastQC on trimmed reads output files can be found in the main results folder\n";
+    print "running FastQC on trimmed reads output files can be found in the main results folder\n";
     &runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
     
     
