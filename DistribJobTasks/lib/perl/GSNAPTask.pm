@@ -71,16 +71,21 @@ sub initServer {
 	my $mateB = $self->getProperty('mateB');
 	my $basemateA = basename($mateA);
 	my $basemateB = basename($mateB);
-	my @A= split "", $basemateA;
-	my @B= split "", $basemateB;
-	my $count = 0;
-	foreach my $element (@A) {
-	    if ($element eq $B[$count]) {
-		$baseName.=$element;
-		$count ++;
-	    }
-	    else {
-		last;
+	if (! -e $mateB) {
+	    $baseName = $basemateA;
+	}
+	else {
+	    my @A= split "", $basemateA;
+	    my @B= split "", $basemateB;
+	    my $count = 0;
+	    foreach my $element (@A) {
+		if ($element eq $B[$count]) {
+		    $baseName.=$element;
+		    $count ++;
+		}
+		else {
+		    last;
+		}
 	    }
 	}
     }
@@ -163,7 +168,6 @@ sub makeSubTaskCommand {
     my $mateA = $self->getProperty ("mateA");
     my $mateB = $self->getProperty ("mateB");
     $mateB = undef if(lc($mateB) eq 'none');
-
     my $genomeDatabase = $self->getProperty("genomeDatabase");
     my $iitFile = $self->getProperty("iitFile");
 
@@ -186,9 +190,13 @@ sub makeSubTaskCommand {
     if($hasKnownSpliceSites && lc($hasKnownSpliceSites) eq 'true') {
       $dashSParam = "-s $iitFile";
     }
-
-    my $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
-
+    my $cmd;
+    if (-e $mateB) {
+	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
+    }
+    elsif (! -e $mateB) {
+	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA";
+    }
     return $cmd;
 }
 
