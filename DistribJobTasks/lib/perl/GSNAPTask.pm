@@ -315,8 +315,9 @@ sub cleanUpServer {
     my $mateB = $self->getProperty('mateB');
 
     my $isPairedEnd = 1;
-    $isPairedEnd = 0 if(lc($mateB) eq 'none');
-
+      if((lc($mateB) eq 'none') || (! -e $mateB)){
+	  $isPairedEnd = 0;
+      }
     my $strandSpecific = 0;
     if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
       $strandSpecific = 1;
