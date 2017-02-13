@@ -28,8 +28,9 @@ my @properties =
 	["consPercentCutoff", "60", "minimum allele percent for calling consensus base"],
 	["snpPercentCutoff", "20", "minimum allele percent for calling SNPs"],
 	["editDistance", "0.04", "mismatch in bwa"],
-	["snpsOnly", "false", "if true then doesn't compute consensus or indels"],
-	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"]
+        ["snpsOnly", "false", "if true then doesn't compute consensus or indels"],
+	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
+        ["noTrimming", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"]
 );
 
 sub new {
@@ -39,30 +40,92 @@ sub new {
 
 # called once 
 sub initServer {
-  my ($self, $inputDir) = @_;
-  ##need to download fastq from sra if sample ids passed in.
-  my $sidlist = $self->getProperty('sraSampleIdQueryList');
-  my $isColorspace= $self->getProperty('isColorspace');
-  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+    my ($self, $inputDir) = @_;
+    ##need to download fastq from sra if sample ids passed in.
+    my $baseName;
+    my $sidlist = $self->getProperty('sraSampleIdQueryList');
+    my $isColorspace= $self->getProperty('isColorspace');
+    my $noTrimming = $self->getProperty('noTrimming');
+    if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+	my $mateA = $self->getProperty('mateA');
+	my $mateB = $self->getProperty('mateB');
+	if(!$mateA || $mateA eq 'none'){
+	    $mateA = $isColorspace eq 'true' ? "$inputDir/reads_1.csfasta" : "$inputDir/reads_1.fastq";
+	    $self->setProperty('mateA',"$mateA");
+	    $mateB = $isColorspace eq 'true' ? "$inputDir/reads_2.csfasta" : "$inputDir/reads_2.fastq";
+	    $self->setProperty('mateB',"$mateB");
+	    $baseName = "reads";
+	}
+	if(-e "$mateA"){
+	    print "reads file $mateA already present so not retrieving from SRA\n";
+	}
+	else{  ##need to retrieve here
+	    print "retrieving reads from SRA for '$sidlist'\n";
+	    my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'";
+	    if($isColorspace eq 'true'){
+		$sraCmd .= " --isColorspace";
+	    }
+	    &runCmd($sraCmd);
+	}
+    } 
+    else {
+        my $mateA = $self->getProperty('mateA');
+        my $mateB = $self->getProperty('mateB');
+        my $basemateA = basename($mateA);
+        my $basemateB = basename($mateB);
+	if (! -e $mateB) {
+            $baseName = $basemateA;
+        }
+        else {
+	    my @A= split "", $basemateA;
+	    my @B= split "", $basemateB;
+	    my $count = 0;
+	    foreach my $element (@A) {
+		if ($element eq $B[$count]) {
+		    $baseName.=$element;
+		    $count ++;
+		}
+		else {
+		    last;
+		}
+	    }
+	}
+    }
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
-    if(!$mateA || $mateA eq 'none'){
-      $mateA = $isColorspace eq 'true' ? "$inputDir/reads_1.csfasta" : "$inputDir/reads_1.fastq";
-      $self->setProperty('mateA',"$mateA");
-      $mateB = $isColorspace eq 'true' ? "$inputDir/reads_2.csfasta" : "$inputDir/reads_2.fastq";
-      $self->setProperty('mateB',"$mateB");
+
+    
+###### MAKE SURE THE REST DOESNT HAPPEN IF ITS COLOURSPACE!!!!!!!!!! 
+    if ($isColorspace eq 'false') {  
+	print "running FastQC on raw reads output files can be found in the main results folder \n";
+	&runCmd("fastqc $mateA $mateB -o $inputDir");
+	if ($noTrimming eq 'true') {
+	}
+	else {
+	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }
+	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
+		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }	  
+	    else {
+		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+	    }
+	    my $trimmedA = $inputDir."/".$baseName."_1P";
+	    my $trimmedB = $inputDir."/".$baseName."_2P";
+	    if ((! -e $mateB || $mateB eq 'none')) {
+		$self->setProperty('mateB',"$mateB");
+	    }
+	    else {
+		$self->setProperty('mateB',"$trimmedB");
+	    }
+	    $self->setProperty('mateA',"$trimmedA");
+	    print "running FastQC on trimmed reads output files can be found in the main results folder\n";
+	    &runCmd("fastqc $trimmedA $trimmedB -o $inputDir");
+	}
     }
-    if(-e "$mateA"){
-      print "reads file $mateA already present so not retrieving from SRA\n";
-    }else{  ##need to retrieve here
-      print "retrieving reads from SRA for '$sidlist'\n";
-      my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'";
-      if($isColorspace eq 'true'){
-	   $sraCmd .= " --isColorspace";
-    }
-      &runCmd($sraCmd);
-    }
-  } 
 }
 
 sub initNode {
@@ -94,7 +157,7 @@ sub makeSubTaskCommand {
     my $snpPercentCutoff = $self->getProperty ("snpPercentCutoff");
     my $editDistance = $self->getProperty ("editDistance");
     my $snpsOnly = $self->getProperty ("snpsOnly");
-    my $wDir = "$node->{masterDir}/mainresult";
+    my $wDir = "/eupath/data/EuPathDB/workflows/TestFlow/jane/SNP_tests/PNG17/new/master/mainresult";
     my $bowtie2 = $self->getProperty ("bowtie2");
 
     $consPercentCutoff = $snpPercentCutoff if $snpPercentCutoff > 60;
