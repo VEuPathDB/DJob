@@ -157,7 +157,7 @@ sub makeSubTaskCommand {
     my $snpPercentCutoff = $self->getProperty ("snpPercentCutoff");
     my $editDistance = $self->getProperty ("editDistance");
     my $snpsOnly = $self->getProperty ("snpsOnly");
-    my $wDir = "/eupath/data/EuPathDB/workflows/TestFlow/jane/SNP_tests/PNG17/new/master/mainresult";
+    my $wDir = "$node->{masterDir}/mainresult";
     my $bowtie2 = $self->getProperty ("bowtie2");
 
     $consPercentCutoff = $snpPercentCutoff if $snpPercentCutoff > 60;
