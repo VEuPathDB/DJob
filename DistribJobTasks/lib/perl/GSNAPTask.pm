@@ -11,26 +11,26 @@ use CBIL::TranscriptExpression::SplitBamUniqueNonUnique qw(splitBamUniqueNonUniq
 use strict;
 # [name, default (or null if reqd), comment]
 my @properties = 
-(
- ["mateA",   "",     "full path to reads file"],
- ["mateB",   "none",     "full path to paired reads file (optional)"],
- ["genomeDatabase",   "",     "full path to the genome database"],
- ["iitFile",   "none",     "full path to the iit file for splice sites"],
- ["gtfFile",   "none",     "full path to the gtf file (rRNAs removed)"],
- ["maskFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for HTseq"],
- ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
- ["extraGsnapParams", "none", "GSNAP parameters other than default"],
- ["outputFileBasename", "results", "Base name for the results file"],
- ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
- ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
- ["quantify", "true", "[true]|false: if true then runs HTSeq"],
- ["writeCovFiles", "true", "[true]|false: if true then runs bamutils"],
- ["isStrandSpecific", "false", "[true]|false"],
- ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
- ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
- ["topLevelGeneFootprintFile", "none", "required if quantify is true"],
- ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"]
-);
+    (
+     ["mateA",   "",     "full path to reads file"],
+     ["mateB",   "none",     "full path to paired reads file (optional)"],
+     ["genomeDatabase",   "",     "full path to the genome database"],
+     ["iitFile",   "none",     "full path to the iit file for splice sites"],
+     ["gtfFile",   "none",     "full path to the gtf file (rRNAs removed)"],
+     ["maskFile",   "none",     "full path to the gtf masked file (rRNAs removed); required for HTseq"],
+     ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
+     ["extraGsnapParams", "none", "GSNAP parameters other than default"],
+     ["outputFileBasename", "results", "Base name for the results file"],
+     ["nPaths",   "30",     "Limits the number of nonunique mappers printed to a max of [30]"],
+     ["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
+     ["quantify", "true", "[true]|false: if true then runs HTSeq"],
+     ["writeCovFiles", "true", "[true]|false: if true then runs bamutils"],
+     ["isStrandSpecific", "false", "[true]|false"],
+     ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
+     ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
+     ["topLevelGeneFootprintFile", "none", "required if quantify is true"],
+     ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"]
+    );
 
 sub new {
     my $self = &DJob::DistribJob::Task::new(@_, \@properties);
@@ -92,36 +92,145 @@ sub initServer {
     my $mateA = $self->getProperty('mateA');
     my $mateB = $self->getProperty('mateB');
     
-    print "running FastQC on raw reads output files can be found in the main results folder \n";
-    &runCmd("fastqc $mateA $mateB -o $inputDir");	    
-  #   &runCmd("fastqc $mateB -o $inputDir");	    
+######## SO I ONLY WANT TO RUN THIS FOR RNASEQ DATA
     
     
+#### so if the files are fasta I want to skip this step. I think I will also add a warning that the files were fasta and so if not expecting microarray data then you should create fast
+#q files and re run. 
     
-#want to do the trimming here and want to set the properties mateA and mateB here. this propery it already set for those with no sidlist
-    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
-	print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+    
+#perl one liner to use perl -ne 'my $type; if ( /^>/ ) { $type="is fasta"} elsif ( /^@/ ) {$type="is fastq"} else {exit}; print "$type\n"
+    my $type;
+    if (-e $mateA) {
+	open IN, "$mateA" or die "cant open $mateA";
+	while (my $line =<IN>) {
+	    if ( $line =~ /^>/ ) {
+		$type = "fasta";
+		last;
+	    } 
+	    elsif ( $line =~ /^@/ ) {
+		$type = "fastq";
+		last;
+	    } 
+	    else {
+		print " ERROR: the first line doesnt start with > or @ its $line line ends and so cant determine if fasta or fastq\n";
+		last;
+		
+	    }
+	}
     }
-    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
-	print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-	&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+    close IN;
+   
+    if (-e $mateB) {
+	my $typeB;
+	open  IN2, "$mateB" or die "cant open $mateB";
+	while (my $line =<IN2>) {
+	    if ( $line =~/^>/ ) {
+		$typeB = "fasta";
+	    }
+            elsif ( $line =~ /^@/ ) {
+		$typeB = "fastq";
+	    }
+            else {
+                last;
+            }
+        }
+	if ($type ne $typeB) {
+	    die "mateA and mateB are not the same type of files one is fasta and one is fastq";
+	}
+
+    }	
+	close IN2;
+
+### However I want to check the fastq files and if they are created files (all quality score are I) then I want to force -phred33 for trimmomatic. 
+    
+    if ($type eq "fasta") {
+	print "WARNING : fasta file detected ... if microarray data then please ignore warning otherwise please convert fasta to fastq for RNASeq data\n\n";
     }
+    
     else {
-	"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+#HERE I WANT TO DEAL WITH THE FASTQ QUAL ISSUE
+	my $is_fake;
+	if (-e $mateA) {
+	    open IN3, "$mateA" or die "cant open $mateA";
+	    my $count = 0;
+	    while (my $line =<IN3>) {
+		chomp $line;
+		$count ++;
+		if ($count == 4) {
+		    $count = 0;
+		    if ($line !~ /^I+$/) { #is anything but just Is
+			$is_fake = 0;
+			last;
+		    }
+		    else {
+			$is_fake = 1;
+		    }
+		}
+		else {
+		    next;
+		}
+	    }
+	}
+	    close IN3;
+	
+	
+	
+	
+	
+	print "running FastQC on raw reads output files can be found in the main results folder \n";
+	&runCmd("fastqc $mateA $mateB -o $inputDir");	    
+	
+	
+	#want to do the trimming here and want to set the properties mateA and mateB here. this propery it already set for those with no sidlist
+	if ($is_fake ==0) {
+	    
+	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }
+	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
+		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }
+	    else {
+		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+	    }
+	} 
+	elsif ($is_fake ==1) {
+	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE  -phred33 -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }
+	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
+		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -phred33 -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    }
+	    else {
+		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+	    }
+	}
+	
+	else { 
+	    die "could not determine if FASTQ has experimental quality score or if we have created a fastq from a fasta\n";
+	}
+	
+	
+	
+	
+	
+	my $trimmedA = $inputDir."/".$baseName."_1P";
+	my $trimmedB = $inputDir."/".$baseName."_2P";
+	if ((! -e $mateB || $mateB eq 'none')) {
+	    $self->setProperty('mateB',"$mateB");
+	}
+	else {
+	    $self->setProperty('mateB',"$trimmedB");
+	}
+	$self->setProperty('mateA',"$trimmedA");
+	print "running FastQC on trimmed reads output files can be found in the main results folder\n";
+	&runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
     }
-    my $trimmedA = $inputDir."/".$baseName."_1P";
-    my $trimmedB = $inputDir."/".$baseName."_2P";
-    if ((! -e $mateB || $mateB eq 'none')) {
-	$self->setProperty('mateB',"$mateB");
-    }
-    else {
-	$self->setProperty('mateB',"$trimmedB");
-    }
-    $self->setProperty('mateA',"$trimmedA");
-    print "running FastQC on trimmed reads output files can be found in the main results folder\n";
-    &runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
-    
     
 }
 
@@ -217,8 +326,15 @@ sub cleanUpServer {
   my @bams = glob "$mainResultDir/*_node.bam";
 
   die "Did not find  bam files in $mainResultDir/*_node.bam" unless(scalar @bams > 0);
+  opendir DIR, $inputDir;
+  my @list = readdir DIR;
+  closedir (DIR);
+  foreach my $file (@list) {
+      if ($file =~ m/.html$/) {
   print "moving fastqc files to results directory\n";
-  &runCmd("mv $inputDir/*.html  $mainResultDir/"); 
+  &runCmd("mv $inputDir/$file  $mainResultDir/"); 
+      }
+  }
 
   if(scalar @bams > 1) {
     $self->runCmdOnNode($node, "samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
