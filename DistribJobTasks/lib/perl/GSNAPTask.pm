@@ -29,7 +29,8 @@ my @properties =
      ["quantifyJunctions", "true", "[true]|false: if true then runs gsnapSam2Junctions"],
      ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
      ["topLevelGeneFootprintFile", "none", "required if quantify is true"],
-     ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"]
+     ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"],
+     ["findNovelSpliceSites", "true", "if true gsnap will use the -N -1 flag to call Novel splice sites"]
     );
 
 sub new {
@@ -299,12 +300,21 @@ sub makeSubTaskCommand {
     if($hasKnownSpliceSites && lc($hasKnownSpliceSites) eq 'true') {
       $dashSParam = "-s $iitFile";
     }
+
+    my $dashNParam;
+    my $findNovelSpliceSites = $self->getProperty("findNovelSpliceSites");
+    if($findNovelSpliceSites && lc($findNovelSpliceSites) eq 'true') {
+      $dashNParam = "-N 1";
+    }
+
+
+
     my $cmd;
     if (-e $mateB) {
-	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
+	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive $dashNParam $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA $mateB";
     }
     elsif (! -e $mateB) {
-	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive -N 1 $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA";
+	 $cmd = "gsnap $extraGsnapParams --force-xs-dir -q $q  --quiet-if-excessive $dashNParam $dashSParam -A sam -n $nPaths -D $databaseDirectory -d $databaseName  $mateA";
     }
     return $cmd;
 }
