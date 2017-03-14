@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 use lib "$ENV{GUS_HOME}/lib/perl";
 use strict;
 use warnings;

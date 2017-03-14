@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 ## parses varscan output to generate a fasta file for loading into the database
 

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 ## parses varscan pileup2indel output to generate a gff file for loading into the database
 

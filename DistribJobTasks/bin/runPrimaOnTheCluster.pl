@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 
 ##Need to set up the controller_liniac.prop and task.prop files then run liniacsubmit

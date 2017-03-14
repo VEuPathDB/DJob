@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 ## parses varscan output to generate a gff file that can be loaded with InsertSNPs plugin
 

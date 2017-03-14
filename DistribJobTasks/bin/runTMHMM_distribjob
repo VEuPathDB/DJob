@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 # nice wrapper around TMHMM. Tested on TMHMM2.0c 
 # Runs TMHMM under 'nice' by default.
