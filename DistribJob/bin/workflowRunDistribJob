@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!@perl@
 
 my ($propFile, $logFile, $processIdFile, $numNodes, $time, $queue, $ppn, $maxMemoryGigs) = @ARGV;
 
