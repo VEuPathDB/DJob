@@ -350,7 +350,7 @@ sub cleanUpServer {
     $self->runCmdOnNode($node, "samtools merge $mainResultDir/${outputFileBasename}.bam $mainResultDir/*_node.bam");
   }
   else {
-    $self->runCmdOnNode($node, "cp $bams[0] $mainResultDir/${outputFileBasename}.bam");
+    $self->runCmdOnNode($node, "mv $bams[0] $mainResultDir/${outputFileBasename}.bam");
   }
 
   # sort bams by location
