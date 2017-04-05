@@ -34,7 +34,8 @@ my @properties =
     );
 
 sub new {
-    my $self = &DJob::DistribJob::Task::new(@_, \@properties);
+    my $sizeAfterInitServer = 1;
+    my $self = &DJob::DistribJob::Task::new(@_, \@properties, $sizeAfterInitServer);
     return $self;
 }
 
@@ -232,7 +233,8 @@ sub initServer {
 	print "running FastQC on trimmed reads output files can be found in the main results folder\n";
 	&runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
     }
-    
+my $size = &getInputSetSize($self, $inputDir);    
+    $self->{size} =$size;
 }
 
 sub initNode {
@@ -244,7 +246,7 @@ sub getInputSetSize {
 
     my $reads = $self->getProperty('mateA');
     my $paired = $self->getProperty('mateB');
-
+    print "LOOKING AT $reads AND $paired \n\n\n\n\n";
     if (-e "$reads.gz"){
       print "unzipping $reads.gz\n";
       `gunzip $reads.gz`;
