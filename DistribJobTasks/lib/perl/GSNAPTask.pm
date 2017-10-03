@@ -56,7 +56,7 @@ sub initServer {
 	    
 	    $mateB = "$inputDir/reads_2.fastq";
 	    $self->setProperty('mateB',"$mateB");
-	    $baseName = "reads";
+ 	    $baseName = "reads";
 	}
 	if(-e "$mateA"){
 	    print "reads file $mateA already present so not retrieving from SRA\n";
@@ -409,11 +409,11 @@ sub cleanUpServer {
 
 	for (my $i=0; $i<@modes; $i++) {
 	    my $mode = $modes[$i];
-	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
-	    $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
+	    $self->runCmdOnNode($node, "htseq-count -a 0 --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.counts");
+	    $self->runCmdOnNode($node, "htseq-count -a 0 --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.counts");
 
-	    $self->runCmdOnNode($node, "htseq-count --nonunique all --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts");
-	    $self->runCmdOnNode($node, "htseq-count --nonunique all --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts");
+	    $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=reverse --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts");
+	    $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts");
 
 
 	    $self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
@@ -425,11 +425,11 @@ sub cleanUpServer {
     else {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
-        $self->runCmdOnNode($node, "htseq-count --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
+        $self->runCmdOnNode($node, "htseq-count -a 0 --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
 	$self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
 
 
-        $self->runCmdOnNode($node, "htseq-count --nonunique all --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts");
+        $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts");
 	$self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.fpkm");
 
       }
