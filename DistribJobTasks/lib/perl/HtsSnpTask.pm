@@ -30,7 +30,8 @@ my @properties =
 	["editDistance", "0.04", "mismatch in bwa"],
         ["snpsOnly", "false", "if true then doesn't compute consensus or indels"],
 	["deleteIntermediateFiles", "true", "[true]|false: if true then deletes intermediate files to save space"],
-        ["noTrimming", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"]
+        ["noTrimming", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"],
+        ["hasPairedEnds", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"]
 );
 
 sub new {
@@ -45,6 +46,8 @@ sub initServer {
     my $baseName;
     my $sidlist = $self->getProperty('sraSampleIdQueryList');
     my $isColorspace= $self->getProperty('isColorspace');
+    my $isPairedEnd = $self->getProperty('hasPairedEnds');
+#    print STDERR " is paired end is $isPairedEnd";
     my $noTrimming = $self->getProperty('noTrimming');
     if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
 	my $mateA = $self->getProperty('mateA');
@@ -61,7 +64,7 @@ sub initServer {
 	}
 	else{  ##need to retrieve here
 	    print "retrieving reads from SRA for '$sidlist'\n";
-	    my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'";
+	    my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist' --pairs $isPairedEnd";
 	    if($isColorspace eq 'true'){
 		$sraCmd .= " --isColorspace";
 	    }
