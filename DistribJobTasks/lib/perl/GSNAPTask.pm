@@ -30,7 +30,8 @@ my @properties =
      ["topLevelFastaFaiFile", "none", "required if writeCovFiles is turned on"],
      ["topLevelGeneFootprintFile", "none", "required if quantify is true"],
      ["hasKnownSpliceSites", "true", "if true gsnap will use the -s flag"],
-     ["findNovelSpliceSites", "true", "if true gsnap will use the -N -1 flag to call Novel splice sites"]
+     ["findNovelSpliceSites", "true", "if true gsnap will use the -N -1 flag to call Novel splice sites"],
+     ["hasPairedEnds", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"]
     );
 
 sub new {
@@ -45,7 +46,8 @@ sub initServer {
     my $baseName;
     ##need to download fastq from sra if sample ids passed in.
     my $sidlist = $self->getProperty('sraSampleIdQueryList');
-    
+    my $isPairedEnd = $self->getProperty('hasPairedEnds');
+#    print STDERR " is paired end is $isPairedEnd\n";
     if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
 	my $mateA = $self->getProperty('mateA');
 	my $mateB = $self->getProperty('mateB');
@@ -63,7 +65,7 @@ sub initServer {
 	}
 	else{  ##need to retrieve here
 	    print "retrieving reads from SRA for '$sidlist'\n";
-	    &runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist'");
+	    &runCmd("getFastqFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist' --pairs $isPairedEnd");
 	}
 	
 	
