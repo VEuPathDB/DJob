@@ -6,7 +6,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace, $hasPairedEnds);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,
@@ -14,6 +14,7 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace);
             "readsTwo=s" => \$readsTwo,
             "sampleIdList=s" => \$sampleIdList,
             "isColorspace!" => \$isColorspace,
+	    "pairs=s" =>\$hasPairedEnds,
             );
 
 my $cwd = getcwd();
@@ -28,7 +29,7 @@ if($isColorspace){
     &getCsForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq);
     
 }else{
-    &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq);
+    &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 }
 
 chdir($cwd) if $workingDir;
