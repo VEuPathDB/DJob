@@ -48,11 +48,15 @@ sub submitDistribJobToQueue {
     $bashEnv = "-rcfile $rcfile -i";
   }
 
-  my $distribjobCmd = "$gushome/bin/distribjobSubmit $logFile --numNodes $numNodes --runTime $time --propFile $propFile --parallelInit 4 --mpn $maxMemoryGigs --q $queue $p";
+  # $cwDir is current working dir when submitting jobs. Job
+  # stdout/stderr, nodeScript, et al. will go here.
+  my $cwDir = 'distribjobRuns';
+  
+  my $distribjobCmd = "cd $cwDir \\&\\& $gushome/bin/distribjobSubmit $logFile --numNodes $numNodes --runTime $time --propFile $propFile --parallelInit 4 --mpn $maxMemoryGigs --q $queue $p";
 
   my $submitCmd = $mgr->getNodeClass()->getQueueSubmitCommand($queue, $distribjobCmd);
 
-  my $cmd = "mkdir -p distribjobRuns; cd distribjobRuns; $submitCmd ";
+  my $cmd = "mkdir -p $cwDir; cd $cwDir; $submitCmd ";
 
   my $fullCmd = "/bin/bash $bashEnv -c \"$cmd\"";
 
