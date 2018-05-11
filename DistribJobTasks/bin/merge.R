@@ -32,14 +32,15 @@ if (length(myFiles) > 1) {
 }
 
 seqs <- asvTable$V1
-rownames(asvTable) <- asvTable$V1
-asvTable$V1 <- NULL
 taxa <- assignTaxonomy(seqs, taxonRefFile)
+taxa <- as.data.table(taxa, keep.rownames=TRUE)
+colnames(taxa)[colnames(taxa) == "rn"] <- "V1"
 
-#uncomment if we dont want to actually write the seqs themselves, but want unique identifiers
-#rownames(taxa) <- unname(sapply(rownames(taxa), digest, algo = "md5", serialize = FALSE))
-#rownames(asvTable) <- unname(sapply(rownames(asvTable), digest, algo = "md5", serialize = FALSE))
+finalTable <- merge(taxa, asvTable, by = "V1")
+finalTable$V1 <- NULL
+finalTable$taxaString <- paste0(finalTable$Kingdom, ";", finalTable$Phylum, ";", finalTable$Class, ";", finalTable$Order, ";", finalTable$Family, ";", finalTable$Genus, ";", finalTable$Species)
+finalTable[,c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species") := NULL]
+#moves taxaString col from last to first
+setcolorder(test, c("taxaString", colnames(test)[1:ncol(test)-1]))
 
-write.table(taxa, file = file.path(filesDir, "final_taxaMap.tab"), quote=FALSE, sep = '\t', col.names = NA)
-
-write.table(asvTable, file = file.path(filesDir, "final_featureTable.tab"), quote=FALSE, sep = '\t', col.names = NA)
+write.table(finalTable, file = file.path(filesDir, "final_featureTable.tab"), quote=FALSE, sep = '\t', col.names = NA)

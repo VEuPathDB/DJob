@@ -17,10 +17,6 @@ use strict;
 my @properties = 
     (
      ["dataDir",   "none",     "full path to directory of demultiplexed reads files"],
-     ["forwardReads", "none",  "full path to a multiplexed file of forward reads"],
-     ["reverseReads", "none",  "full path to a multiplexed file of reverse reads"],
-     ["forwardBarcodes", "none", "full path to a file specifying independant barcodes for forward reads"],
-     ["reverseBarcodes", "none", "full path to a file specifying independant barcodes for reverse reads"],
      ["multiplexed",   "false",     "default is 'false'"],
      ["barcodesType", "independant", "either 'independant' if barcodes are in a seperate file or 'within' if they are within the reads. default is 'independant'"],
      ["samplesInfoFile", "none", "path to file mapping barcodes to sample names. accepted columns: 'NAMES' 'BARCODES' 'GROUPS'. if file is not specified or GROUPS columns does not exist, will run all samples as a single group. all samples within a group must belong to the same run."],
@@ -43,18 +39,8 @@ sub initServer {
   my ($self, $inputDir) = @_;
 
   my $samplesDir = $self->getProperty('dataDir');
-  my $forwardReads = $self->getProperty('forwardReads');
   if (!$samplesDir || $samplesDir eq 'none') {
-    if (!$forwardReads || $forwardReads eq 'none') {
-      die "must provide either a 'dataDir' or 'forwardReads' argument";
-    } elsif (! -e $forwardReads) {
-      if (-e "$forwardReads.gz") {
-        print "unzipping $forwardReads.gz\n";
-        `gunzip $forwardReads.gz`;
-      } else {
-        die "argument to 'forwardReads' must be a valid path";
-      }
-    }
+    die "must provide a 'dataDir' argument";
   } elsif (! -e $samplesDir) {
     die "argument to 'dataDir' must be a valid path";
   }
@@ -62,6 +48,73 @@ sub initServer {
   my $multiplexed = $self->getProperty('multiplexed');
   if ($multiplexed ne 'true' && $multiplexed ne 'false') {
     die "argument to 'multiplexed' must be 'true' or 'false'";
+  }
+
+  my $isPaired = $self->getProperty('isPaired');
+  if ($isPaired ne 'true' && $isPaired ne 'false') {
+    die "argument to 'isPaired' must be 'true' or 'false'";
+  }
+
+  my $barcodesType = $self->getProperty('barcodesType');  
+
+  #here set forward and reverse reads and barcodes variables based on dataDir
+  #then run checks for all inputs
+  my @zipFiles = glob("$samplesDir/*.gz");
+  foreach my $zipFile (@zipFiles) {
+    print "unzipping $zipFile";
+    `gunzip $zipFile`;
+  }
+  if ($multiplexed eq 'true') {
+    if ($isPaired eq 'true') {
+      if ($barcodesType eq 'independant') {
+        my @seqFiles = glob("$samplesDir/*sequences*");
+        if (scalar @seqFiles == 2) {
+          #double check perl syntax here
+          my $forwardReads = grep(/R1/, @seqFiles);
+          my $reverseReads = grep(/R2/, @seqFiles);
+        } else {
+          #error out
+        }  
+        my @barcodesFiles = glob("$samplesDir/*barcodes*");
+        if (scalar @seqFiles == 2) {
+          #double check perl syntax here
+          my $forwardBarcodes = grep(/R1/, @barcodesFiles);
+          my $reverseBarcodes = grep(/R2/, @barcodesFiles);
+        } else {
+          #error out
+        }
+      } else {
+        my @seqFiles = glob("$samplesDir/*sequences*");
+        if (scalar @seqFiles == 2) {
+          my $forwardReads = grep(/R1/, @seqFiles);
+          my $reverseReads = grep(/R2/, @seqFiles);
+        } else {
+          #error out
+        }
+      }
+    } else {
+      if ($barcodesType eq 'independant') {
+        my @seqFiles = glob("$samplesDir/*sequences*");
+        if (scalar @seqFiles == 1) {
+          my $forwardReads = $seqFiles[0];
+        } else {
+          #error out
+        }
+        my @barcodesFiles = glob("$samplesDir/*barcodes*");
+        if (scalar @barcodesFiles == 1) {
+          my $forwardBarcodes = $barcodesFiles[0];
+        } else {
+          #error out
+        }
+      } else {
+        my @seqFiles = glob("$samplesDir/*sequences*");
+        if (scalar @seqFiles == 1) {
+          my $forwardReads = $seqFiles[0];
+        } else {
+          #error out
+        }
+      }
+    }
   }
 
   my $samplesInfo = $self->getProperty('samplesInfoFile');
@@ -75,15 +128,6 @@ sub initServer {
     die "argument to 'samplesInfoFile' must be a valid path";
   }
 
-  my $isPaired = $self->getProperty('isPaired');
-  if ($isPaired ne 'true' && $isPaired ne 'false') {
-    die "argument to 'isPaired' must be 'true' or 'false'";
-  }
-
-  my $barcodesType = $self->getProperty('barcodesType');
-  my $reverseReads = $self->getProperty('reverseReads');
-  my $forwardBarcodes = $self->getProperty('forwardBarcodes');
-  my $reverseBarcodes = $self->getProperty('reverseBarcodes');
   my $trimLeft = $self->getProperty('trimLeft');
   my $trimLeftR = $self->getProperty('trimLeftR');
   my $truncLen = $self->getProperty('truncLen');
@@ -155,11 +199,6 @@ sub initServer {
     if (!$samplesDir || $samplesDir eq 'none') {
       die "must provide the 'dataDir' argument for demultiplexed reads.. did you mean to set 'multiplexed' to 'true'?";
     }
-  }
-
-  my $taxonRefFile = $self->getProperty('taxonRefFile');
-  if (!$taxonRefFile || $taxonRefFile eq 'none') {
-    die "must provide the 'taxonRefFile' argument";
   }
 
   #need a place to demux files to.. 
