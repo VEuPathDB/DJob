@@ -65,6 +65,11 @@ sub initServer {
     `gunzip $zipFile`;
   }
 
+  if (glob("$samplesDir/*.fq")) {
+    print "changing samples file ext from .fq to .fastq";
+    `rename *.fq *.fastq`;
+  }
+
   my $forwardReads = 'none';
   my $forwardBarcodes = 'none';
   my $reverseReads = 'none';
