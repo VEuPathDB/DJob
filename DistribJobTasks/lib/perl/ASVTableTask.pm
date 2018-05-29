@@ -64,30 +64,36 @@ sub initServer {
     print "unzipping $zipFile";
     `gunzip $zipFile`;
   }
+
+  my $forwardReads = 'none';
+  my $forwardBarcodes = 'none';
+  my $reverseReads = 'none';
+  my $reverseBarcodes = 'none';
+
   if ($multiplexed eq 'true') {
     if ($isPaired eq 'true') {
       if ($barcodesType eq 'independant') {
         my @seqFiles = glob("$samplesDir/*sequences*");
         if (scalar @seqFiles == 2) {
           #double check perl syntax here
-          my $forwardReads = grep(/R1/, @seqFiles);
-          my $reverseReads = grep(/R2/, @seqFiles);
+          $forwardReads = grep(/R1/, @seqFiles);
+          $reverseReads = grep(/R2/, @seqFiles);
         } else {
           #error out
         }  
         my @barcodesFiles = glob("$samplesDir/*barcodes*");
         if (scalar @seqFiles == 2) {
           #double check perl syntax here
-          my $forwardBarcodes = grep(/R1/, @barcodesFiles);
-          my $reverseBarcodes = grep(/R2/, @barcodesFiles);
+          $forwardBarcodes = grep(/R1/, @barcodesFiles);
+          $reverseBarcodes = grep(/R2/, @barcodesFiles);
         } else {
           #error out
         }
       } else {
         my @seqFiles = glob("$samplesDir/*sequences*");
         if (scalar @seqFiles == 2) {
-          my $forwardReads = grep(/R1/, @seqFiles);
-          my $reverseReads = grep(/R2/, @seqFiles);
+          $forwardReads = grep(/R1/, @seqFiles);
+          $reverseReads = grep(/R2/, @seqFiles);
         } else {
           #error out
         }
@@ -96,20 +102,20 @@ sub initServer {
       if ($barcodesType eq 'independant') {
         my @seqFiles = glob("$samplesDir/*sequences*");
         if (scalar @seqFiles == 1) {
-          my $forwardReads = $seqFiles[0];
+          $forwardReads = $seqFiles[0];
         } else {
           #error out
         }
         my @barcodesFiles = glob("$samplesDir/*barcodes*");
         if (scalar @barcodesFiles == 1) {
-          my $forwardBarcodes = $barcodesFiles[0];
+          $forwardBarcodes = $barcodesFiles[0];
         } else {
           #error out
         }
       } else {
         my @seqFiles = glob("$samplesDir/*sequences*");
         if (scalar @seqFiles == 1) {
-          my $forwardReads = $seqFiles[0];
+          $forwardReads = $seqFiles[0];
         } else {
           #error out
         }

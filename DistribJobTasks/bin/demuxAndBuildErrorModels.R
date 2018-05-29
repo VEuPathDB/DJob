@@ -1,4 +1,3 @@
-source("https://bioconductor.org/biocLite.R")
 library(data.table)
 library(ShortRead)
 library(dada2)
@@ -33,7 +32,7 @@ if (reverseBarcodes == 'none') {
   reverseBarcodes <- NULL
 }
 multiplexed <- args[7]
-if (multiplexed == 'true') {
+if (multiplexed == 1 | multiplexed == 'true') {
   multiplexed <- TRUE
 } else {
   multiplexed <- FALSE
@@ -44,7 +43,7 @@ if (samplesInfo == 'none') {
   samplesInfo <- NULL
 }
 isPaired <- args[10]
-if (isPaired == 'true') {
+if (isPaired == 1 | isPaired == 'true') {
   isPaired <- TRUE
 } else {
   isPaired <- FALSE

@@ -1,4 +1,3 @@
-source("https://bioconductor.org/biocLite.R")
 library(dada2)
 
 args <- commandArgs(TRUE)
