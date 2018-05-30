@@ -41,6 +41,6 @@ finalTable$V1 <- NULL
 finalTable$taxaString <- paste0(finalTable$Kingdom, ";", finalTable$Phylum, ";", finalTable$Class, ";", finalTable$Order, ";", finalTable$Family, ";", finalTable$Genus, ";", finalTable$Species)
 finalTable[,c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species") := NULL]
 #moves taxaString col from last to first
-setcolorder(test, c("taxaString", colnames(test)[1:ncol(test)-1]))
+setcolorder(finalTable, c("taxaString", colnames(finalTable)[1:ncol(finalTable)-1]))
 
 write.table(finalTable, file = file.path(filesDir, "final_featureTable.tab"), quote=FALSE, sep = '\t', col.names = NA)
