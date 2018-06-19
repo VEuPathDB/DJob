@@ -56,4 +56,4 @@ setcolorder(finalTable, c("taxaString", colnames(finalTable)[1:ncol(finalTable)-
 #write taxonString to seperate file as well, to be consumed by insertSequenceTaxon plugin
 write.table(finalTable$taxaString, file = file.path(filesDir, "final_taxonString.tab"), quote=FALSE, sep = '\t', col.names = FALSE, row.names=FALSE)
 
-write.table(finalTable, file = file.path(filesDir, "final_featureTable.tab"), quote=FALSE, sep = '\t', col.names = NA, row.names=FALSE)
+write.table(finalTable, file = file.path(filesDir, "final_featureTable.tab"), quote=FALSE, sep = '\t', col.names = TRUE, row.names=FALSE)
