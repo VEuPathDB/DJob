@@ -39,9 +39,9 @@ colnames(taxa)[colnames(taxa) == "rn"] <- "V1"
 finalTable <- merge(taxa, asvTable, by = "V1")
 finalTable$V1 <- NULL
 
+#remove high level NA values
+finalTable <- finalTable[-which(is.na(finalTable$Phylum)),]
 #fix NA values
-finalTable$Kingdom[is.na(finalTable$Kingdom)] <- "k__"
-finalTable$Phylum[is.na(finalTable$Phylum)] <- "p__"
 finalTable$Class[is.na(finalTable$Class)] <- "c__"
 finalTable$Order[is.na(finalTable$Order)] <- "o__"
 finalTable$Family[is.na(finalTable$Family)] <- "f__"
