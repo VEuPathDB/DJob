@@ -30,6 +30,15 @@ sub queueNode {
     $num = int($num) + ($num > int($num));  # ceil since sapelo cannot take decimal 
  
     my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{queue} ? ":$self->{queue}" : "").($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
+
+    # old qsub command "-l nodes=2:ppn=48:batch" won't work on Sapelo2, 
+    # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
+    # need to specifiy node type or leave it empty instead, 
+    # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
+    if ($self->{queue} eq 'batch') {  # if it's Sapelo2, no node type. 
+      $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}:AMD".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
+    }
+
 #    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
@@ -110,7 +119,9 @@ sub getJobIdFromJobInfoString {
   my ($class, $jobInfoString) = @_;
 
   # qsub output - 955273.pbs.scm
-  $jobInfoString =~ /(\d+).pbs.scm/;
+  #$jobInfoString =~ /(\d+).pbs.scm/;
+  # sapelo2 distribjobJobInfo.txt - 377002.sapelo2
+  $jobInfoString =~ /(\d+).sapelo2/;
   return $1;
 }
 
