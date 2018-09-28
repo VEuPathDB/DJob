@@ -110,6 +110,15 @@ sub deleteLogFilesAndTmpDir {
 sub getQueueSubmitCommand {
   my ($class, $queue, $cmdToSubmit) = @_;
 
+  # old qsub command "-l nodes=2:ppn=48:batch" won't work on Sapelo2, 
+  # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
+  # need to specifiy node type or leave it empty instead, 
+  # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
+  if ($queue eq 'batch') {  # if it's Sapelo2, no node type. 
+    
+    return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1,walltime=480:00:00";
+  }
+
   return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($queue ? ":$queue" : ""). ",walltime=480:00:00";
 }
 
