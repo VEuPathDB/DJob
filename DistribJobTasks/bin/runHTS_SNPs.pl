@@ -38,6 +38,8 @@ die "you must provide a strain\n".&getParams() unless $strain;
 ##should add in usage
 $bowtie2 = $bowtie2 eq 'default' ? 'bowtie2' : $bowtie2;  ##if not specified then bowtie2 must be in path.
 
+my $DEFAULT_PATH = $ENV{PATH};
+
 $ENV{_JAVA_OPTIONS}="-Xms512m -Xmx2g";
 
 $snpPercentCutoff = $consPercentCutoff unless $snpPercentCutoff;
@@ -141,6 +143,7 @@ if($isColorspace){  ##need to mv the bam file
   }else{ &runCmd($cmd); print L "\n"; }
 
 }else{
+  $ENV{PATH} = "/project/eupathdblab/workflow-software/software/java/1.7.0/bin";
   $cmd = "java -jar $gatk -I $workingDir/$tmpOut.bam -R $fastaFile -T RealignerTargetCreator -o $workingDir/forIndelRealigner.intervals >& $workingDir/realignerTargetCreator.err";
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.bam"){ print L "  succeeded in previous run\n\n";
@@ -150,6 +153,7 @@ if($isColorspace){  ##need to mv the bam file
   print L &getDate().": $cmd\n";
   if(-e "$workingDir/complete" || -e "$workingDir/$out.pileup"){ print L "  succeeded in previous run\n\n";
   }else{ &runCmd($cmd); print L "\n"; }
+  $ENV{PATH} = $DEFAULT_PATH;
 }
 
   ## need to rename index file from "result.bai" to "result.bam.bai"
