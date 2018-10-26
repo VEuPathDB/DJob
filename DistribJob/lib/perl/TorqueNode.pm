@@ -35,8 +35,8 @@ sub queueNode {
     # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
     # need to specifiy node type or leave it empty instead, 
     # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
-    if ($self->{queue} eq 'batch') {  # if it's Sapelo2, no node type. 
-      $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}:AMD".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
+    if ($self->{queue} eq 'batch' || $self->{queue} eq 'eupathdb_q') {  # if it's Sapelo2, no node type. 
+      $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
     }
 
 #    print STDERR "\n$qsubcmd\n\n";
@@ -114,7 +114,7 @@ sub getQueueSubmitCommand {
   # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
   # need to specifiy node type or leave it empty instead, 
   # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
-  if ($queue eq 'batch') {  # if it's Sapelo2, no node type. 
+  if ($queue eq 'batch' || $queue eq 'eupathdb_q') {  # if it's Sapelo2, no node type. 
     
     return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1,walltime=480:00:00";
   }
