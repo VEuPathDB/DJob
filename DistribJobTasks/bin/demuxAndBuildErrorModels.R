@@ -60,8 +60,14 @@ truncLen <- args[13]
 truncLenR <- args[14]
 #need either the four above OR this below to determine the four above
 readLen <- args[15]
-#can pass this through later if we decide to add support for 454 or IT, for now written in as Illumina
-dataType = "Illumina"
+platform <- args[16]
+#TODO sort out these names later
+if (platform == "454") {
+  maxLen <- readLen
+}
+
+#rename dataType to platform below TODO
+dataType <- platform
 #if we want to specify a number of threads rather than use all available or some default then add an argument
 
 if (is.null(samplesInfo)) {
@@ -141,23 +147,25 @@ message("running internal demux...")
          }
 
 buildErrors <- function(files = NULL, errFile = NULL, dataType = NULL, readType = NULL, truncLen = NULL, truncLenR = NULL,
-                    trimLeft = NULL, trimLeftR = NULL) {
+                    trimLeft = NULL, trimLeftR = NULL, platform = NULL, maxLen = NULL) {
 
              unlink(errFile)
              if (dataType == "Illumina") {
                if (isPaired == FALSE) {
                  message("running as single end...")
-                 asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft)
+                 asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, 
+                                         platform = platform, maxLen = maxLen)
                } else {
                  asvTable <- ilPairedErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft,
-                                      truncLenR = truncLenR, trimLeftR = trimLeftR)
+                                         truncLenR = truncLenR, trimLeftR = trimLeftR, platform = platform,
+                                         maxLen = maxLen)
                }
              } else {
                stop("Illumina is currently the only supported data type... check back later.")
              }
            }
 
-ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL) {
+ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL, platform = NULL, maxLen = NULL) {
 
              if (length(files) == 1) {
                #create filtered dir and paths from a given dir
@@ -174,8 +182,14 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
              }
              unlink(filt.path, recursive = TRUE)
              ## TRIM AND FILTER ###
-             out <- suppressWarnings(filterAndTrim(unfilts, filts, truncLen=truncLen, trimLeft=trimLeft,
-                                     maxEE=2, truncQ=2, rm.phix=TRUE, multithread=1))
+             if (platform == "454") {
+               out <- suppressWarnings(filterAndTrim(unfilts, filts, truncLen=truncLen, trimLeft=trimLeft,
+                                       maxEE=2, truncQ=2, rm.phix=TRUE, multithread=1, 
+                                       maxLen=maxLen))
+             } else {
+               out <- suppressWarnings(filterAndTrim(unfilts, filts, truncLen=truncLen, trimLeft=trimLeft,
+                                       maxEE=2, truncQ=2, rm.phix=TRUE, multithread=1))
+             }
              filts <- list.files(filt.path, pattern=".fastq", full.names=TRUE)
              if(length(filts) == 0) {
                stop("No reads passed the filter (was truncLen longer than the read length?)")
@@ -192,13 +206,23 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
              }
              # Run dada in self-consist mode on those samples
              dds <- vector("list", length(filts))
-             
-             if(i==1) { # breaks list assignment
-               dds[[1]] <- dada(drps[[1]], err=NULL, selfConsist=TRUE, multithread=1)#,
-                         #       VECTORIZED_ALIGNMENT=FALSE)
-             } else { # more than one sample, no problem with list assignment
-               dds[1:i] <- dada(drps[1:i], err=NULL, selfConsist=TRUE, multithread=1)#,
-               #VECTORIZED_ALIGNMENT=FALSE)
+            
+             if (platform == "454") {
+               if(i==1) { # breaks list assignment
+                 dds[[1]] <- dada(drps[[1]], err=NULL, selfConsist=TRUE, multithread=1,
+                                  HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+               } else { # more than one sample, no problem with list assignment
+                 dds[1:i] <- dada(drps[1:i], err=NULL, selfConsist=TRUE, multithread=1,
+                                  HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+               }
+             } else {  
+               if(i==1) { # breaks list assignment
+                 dds[[1]] <- dada(drps[[1]], err=NULL, selfConsist=TRUE, multithread=1)#,
+                           #       VECTORIZED_ALIGNMENT=FALSE)
+               } else { # more than one sample, no problem with list assignment
+                 dds[1:i] <- dada(drps[1:i], err=NULL, selfConsist=TRUE, multithread=1)#,
+                 #VECTORIZED_ALIGNMENT=FALSE)
+               }
              }
              #message(dds)
              err <- dds[[1]]$err_out
@@ -223,7 +247,7 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
 }
 
 ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL,
-                     truncLenR = NULL, trimLeftR = NULL) {
+                     truncLenR = NULL, trimLeftR = NULL, platform = NULL, maxLen = NULL) {
 
               if (length(files) == 1) {
                 unfiltsF <- sort(list.files(files, pattern="_R1_001.fastq", full.names = TRUE))
@@ -245,10 +269,17 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
               unlink(filt.path, recursive = TRUE)
               ### TRIM AND FILTER ###
               message("filter and trimming...")
-              out <- suppressWarnings(filterAndTrim(unfiltsF, filtsF, unfiltsR, filtsR,
-                                      truncLen=c(truncLen, truncLenR), trimLeft=c(trimLeft, trimLeftR),
-                                      maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
-                                      multithread=1))
+              if (platform == "454") {
+                out <- suppressWarnings(filterAndTrim(unfiltsF, filtsF, unfiltsR, filtsR,
+                                        truncLen=c(truncLen, truncLenR), trimLeft=c(trimLeft, trimLeftR),
+                                        maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                                        multithread=1, maxLen = maxLen))
+              } else {
+                out <- suppressWarnings(filterAndTrim(unfiltsF, filtsF, unfiltsR, filtsR,
+                                        truncLen=c(truncLen, truncLenR), trimLeft=c(trimLeft, trimLeftR),
+                                        maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                                        multithread=1))
+              }
               filtsF <- list.files(filt.path, pattern="_R1_001.fastq", full.names=TRUE)
               filtsR <- list.files(filt.path, pattern="_R2_001.fastq", full.names=TRUE)
               if(length(filtsF) == 0) { # All reads were filtered out
@@ -271,10 +302,17 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
               # Run dada in self-consist mode on those samples
               drpsF <- drpsF[1:i]
               drpsR <- drpsR[1:i]
-              ddsF <- dada(drpsF, err=NULL, selfConsist=TRUE, multithread=1)#,
-                           #VECTORIZED_ALIGNMENT=FALSE)
-              ddsR <- dada(drpsR, err=NULL, selfConsist=TRUE, multithread=1)#,
-                           #VECTORIZED_ALIGNMENT=FALSE)
+              if (platform == "454") {
+                ddsF <- dada(drpsF, err=NULL, selfConsist=TRUE, multithread=1,
+                             HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+                ddsR <- dada(drpsR, err=NULL, selfConsist=TRUE, multithread=1,
+                             HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
+              } else {
+                ddsF <- dada(drpsF, err=NULL, selfConsist=TRUE, multithread=1)#,
+                             #VECTORIZED_ALIGNMENT=FALSE)
+                ddsR <- dada(drpsR, err=NULL, selfConsist=TRUE, multithread=1)#,
+                             #VECTORIZED_ALIGNMENT=FALSE)
+              }
               if(i==1) {
                 errF <- ddsF$err_out
                 errR <- ddsR$err_out
@@ -598,6 +636,7 @@ findTruncLen = function(forwardReads = NULL, reverseReads = NULL, sample_size = 
 #!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#! WORKFLOW #!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#!#
 
 # if demultiplex is TRUE import and demultiplex data
+#currently only supported for illumina data
 if (multiplexed == TRUE) {
   barcodes <- samples.info$BARCODES
   sampleNames <- samples.info$NAMES
@@ -647,7 +686,7 @@ message("determining if there are groups...")
 if (is.null(groups)) {
   message("building error model...")
   errFile <- file.path(inputDir, "err.rds")
-  asvTable <- buildErrors(dataDir, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR)
+  asvTable <- buildErrors(dataDir, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, maxLen)
 } else {
   asvTable <- NULL
   for (group in groups) {
@@ -662,7 +701,7 @@ if (is.null(groups)) {
       myFiles <- paste0(myFiles, ".fastq")
     }
     myFiles <- file.path(dataDir, myFiles)
-    myTable <- buildErrors(myFiles, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR)
+    myTable <- buildErrors(myFiles, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, maxLen)
     if (is.null(asvTable)) {
       asvTable <- myTable
     } else {

@@ -6,7 +6,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,
@@ -14,15 +14,21 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds);
             "readsTwo=s" => \$readsTwo,
             "sampleIdList=s" => \$sampleIdList,
 	    "pairs=s" => \$hasPairedEnds,
+            "studyId=s" => \$studyId,
            );
 
 my $cwd = getcwd();
 chdir($workingDir) if $workingDir;
 
-my @tmp;
-foreach my $s (split(/,\s*/,$sampleIdList)){
-  push(@tmp,$s);
+if (defined $sampleIdList) {
+  my @tmp;
+  foreach my $s (split(/,\s*/,$sampleIdList)){
+    push(@tmp,$s);
+  }
+  &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
+} elsif (defined $studyId) {
+  print STDERR "calling CBIL::sra.pm";
+  &getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq);
 }
-&getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 
 chdir($cwd) if $workingDir;

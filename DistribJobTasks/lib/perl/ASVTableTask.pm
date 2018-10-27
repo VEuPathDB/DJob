@@ -16,7 +16,9 @@ use strict;
 # format: [name, default (or null if reqd), comment]
 my @properties = 
     (
+     ["sraStudyId", "none", "an SRA studyId to use to retrieve all related samples"],
      ["dataDir",   "none",     "full path to directory of demultiplexed reads files"],
+     ["platform",  "illumina",  "valid options: 'illumina', '454'"],
      ["multiplexed",   "false",     "default is 'false'"],
      ["barcodesType", "independant", "either 'independant' if barcodes are in a seperate file or 'within' if they are within the reads. default is 'independant'"],
      ["samplesInfoFile", "none", "path to file mapping barcodes to sample names. accepted columns: 'NAMES' 'BARCODES' 'GROUPS'. if file is not specified or GROUPS columns does not exist, will run all samples as a single group. all samples within a group must belong to the same run."],
@@ -38,16 +40,28 @@ sub new {
 sub initServer {
   my ($self, $inputDir) = @_;
 
+  my $platform = $self->getProperty('platform');
+
   my $samplesDir = $self->getProperty('dataDir');
-  if (!$samplesDir || $samplesDir eq 'none') {
-    die "must provide a 'dataDir' argument";
-  } elsif (! -e $samplesDir) {
+  my $sraStudyId = $self->getProperty('sraStudyId');
+
+  my $noSamplesList = !$sraStudyId || $sraStudyId eq 'none' ? 1 : 0;
+  my $noSamplesDir = !$samplesDir || $samplesDir eq 'none' ? 1 : 0;
+  my $badSamplesDirPath = !$noSamplesDir && ! -e $samplesDir ? 1 : 0;
+
+  if ($noSamplesList && $noSamplesDir) {
+    die "must provide either 'sraStudyId' or 'dataDir' argument";
+  } elsif ($badSamplesDirPath) {
     die "argument to 'dataDir' must be a valid path";
   }
 
   my $multiplexed = $self->getProperty('multiplexed');
   if ($multiplexed ne 'true' && $multiplexed ne 'false') {
     die "argument to 'multiplexed' must be 'true' or 'false'";
+  }
+
+  if ($multiplexed eq 'true' && $platform eq '454') {
+    die "demultiplexing is not currently supported for 454 data.");
   }
 
   my $isPaired = $self->getProperty('isPaired');
@@ -145,6 +159,10 @@ sub initServer {
   my $truncLenR = $self->getProperty('truncLenR');
   my $readLen = $self->getProperty('readLen');
 
+  if ($readLen eq 'none' && $platform eq '454') {
+    die "must provide maximum read length as parameter 'readLen' for 454 data.";
+  } 
+
   if ($multiplexed eq 'true') {
     if (!$forwardReads || $forwardReads eq 'none') {
       die "must provide the 'forwardReads' argument for multiplexed reads.. did you mean to set 'multiplexed' to 'false'?";
@@ -212,12 +230,17 @@ sub initServer {
     }
   }
 
-  #need a place to demux files to.. 
+  #need a place to write sra files or demux files to.. 
   if (!$samplesDir || $samplesDir eq 'none') {
     $samplesDir = $inputDir
   }
 
-  my $cmd = "Rscript $ENV{GUS_HOME}/bin/demuxAndBuildErrorModels.R $samplesDir $inputDir $forwardReads $reverseReads $forwardBarcodes $reverseBarcodes $multiplexed $barcodesType $samplesInfo $isPaired $trimLeft $trimLeftR $truncLen $truncLenR $readLen";
+  #get sra files
+  if (!$noSamplesList) {
+    &runCmd("getFastqFromSra.pl --workingDir $samplesDir --studyId '$sraStudyId' --pairs $isPairedEnd"); 
+  }
+
+  my $cmd = "Rscript $ENV{GUS_HOME}/bin/demuxAndBuildErrorModels.R $samplesDir $inputDir $forwardReads $reverseReads $forwardBarcodes $reverseBarcodes $multiplexed $barcodesType $samplesInfo $isPaired $trimLeft $trimLeftR $truncLen $truncLenR $readLen $platform";
 
 
 
@@ -314,9 +337,10 @@ sub makeSubTaskCommand {
     my ($self, $node, $inputDir, $nodeExecDir,$subtaskNumber,$mainResultDir) = @_;
 
     my $isPaired = $self->getProperty("isPaired");
+    my $platform = $self->getProperty("platform");
 
     #run dada on remaining sample(s). 
-    my $cmd = "Rscript $ENV{GUS_HOME}/bin/runDada.R $nodeExecDir $isPaired";
+    my $cmd = "Rscript $ENV{GUS_HOME}/bin/runDada.R $nodeExecDir $isPaired $platform";
 
     return($cmd)
 }
