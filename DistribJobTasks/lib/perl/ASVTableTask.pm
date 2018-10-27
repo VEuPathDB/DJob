@@ -61,7 +61,7 @@ sub initServer {
   }
 
   if ($multiplexed eq 'true' && $platform eq '454') {
-    die "demultiplexing is not currently supported for 454 data.");
+    die "demultiplexing is not currently supported for 454 data.";
   }
 
   my $isPaired = $self->getProperty('isPaired');
@@ -237,7 +237,7 @@ sub initServer {
 
   #get sra files
   if (!$noSamplesList) {
-    &runCmd("getFastqFromSra.pl --workingDir $samplesDir --studyId '$sraStudyId' --pairs $isPairedEnd"); 
+    &runCmd("getFastqFromSra.pl --workingDir $samplesDir --studyId '$sraStudyId' --pairs $isPaired"); 
   }
 
   my $cmd = "Rscript $ENV{GUS_HOME}/bin/demuxAndBuildErrorModels.R $samplesDir $inputDir $forwardReads $reverseReads $forwardBarcodes $reverseBarcodes $multiplexed $barcodesType $samplesInfo $isPaired $trimLeft $trimLeftR $truncLen $truncLenR $readLen $platform";
