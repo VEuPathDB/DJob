@@ -61,14 +61,7 @@ truncLenR <- args[14]
 #need either the four above OR this below to determine the four above
 readLen <- args[15]
 platform <- args[16]
-#TODO sort out these names later
-if (platform == "454") {
-  maxLen <- readLen
-}
-
-#rename dataType to platform below TODO
-dataType <- platform
-#if we want to specify a number of threads rather than use all available or some default then add an argument
+#worth noting that readLen represents the avg for illumina and max for 454
 
 if (is.null(samplesInfo)) {
   samples.info <- NULL
@@ -146,26 +139,29 @@ message("running internal demux...")
 
          }
 
-buildErrors <- function(files = NULL, errFile = NULL, dataType = NULL, readType = NULL, truncLen = NULL, truncLenR = NULL,
-                    trimLeft = NULL, trimLeftR = NULL, platform = NULL, maxLen = NULL) {
+buildErrors <- function(files = NULL, errFile = NULL, readType = NULL, truncLen = NULL, truncLenR = NULL,
+                    trimLeft = NULL, trimLeftR = NULL, platform = NULL, readLen = NULL) {
 
              unlink(errFile)
-             if (dataType == "Illumina") {
+             if (tolower(platform) == "illumina") {
                if (isPaired == FALSE) {
                  message("running as single end...")
                  asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, 
-                                         platform = platform, maxLen = maxLen)
+                                         platform = platform, readLen = readLen)
                } else {
                  asvTable <- ilPairedErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft,
                                          truncLenR = truncLenR, trimLeftR = trimLeftR, platform = platform,
-                                         maxLen = maxLen)
+                                         readLen = readLen)
                }
+             } else if {
+               message("running 454...")
+               asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, platform = platform, readLen = readLen)
              } else {
-               stop("Illumina is currently the only supported data type... check back later.")
+               stop("Illumina and 454 are currently the only supported data types... check back later.")
              }
            }
 
-ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL, platform = NULL, maxLen = NULL) {
+ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL, platform = NULL, readLen = NULL) {
 
              if (length(files) == 1) {
                #create filtered dir and paths from a given dir
@@ -185,7 +181,7 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
              if (platform == "454") {
                out <- suppressWarnings(filterAndTrim(unfilts, filts, truncLen=truncLen, trimLeft=trimLeft,
                                        maxEE=2, truncQ=2, rm.phix=TRUE, multithread=1, 
-                                       maxLen=maxLen))
+                                       maxLen=readLen))
              } else {
                out <- suppressWarnings(filterAndTrim(unfilts, filts, truncLen=truncLen, trimLeft=trimLeft,
                                        maxEE=2, truncQ=2, rm.phix=TRUE, multithread=1))
@@ -247,7 +243,7 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
 }
 
 ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL,
-                     truncLenR = NULL, trimLeftR = NULL, platform = NULL, maxLen = NULL) {
+                     truncLenR = NULL, trimLeftR = NULL, platform = NULL, readLen = NULL) {
 
               if (length(files) == 1) {
                 unfiltsF <- sort(list.files(files, pattern="_R1_001.fastq", full.names = TRUE))
@@ -273,7 +269,7 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
                 out <- suppressWarnings(filterAndTrim(unfiltsF, filtsF, unfiltsR, filtsR,
                                         truncLen=c(truncLen, truncLenR), trimLeft=c(trimLeft, trimLeftR),
                                         maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
-                                        multithread=1, maxLen = maxLen))
+                                        multithread=1, maxLen = readLen))
               } else {
                 out <- suppressWarnings(filterAndTrim(unfiltsF, filtsF, unfiltsR, filtsR,
                                         truncLen=c(truncLen, truncLenR), trimLeft=c(trimLeft, trimLeftR),
@@ -641,7 +637,7 @@ if (multiplexed == TRUE) {
   barcodes <- samples.info$BARCODES
   sampleNames <- samples.info$NAMES
 
-  if (dataType == "Illumina") {
+  if (platform == "Illumina") {
     if (!isPaired) {
       message("reading in data...")
       data <- importIlluminaData(forwardReads, forwardBarcodes, barcodesType, isPaired)
@@ -686,7 +682,7 @@ message("determining if there are groups...")
 if (is.null(groups)) {
   message("building error model...")
   errFile <- file.path(inputDir, "err.rds")
-  asvTable <- buildErrors(dataDir, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, maxLen)
+  asvTable <- buildErrors(dataDir, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
 } else {
   asvTable <- NULL
   for (group in groups) {
@@ -701,7 +697,7 @@ if (is.null(groups)) {
       myFiles <- paste0(myFiles, ".fastq")
     }
     myFiles <- file.path(dataDir, myFiles)
-    myTable <- buildErrors(myFiles, errFile, dataType, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, maxLen)
+    myTable <- buildErrors(myFiles, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
     if (is.null(asvTable)) {
       asvTable <- myTable
     } else {
