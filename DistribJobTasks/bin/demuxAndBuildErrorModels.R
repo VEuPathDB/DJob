@@ -153,7 +153,7 @@ buildErrors <- function(files = NULL, errFile = NULL, readType = NULL, truncLen 
                                          truncLenR = truncLenR, trimLeftR = trimLeftR, platform = platform,
                                          readLen = readLen)
                }
-             } else if {
+             } else if (platform == "454") {
                message("running 454...")
                asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, platform = platform, readLen = readLen)
              } else {
