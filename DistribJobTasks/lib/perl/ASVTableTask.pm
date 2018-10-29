@@ -65,9 +65,15 @@ sub initServer {
   }
 
   my $isPaired = $self->getProperty('isPaired');
-  if ($isPaired ne 'true' && $isPaired ne 'false') {
-    die "argument to 'isPaired' must be 'true' or 'false'";
-  }
+  if (lc($platform) eq 'illumina') {
+    if ($isPaired ne 'true' && $isPaired ne 'false') {
+      die "argument to 'isPaired' must be 'true' or 'false'";
+    }
+  } elsif ($platform eq '454') {
+    $isPaired = 'false'; 
+  } else {
+    die "currently only 'illumina' and '454' are supported platforms.";
+  } 
 
   my $barcodesType = $self->getProperty('barcodesType');  
 
