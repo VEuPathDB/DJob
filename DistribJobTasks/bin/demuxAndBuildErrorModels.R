@@ -711,10 +711,13 @@ if (is.null(groups)) {
   }
 }
 
+#just being careful we dont lose identifiers during conversions
 features <- rownames(asvTable)
+samples <- colnames(asvTable)
 asvTable2 = as.data.frame(sapply(asvTable, as.integer))
-seqtab.rev <- as.matrix(t(asvTable2))
-colnames(seqtab.rev) <- features
+seqtab.rev <- as.matrix(asvTable2)
+rownames(seqtab.rev) <- features
+colnames(seqtab.rev) <- samples
 
 message("writing table...")
 saveRDS(seqtab.rev, file = file.path(dataDir, "filtered/featureTable.rds"))
