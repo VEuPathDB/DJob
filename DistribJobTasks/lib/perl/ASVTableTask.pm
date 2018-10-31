@@ -28,7 +28,8 @@ my @properties =
      ["truncLen", "none", "length in bases to truncate sequence to for forward reads"],
      ["truncLenR", "none", "length in bases to truncate sequence to for reverse reads"],
      ["readLen", 250, "default is 250"],
-     ["taxonRefFile", "", "full path to fasta file to be used to assign taxonomy to variants"]
+     ["taxonRefFile", "", "full path to fasta file to be used to assign taxonomy to variants"],
+     ["mergeTechReps", "false" , "default is 'false'"] 
     );
 
 sub new {
@@ -302,7 +303,7 @@ sub initSubTask {
     my @files = @{$self->{fileArray}}[$start];
     foreach my $file (@files) {
       $self->runCmdOnNode($node, "cp $samplesDir/$file $serverSubTaskDir");
-      if ($file eq 'featureTable.tab') {
+      if ($file eq 'featureTable.rds') {
         $isFeatureTable = 1;
       }
     }
@@ -344,9 +345,10 @@ sub makeSubTaskCommand {
 
     my $isPaired = $self->getProperty("isPaired");
     my $platform = $self->getProperty("platform");
+    my $mergeTechReps = $self->getProperty('mergeTechReps');
 
     #run dada on remaining sample(s). 
-    my $cmd = "Rscript $ENV{GUS_HOME}/bin/runDada.R $nodeExecDir $isPaired $platform";
+    my $cmd = "Rscript $ENV{GUS_HOME}/bin/runDada.R $nodeExecDir $isPaired $platform $mergeTechReps";
 
     return($cmd)
 }
@@ -355,7 +357,7 @@ sub integrateSubTaskResults {
     my ($self, $subTaskNum, $node, $nodeExecDir, $mainResultDir) = @_;
 
     #just trying to make a file with generic name on node to be specific to our node/task on server
-    $self->runCmdOnNode($node, "cp $nodeExecDir/featureTable.tab $mainResultDir/${subTaskNum}_featureTable.tab");
+    $self->runCmdOnNode($node, "cp $nodeExecDir/featureTable.rds $mainResultDir/${subTaskNum}_featureTable.rds");
 
     return $node->getErr();
 }
@@ -366,9 +368,10 @@ sub cleanUpServer {
 
     my $samplesDir = $self->getProperty("dataDir");
     my $taxonRefFile = $self->getProperty("taxonRefFile");
+    my $mergeTechReps = $self->getProperty('mergeTechReps');
  
     #will combine all output feature tables and assign taxonomy to the resulting final file
-    my $cmd = "Rscript $ENV{GUS_HOME}/bin/merge.R $mainResultDir $taxonRefFile";
+    my $cmd = "Rscript $ENV{GUS_HOME}/bin/merge.R $mainResultDir $taxonRefFile $mergeTechReps";
 
     $self->runCmdOnNode($node, $cmd); 
 }

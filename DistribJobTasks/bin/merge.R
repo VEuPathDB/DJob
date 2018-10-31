@@ -5,9 +5,12 @@ args <- commandArgs(TRUE)
 
 filesDir <- args[1]
 taxonRefFile <- args[2]
+mergeTechReps <- args[3]
 
-myFiles <- list.files(filesDir, pattern = ".tab" , full.names = TRUE)
+myFiles <- list.files(filesDir, pattern = ".rds", full.names = TRUE)
 if (length(myFiles) > 1) {
+
+  #no longer in use !!!!!!
   myMerge <- function(x,y) {
     #if not a data.table then assume its a string containing a path to a file
     if (!is.data.table(x)) {
@@ -19,19 +22,27 @@ if (length(myFiles) > 1) {
     out <- merge(x,y, all = TRUE, by = "V1")
   }
 
-  asvTable <- Reduce(myMerge, myFiles)
+  #asvTable <- Reduce(myMerge, myFiles)
 
+  if (mergeTechReps) {
+    seqtab <- mergeSequenceTables(tables = myFiles, repeats = "sum")
+  } else {
+    seqtab <- mergeSequenceTables(tables = myFiles)
+  }
+
+  asvTable <- as.data.table(t(seqtab), keep.rownames=TRUE)
   asvTable[is.na(asvTable)] <- 0
 
   file.remove(myFiles)
 } else {
-  message("only one tab file... renaming to final_featureTable.tab.")
-  asvTable <- fread(myFiles[1])
+  message("only one rds file... renaming to final_featureTable.tab.")
+  seqtab <- readRDS(myFiles[1])
+  asvTable <- as.data.table(t(seqtab), keep.rownames=TRUE)
   asvTable[is.na(asvTable)] <- 0
   file.remove(myFiles[1])
 }
 
-seqs <- asvTable$V1
+seqs <- asvTable$rn
 taxa <- assignTaxonomy(seqs, taxonRefFile)
 taxa <- as.data.table(taxa, keep.rownames=TRUE)
 colnames(taxa)[colnames(taxa) == "rn"] <- "V1"

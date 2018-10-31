@@ -637,7 +637,7 @@ if (multiplexed == TRUE) {
   barcodes <- samples.info$BARCODES
   sampleNames <- samples.info$NAMES
 
-  if (platform == "Illumina") {
+  if (tolower(platform) == "illumina") {
     if (!isPaired) {
       message("reading in data...")
       data <- importIlluminaData(forwardReads, forwardBarcodes, barcodesType, isPaired)
@@ -710,5 +710,11 @@ if (is.null(groups)) {
     }
   }
 }
+
+features <- rownames(asvTable)
+asvTable2 = as.data.frame(sapply(asvTable, as.integer))
+seqtab.rev <- as.matrix(t(asvTable2))
+colnames(seqtab.rev) <- features
+
 message("writing table...")
-write.table(asvTable, file = file.path(dataDir, "filtered/featureTable.tab"), quote=FALSE, sep='\t', col.names = NA)
+saveRDS(seqtab.rev, file = file.path(dataDir, "filtered/featureTable.rds"))
