@@ -237,6 +237,8 @@ sub initServer {
     }
   }
 
+  my $mergeTechReps = $self->getProperty('mergeTechReps');
+
   #need a place to write sra files or demux files to.. 
   if (!$samplesDir || $samplesDir eq 'none') {
     $samplesDir = $inputDir
@@ -247,8 +249,7 @@ sub initServer {
     &runCmd("getFastqFromSra.pl --workingDir $samplesDir --studyId '$sraStudyId' --pairs $isPaired"); 
   }
 
-  my $cmd = "Rscript $ENV{GUS_HOME}/bin/demuxAndBuildErrorModels.R $samplesDir $inputDir $forwardReads $reverseReads $forwardBarcodes $reverseBarcodes $multiplexed $barcodesType $samplesInfo $isPaired $trimLeft $trimLeftR $truncLen $truncLenR $readLen $platform";
-
+  my $cmd = "Rscript $ENV{GUS_HOME}/bin/demuxAndBuildErrorModels.R $samplesDir $inputDir $forwardReads $reverseReads $forwardBarcodes $reverseBarcodes $multiplexed $barcodesType $samplesInfo $isPaired $trimLeft $trimLeftR $truncLen $truncLenR $readLen $platform $mergeTechReps";
 
 
   &runCmd($cmd);

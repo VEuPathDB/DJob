@@ -61,7 +61,8 @@ truncLenR <- args[14]
 #need either the four above OR this below to determine the four above
 readLen <- args[15]
 platform <- args[16]
-#worth noting that readLen represents the avg for illumina and max for 454
+#worth noting that readLen represents the avg for illumina and max allowed for 454
+mergeTechReps <- args[17]
 
 if (is.null(samplesInfo)) {
   samples.info <- NULL
@@ -146,16 +147,16 @@ buildErrors <- function(files = NULL, errFile = NULL, readType = NULL, truncLen 
              if (tolower(platform) == "illumina") {
                if (isPaired == FALSE) {
                  message("running as single end...")
-                 asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, 
+                 seqtab <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, 
                                          platform = platform, readLen = readLen)
                } else {
-                 asvTable <- ilPairedErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft,
+                 seqtab <- ilPairedErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft,
                                          truncLenR = truncLenR, trimLeftR = trimLeftR, platform = platform,
                                          readLen = readLen)
                }
              } else if (platform == "454") {
                message("running 454...")
-               asvTable <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, platform = platform, readLen = readLen)
+               seqtab <- ilSingleErr(files, errFile, truncLen = truncLen, trimLeft = trimLeft, platform = platform, readLen = readLen)
              } else {
                stop("Illumina and 454 are currently the only supported data types... check back later.")
              }
@@ -231,15 +232,21 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
              #save err file for use with remaining samples later
              saveRDS(err,errFile)
 
-             #make an asvtable for the already processed samples.
+             #make an table for the already processed samples.
              #names(dds[1:i]) <- sample.names[1:i]
              seqtab <- makeSequenceTable(dds[1:i])
-             rownames(seqtab) <- sample.names[1:i]
+             #TODO make sure this is equivalent to naming dds (that theyre printed in the same order)
+             if (mergeTechReps) {
+               sampleNames <- sapply(strsplit(sample.names[1:i], ".", fixed=TRUE),"[",1)
+               rownames(seqtab) <- sampleNames
+             } else {
+               rownames(seqtab) <- sample.names[1:i]
+             }
              seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus",
                                                  minFoldParentOverAbundance=1,
                                                  multithread=1)
 
-             return(as.data.frame(t(seqtab.nochim)))
+             return(seqtab.nochim)
 }
 
 ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft = NULL,
@@ -334,15 +341,20 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
                 denoisedF[1:i] <- sapply(ddsF, getN)
               }
               rm(drpsF); rm(drpsR); rm(ddsF); rm(ddsR)
-              #make an asvtable for the already processed samples.
-              names(mergers[1:i]) <- sample.names[1:i]
+              #make an table for the already processed samples.
+              if (mergeTechReps) {
+                sampleNames <- sapply(strsplit(sample.names[1:i], ".", fixed=TRUE),"[",1)
+                names(mergers[1:i]) <- sampleNames
+              } else {
+                names(mergers[1:i]) <- sample.names[1:i]
+              }
               seqtab <- makeSequenceTable(mergers[1:i])
 
               seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus",
                                                   minFoldParentOverAbundance=1,
                                                   multithread=1)
  
-              return(as.data.frame(t(seqtab.nochim)))
+              return(seqtab.nochim)
 }
 
 ".getBpParam" <- function(mc.cores=1L){
@@ -682,9 +694,9 @@ message("determining if there are groups...")
 if (is.null(groups)) {
   message("building error model...")
   errFile <- file.path(inputDir, "err.rds")
-  asvTable <- buildErrors(dataDir, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
+  seqtab <- buildErrors(dataDir, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
 } else {
-  asvTable <- NULL
+  i <- 1;
   for (group in groups) {
     myFiles <- samples.info$NAMES[samples.info$GROUPS == group]
     errFile <- paste0(group, "_err.rds")
@@ -697,27 +709,15 @@ if (is.null(groups)) {
       myFiles <- paste0(myFiles, ".fastq")
     }
     myFiles <- file.path(dataDir, myFiles)
-    myTable <- buildErrors(myFiles, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
-    if (is.null(asvTable)) {
-      asvTable <- myTable
-    } else {
-      myTable$features <- rownames(myTable)
-      asvTable$features <- rownames(asvTable)
-      asvTable <- merge(asvTable, myTable, all = TRUE, by = "features")
-      rm(myTable)
-      rownames(asvTable) <- asvTable$features
-      asvTable$features <- NULL
-    }
+    seqtabs[i] <- buildErrors(myFiles, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
+    i = i + 1;
+  }
+  if (mergeTechReps) {
+    seqtab <- mergeSequenceTables(tables=seqtabs, repeats="sum")
+  } else {
+    seqtab <- mergeSequenceTables(tables=seqtabs)
   }
 }
 
-#just being careful we dont lose identifiers during conversions
-features <- rownames(asvTable)
-samples <- colnames(asvTable)
-asvTable2 = as.data.frame(sapply(asvTable, as.integer))
-seqtab.rev <- as.matrix(asvTable2)
-rownames(seqtab.rev) <- features
-colnames(seqtab.rev) <- samples
-
 message("writing table...")
-saveRDS(seqtab.rev, file = file.path(dataDir, "filtered/featureTable.rds"))
+saveRDS(seqtab, file = file.path(dataDir, "filtered/featureTable.rds"))

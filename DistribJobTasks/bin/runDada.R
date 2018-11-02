@@ -7,10 +7,10 @@ isPaired <- args[2]
 platform <- args[3]
 mergeTechReps <- args[4]
 
-tabFile <- list.files(dataDir, pattern = ".tab", full.names = TRUE)
+featureFile <- list.files(dataDir, pattern = "featureTable.rds", full.names = TRUE)
 
-#if i am a tab file do nothing 
-if (length(tabFile) == 0) {
+#if i am the samples used to build error model do nothing 
+if (length(featureFile) == 0) {
   errModel <- list.files(dataDir, pattern="err.rds", full.names = TRUE)
   errModel <- readRDS(errModel)
 
