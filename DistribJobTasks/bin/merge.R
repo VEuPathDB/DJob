@@ -45,10 +45,9 @@ if (length(myFiles) > 1) {
 seqs <- asvTable$rn
 taxa <- assignTaxonomy(seqs, taxonRefFile)
 taxa <- as.data.table(taxa, keep.rownames=TRUE)
-colnames(taxa)[colnames(taxa) == "rn"] <- "V1"
 
-finalTable <- merge(taxa, asvTable, by = "V1")
-finalTable$V1 <- NULL
+finalTable <- merge(taxa, asvTable, by = "rn")
+finalTable$rn <- NULL
 
 #remove high level NA values
 finalTable <- finalTable[-which(is.na(finalTable$Phylum)),]
