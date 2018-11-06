@@ -6,7 +6,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId,$deflineVars);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,
@@ -15,6 +15,7 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$
             "sampleIdList=s" => \$sampleIdList,
 	    "pairs=s" => \$hasPairedEnds,
             "studyId=s" => \$studyId,
+            "deflineVars=s" => \$deflineVars,
            );
 
 my $cwd = getcwd();
@@ -28,7 +29,7 @@ if (defined $sampleIdList) {
   &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 } elsif (defined $studyId) {
   print STDERR "calling CBIL::sra.pm";
-  &getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq);
+  &getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq, $deflineVars);
 }
 
 chdir($cwd) if $workingDir;
