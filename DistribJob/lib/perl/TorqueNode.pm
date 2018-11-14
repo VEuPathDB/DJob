@@ -29,17 +29,15 @@ sub queueNode {
     my $num = $self->{memPerNode} ? $self->{memPerNode} : 2; # default is 2GB
     $num = int($num) + ($num > int($num));  # ceil since sapelo cannot take decimal 
  
-    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{queue} ? ":$self->{queue}" : "").($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
-
     # old qsub command "-l nodes=2:ppn=48:batch" won't work on Sapelo2, 
     # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
     # need to specifiy node type or leave it empty instead, 
     # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
-    if ($self->{queue} eq 'batch' || $self->{queue} eq 'eupathdb_q') {  # if it's Sapelo2, no node type. 
-      $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";
-    }
 
-#    print STDERR "\n$qsubcmd\n\n";
+    #my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{queue} ? ":$self->{queue}" : "").($self->{runTime} ? ",walltime=00:$self->{runTime}:00" : "").",mem=$num"."gb"." $runFile";  # working on sapelo1
+    my $qsubcmd = "qsub -N DistribJob -V -j oe -l nodes=1:ppn=$self->{procsPerNode}".($self->{queue} ? " -q $self->{queue}" : "").($self->{runTime} ? " -l walltime=00:$self->{runTime}:00" : "")." -l mem=$num"."gb"." $runFile";
+
+    print STDERR "\n$qsubcmd\n\n";
     my $jid = `$qsubcmd`;
     chomp $jid;
     $self->{workingDir} = "/$self->{nodeWorkingDirsHome}/$jid";
@@ -114,12 +112,9 @@ sub getQueueSubmitCommand {
   # Sapelo2 task requires queue name and optionally node type, e.g. -q batch -l nodes=2:ppn=48:AMD
   # need to specifiy node type or leave it empty instead, 
   # e.g -q batch -l nodes=2:ppn=48:AMD or -q batch -l nodes=2:ppn=48
-  if ($queue eq 'batch' || $queue eq 'eupathdb_q') {  # if it's Sapelo2, no node type. 
-    
-    return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1,walltime=480:00:00";
-  }
 
-  return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($queue ? ":$queue" : ""). ",walltime=480:00:00";
+  #return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($queue ? ":$queue" : ""). ",walltime=480:00:00"; #working on Sapelo 1
+  return "echo $cmdToSubmit | qsub -V -j oe -l nodes=1:ppn=1".($queue ? " -q $queue" : ""). " -l walltime=480:00:00";
 }
 
 # static method to extract Job Id from the output of the commmand run by getQueueSubmitCommand()
