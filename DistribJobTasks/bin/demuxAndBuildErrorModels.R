@@ -677,6 +677,11 @@ if (isPaired) {
   if (truncLen == 'none') {
     truncLen <- findTruncLen(forwardReads = fReads, readLen = readLen)
   }
+ 
+  #need 50 nts to assign taxonomy so..
+  if (truncLen < (trimLeft + 50)) {
+    truncLen <- trimLeft + 50
+  }
 } 
 
 

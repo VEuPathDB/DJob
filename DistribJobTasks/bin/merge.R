@@ -43,7 +43,7 @@ if (length(myFiles) > 1) {
 }
 
 seqs <- asvTable$rn
-taxa <- assignTaxonomy(seqs, taxonRefFile)
+taxa <- assignTaxonomy(seqs, taxonRefFile, tryRC = TRUE)
 taxa <- as.data.table(taxa, keep.rownames=TRUE)
 
 finalTable <- merge(taxa, asvTable, by = "rn")
