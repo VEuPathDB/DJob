@@ -56,6 +56,7 @@ sub initServer {
 	    $mateA = $isColorspace eq 'true' ? "$inputDir/reads_1.csfasta" : "$inputDir/reads_1.fastq";
 	    $self->setProperty('mateA',"$mateA");
 	    $mateB = $isColorspace eq 'true' ? "$inputDir/reads_2.csfasta" : "$inputDir/reads_2.fastq";
+
 	    $self->setProperty('mateB',"$mateB");
 	    $baseName = "reads";
 	}
@@ -101,7 +102,6 @@ sub initServer {
 ###### MAKE SURE THE REST DOESNT HAPPEN IF ITS COLOURSPACE!!!!!!!!!! 
     if ($isColorspace eq 'false') {  
 	print "Running FastQC on raw reads; output files can be found in the main results folder.\n";
-	print "Determining Phred encoding from FASTQC output.\n";
 	my ($mateAencoding, $mateBencoding);
 	if (-e "$mateA") {
             &runCmd("fastqc $mateA -o $inputDir");
@@ -109,6 +109,7 @@ sub initServer {
             my $fastQcDir = "$inputDir/$fileName\_fastqc";
 	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
             $mateAencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateA   Encoding: $mateAencoding\n";
 	}
 	if (-e "$mateB") {
@@ -117,6 +118,7 @@ sub initServer {
             my $fastQcDir = "$inputDir/$fileName\_fastqc";
 	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
             $mateBencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateB   Encoding: $mateBencoding\n";
 	}
 
