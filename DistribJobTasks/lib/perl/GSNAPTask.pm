@@ -155,7 +155,9 @@ sub initServer {
     else {
 #HERE I WANT TO DEAL WITH THE FASTQ QUAL ISSUE
 	my $is_fake;
-	if (-e $mateA) {
+	print "Running FastQC on raw reads; output files can be found in the main results folder.\n";
+	my ($mateAencoding, $mateBencoding);
+	if (-e "$mateA") {
 	    open IN3, "$mateA" or die "cant open $mateA";
 	    my $count = 0;
 	    while (my $line =<IN3>) {
@@ -175,27 +177,45 @@ sub initServer {
 		    next;
 		}
 	    }
-	}
 	    close IN3;
-	
-	
-	
-	
-	
-	print "running FastQC on raw reads output files can be found in the main results folder \n";
-	&runCmd("fastqc $mateA $mateB -o $inputDir");	    
-	
-	
+	    &runCmd("fastqc $mateA -o $inputDir");
+	    my ($fileName, $path, $suffix) = fileparse($mateA, qr/\.[^.]*/);
+            my $fastQcDir = "$inputDir/$fileName\_fastqc";
+	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
+            $mateAencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
+            print "File: $mateA   Encoding: $mateAencoding\n";    
+	}
+	if (-e "$mateB") {
+            &runCmd("fastqc $mateB -o $inputDir");
+	    my ($fileName, $path, $suffix) = fileparse($mateB, qr/\.[^.]*/);
+            my $fastQcDir = "$inputDir/$fileName\_fastqc";
+	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
+            $mateBencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
+            print "File: $mateB   Encoding: $mateBencoding\n";
+	}
+
+
 	#want to do the trimming here and want to set the properties mateA and mateB here. this propery it already set for those with no sidlist
 	if ($is_fake ==0) {
 	    
 	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
-		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
+		if ($mateAencoding =~ /error/i || $mateBencoding =~ /error/i) {
+		    die "ERROR determining phred encoding\n";
+		}
+		elsif ($mateAencoding ne $mateBencoding) {
+		    die "ERROR: the two read files have different encoding\n";
+		}
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -$mateAencoding -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 	    }
 	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
-		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
+		if ($mateAencoding =~ /error/i) {
+                    die "ERROR determining phred encoding\n";
+                }
+		print "running Single End Trimmomatic to remove any adaptors if different chemistry than TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog -$mateAencoding $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 	    }
 	    else {
 		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
@@ -203,12 +223,21 @@ sub initServer {
 	} 
 	elsif ($is_fake ==1) {
 	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
-		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE  -phred33 -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
+		if ($mateAencoding =~ /error/i || $mateBencoding =~ /error/i) {
+		    die "ERROR determining phred encoding\n";
+		}
+		elsif ($mateAencoding ne $mateBencoding) {
+		    die "ERROR: the two read files have different encoding\n";
+		}
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -$mateAencoding -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 	    }
 	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
-		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -phred33 -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
+		if ($mateAencoding =~ /error/i) {
+                    die "ERROR determining phred encoding\n";
+                }
+		print "running Single End Trimmomatic to remove any adaptors if different chemistry than TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -$mateAencoding -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 	    }
 	    else {
 		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
@@ -218,9 +247,6 @@ sub initServer {
 	else { 
 	    die "could not determine if FASTQ has experimental quality score or if we have created a fastq from a fasta\n";
 	}
-	
-	
-	
 	
 	
 	my $trimmedA = $inputDir."/".$baseName."_1P";
@@ -235,9 +261,54 @@ sub initServer {
 	print "running FastQC on trimmed reads output files can be found in the main results folder\n";
 	&runCmd("fastqc $trimmedA $trimmedB -o $inputDir");	    
     }
-my $size = &getInputSetSize($self, $inputDir);    
+    my $size = &getInputSetSize($self, $inputDir);    
     $self->{size} =$size;
 }
+
+sub phred {
+    (my $fastQcFile) = @_;
+
+    my %encoding = (
+	"sanger" => "phred33",
+	"illumina 1.3" => "phred64",
+	"illumina 1.4" => "phred64",
+	"illumina 1.5" => "phred64",
+	"illumina 1.6" => "phred64",
+	"illumina 1.7" => "phred64",
+	"illumina 1.8" => "phred33",
+	"illumina 1.9" => "phred33",
+	"illumina 2"   => "phred33",
+	"illumina 3"   => "phred33",
+	"solexa" => "phred64"
+	);
+
+    my $phred;
+    
+    open (FH,$fastQcFile) or die "Cannot open file $fastQcFile to determine phred encoding: $!";
+    while (<FH>) {
+	my $line = $_;
+	if ($line =~ /encoding/i) {
+	    foreach my $format (keys %encoding) {
+		if ($line =~ /$format/i) {
+		    if (! defined $phred) {
+			$phred = $encoding{$format};
+		    } elsif ($phred ne $encoding{$format}) {
+			$phred =  "Error: more than one encoding type";
+		    }
+		}
+	    }
+	    if (! defined $phred) {
+		$phred =  "Error: format not recognized on encoding line";
+	    }
+	}
+    }
+    if (! defined $phred) {
+	$phred =  "Error: encoding line not found in file";
+    }
+    close(FH);
+    return $phred;
+}
+
 
 sub initNode {
     my ($self, $node, $inputDir) = @_;
