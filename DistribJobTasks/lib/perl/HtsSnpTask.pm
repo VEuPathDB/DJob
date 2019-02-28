@@ -56,6 +56,7 @@ sub initServer {
 	    $mateA = $isColorspace eq 'true' ? "$inputDir/reads_1.csfasta" : "$inputDir/reads_1.fastq";
 	    $self->setProperty('mateA',"$mateA");
 	    $mateB = $isColorspace eq 'true' ? "$inputDir/reads_2.csfasta" : "$inputDir/reads_2.fastq";
+
 	    $self->setProperty('mateB',"$mateB");
 	    $baseName = "reads";
 	}
@@ -100,21 +101,50 @@ sub initServer {
     
 ###### MAKE SURE THE REST DOESNT HAPPEN IF ITS COLOURSPACE!!!!!!!!!! 
     if ($isColorspace eq 'false') {  
-	print "running FastQC on raw reads output files can be found in the main results folder \n";
-	&runCmd("fastqc $mateA $mateB -o $inputDir");
+	print "Running FastQC on raw reads; output files can be found in the main results folder.\n";
+	my ($mateAencoding, $mateBencoding);
+	if (-e "$mateA") {
+            &runCmd("fastqc $mateA -o $inputDir");
+	    my ($fileName, $path, $suffix) = fileparse($mateA, qr/\.[^.]*/);
+            my $fastQcDir = "$inputDir/$fileName\_fastqc";
+	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
+            $mateAencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
+            print "File: $mateA   Encoding: $mateAencoding\n";
+	}
+	if (-e "$mateB") {
+            &runCmd("fastqc $mateB -o $inputDir");
+	    my ($fileName, $path, $suffix) = fileparse($mateB, qr/\.[^.]*/);
+            my $fastQcDir = "$inputDir/$fileName\_fastqc";
+	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
+            $mateBencoding = phred("$fastQcDir/fastqc_data.txt");
+	    print "Determining Phred encoding from FASTQC output.\n";
+            print "File: $mateB   Encoding: $mateBencoding\n";
+	}
+
 	if ($noTrimming eq 'true') {
 	}
 	else {
-	    if((-e "$mateA")&& (-e "$mateB") && ($mateB ne 'none')){
-		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+	    if((-e "$mateA") && (-e "$mateB") && ($mateB ne 'none')){
+		if ($mateAencoding =~ /error/i || $mateBencoding =~ /error/i) {
+		    die "ERROR determining phred encoding\n";
+		}
+		elsif ($mateAencoding ne $mateBencoding) {
+		    die "ERROR: the two read files have different encoding\n";
+
+		}
+		print "running Paired End Trimmomatic to remove any adaptors if different chemistry than TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${inputDir}/trimLog $mateA $mateB -$mateAencoding -baseout ${inputDir}/${baseName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
 	    }
 	    elsif((-e "$mateA")&&((! -e $mateB) || ($mateB eq 'none'))) {
+		if ($mateAencoding =~ /error/i) {
+                    die "ERROR determining phred encoding\n";
+                }
 		print "running Single End Trimmomatic to remove any adaptors if different chemistry than  TruSeq2 (as used in GAII machines) and TruSeq3 (as used by HiSeq and MiSeq machines) please supply custom adaptor fasta";
-		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
+		&runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${inputDir}/trimLog -$mateAencoding $mateA ${inputDir}/${baseName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36");
 	    }	  
 	    else {
-		"ERROR: print reads files not found in $inputDir or not retrieved from SRA";
+		print "ERROR: the read files are not found in $inputDir or not retrieved from SRA";
 	    }
 	    my $trimmedA = $inputDir."/".$baseName."_1P";
 	    my $trimmedB = $inputDir."/".$baseName."_2P";
@@ -129,6 +159,51 @@ sub initServer {
 	    &runCmd("fastqc $trimmedA $trimmedB -o $inputDir");
 	}
     }
+}
+
+
+sub phred {
+    (my $fastQcFile) = @_;
+
+    my %encoding = (
+	"sanger" => "phred33",
+	"illumina 1.3" => "phred64",
+	"illumina 1.4" => "phred64",
+	"illumina 1.5" => "phred64",
+	"illumina 1.6" => "phred64",
+	"illumina 1.7" => "phred64",
+	"illumina 1.8" => "phred33",
+	"illumina 1.9" => "phred33",
+	"illumina 2"   => "phred33",
+	"illumina 3"   => "phred33",
+	"solexa" => "phred64"
+	);
+
+    my $phred;
+    
+    open (FH,$fastQcFile) or die "Cannot open file $fastQcFile to determine phred encoding: $!";
+    while (<FH>) {
+	my $line = $_;
+	if ($line =~ /encoding/i) {
+	    foreach my $format (keys %encoding) {
+		if ($line =~ /$format/i) {
+		    if (! defined $phred) {
+			$phred = $encoding{$format};
+		    } elsif ($phred ne $encoding{$format}) {
+			$phred =  "Error: more than one encoding type";
+		    }
+		}
+	    }
+	    if (! defined $phred) {
+		$phred =  "Error: format not recognized on encoding line";
+	    }
+	}
+    }
+    if (! defined $phred) {
+	$phred =  "Error: encoding line not found in file";
+    }
+    close(FH);
+    return $phred;
 }
 
 sub initNode {
