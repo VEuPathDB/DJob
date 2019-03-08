@@ -105,22 +105,22 @@ sub initServer {
 	my ($mateAencoding, $mateBencoding);
 	if (-e "$mateA") {
             &runCmd("fastqc $mateA -o $inputDir --extract");
-            my $fastQcDir = $mateA;
-	    $fastQcDir =~ s/\.fastq$//;
-	    $fastQcDir =~ s/\.fq$//;
-	    $fastQcDir .= "_fastqc";
-            $mateAencoding = phred("$fastQcDir/fastqc_data.txt");
-	    print "Determining Phred encoding from FASTQC output.\n";
+	    my ($fastQcFolder) = ( $mateA =~ m/([^\/]+)$/ );
+	    $fastQcFolder =~ s/\.fastq$//;
+	    $fastQcFolder =~ s/\.fq$//;
+	    $fastQcFolder .= "_fastqc";
+            $mateAencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+	    print "Determining Phred encoding from FastQC output.\n";
             print "File: $mateA   Encoding: $mateAencoding\n";
 	}
 	if (-e "$mateB") {
             &runCmd("fastqc $mateB -o $inputDir --extract");
-            my $fastQcDir = $mateB;
-            $fastQcDir =~ s/\.fastq$//;
-            $fastQcDir =~ s/\.fq$//;
-            $fastQcDir .= "_fastqc";
-            $mateBencoding = phred("$fastQcDir/fastqc_data.txt");
-	    print "Determining Phred encoding from FASTQC output.\n";
+	    my ($fastQcFolder) = ( $mateB =~ m/([^\/]+)$/ );
+	    $fastQcFolder =~ s/\.fastq$//;
+	    $fastQcFolder =~ s/\.fq$//;
+	    $fastQcFolder .= "_fastqc";
+            $mateBencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+	    print "Determining Phred encoding from FastQC output.\n";
             print "File: $mateB   Encoding: $mateBencoding\n";
 	}
 
