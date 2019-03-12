@@ -104,21 +104,23 @@ sub initServer {
 	print "Running FastQC on raw reads; output files can be found in the main results folder.\n";
 	my ($mateAencoding, $mateBencoding);
 	if (-e "$mateA") {
-            &runCmd("fastqc $mateA -o $inputDir");
-	    my ($fileName, $path, $suffix) = fileparse($mateA, qr/\.[^.]*/);
-            my $fastQcDir = "$inputDir/$fileName\_fastqc";
-	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
-            $mateAencoding = phred("$fastQcDir/fastqc_data.txt");
-	    print "Determining Phred encoding from FASTQC output.\n";
+            &runCmd("fastqc $mateA -o $inputDir --extract");
+	    my ($fastQcFolder) = ( $mateA =~ m/([^\/]+)$/ );
+	    $fastQcFolder =~ s/\.fastq$//;
+	    $fastQcFolder =~ s/\.fq$//;
+	    $fastQcFolder .= "_fastqc";
+            $mateAencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+	    print "Determining Phred encoding from FastQC output.\n";
             print "File: $mateA   Encoding: $mateAencoding\n";
 	}
 	if (-e "$mateB") {
-            &runCmd("fastqc $mateB -o $inputDir");
-	    my ($fileName, $path, $suffix) = fileparse($mateB, qr/\.[^.]*/);
-            my $fastQcDir = "$inputDir/$fileName\_fastqc";
-	    &runCmd("unzip -d $inputDir \"$fastQcDir.zip\"");
-            $mateBencoding = phred("$fastQcDir/fastqc_data.txt");
-	    print "Determining Phred encoding from FASTQC output.\n";
+            &runCmd("fastqc $mateB -o $inputDir --extract");
+	    my ($fastQcFolder) = ( $mateB =~ m/([^\/]+)$/ );
+	    $fastQcFolder =~ s/\.fastq$//;
+	    $fastQcFolder =~ s/\.fq$//;
+	    $fastQcFolder .= "_fastqc";
+            $mateBencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+	    print "Determining Phred encoding from FastQC output.\n";
             print "File: $mateB   Encoding: $mateBencoding\n";
 	}
 
