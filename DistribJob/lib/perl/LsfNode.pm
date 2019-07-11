@@ -121,9 +121,12 @@ sub deleteLogFilesAndTmpDir {
 
 # static method
 sub getQueueSubmitCommand {
-    my ($class, $queue, $cmdToSubmit) = @_;
+    my ($class, $queue, $cmdToSubmit, $maxRunTime, $maxMemoryGigs, $outFile) = @_;
     my $q = $queue? "-q $queue" : "";
-    return "bsub $q $cmdToSubmit";
+    my $r = $maxRunTime? "-W $maxRunTime" : "";
+    my $m = $maxMemoryGigs? "-M $maxMemoryGigs" : "";
+    my $o = $outFile? "-o $outFile" : "";
+    return "bsub $q $r $m $o $cmdToSubmit";
 }
 
 # static method to extract Job Id from job submitted file text
