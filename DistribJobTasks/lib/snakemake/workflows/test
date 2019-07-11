@@ -1,0 +1,15 @@
+rule done:
+    input:
+        "../output/output.txt"
+    output:
+        config["logFile"]
+    shell:
+        "echo 'Done' >> {output}"
+
+rule test:
+    input:
+        "input.txt",
+    output:
+        "../output/output.txt"
+    shell:
+        "cat {input} > {output}"
