@@ -319,7 +319,7 @@ sub initSubTask {
         my $firstLine = <$tempHandle>;
         close $tempHandle;
         my @header = split, $firstLine;
-        if (grep(/'GROUPS'/, @header)) {
+        if (grep(/GROUPS/, @header)) {
           if ($isPaired eq 'true') {
             $sampleName = substr($sampleName, 0, index($sampleName, '_'));
           }

@@ -51,15 +51,25 @@ if (isPaired == 1 | isPaired == 'true') {
 trimLeft <- args[11]
 if (trimLeft == 'none') {
   trimLeft = 0
+} else {
+  trimLeft <- as.numeric(trimLeft)
 }
 trimLeftR <- args[12]
 if (trimLeftR == 'none') {
   trimLeftR = 0
+} else {
+  trimLeftR <- as.numeric(trimLeftR)
 }
 truncLen <- args[13]
+if (truncLen != 'none') {
+  truncLen <- as.numeric(truncLen)
+}
 truncLenR <- args[14]
+if (truncLenR != 'none') {
+  truncLenR <- as.numeric(truncLenR)
+}
 #need either the four above OR this below to determine the four above
-readLen <- args[15]
+readLen <- as.numeric(args[15])
 platform <- args[16]
 #worth noting that readLen represents the avg for illumina and max allowed for 454
 mergeTechReps <- args[17]
@@ -283,8 +293,8 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
                                         maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
                                         multithread=1))
               }
-              filtsF <- list.files(filt.path, pattern="_R1_001.fastq", full.names=TRUE)
-              filtsR <- list.files(filt.path, pattern="_R2_001.fastq", full.names=TRUE)
+              filtsF <- grep(paste(filtsF, collapse = "|"),list.files(filt.path, pattern="_R1_001.fastq", full.names=TRUE))
+              filtsR <- grep(paste(filtsR, collapse = "|"), list.files(filt.path, pattern="_R2_001.fastq", full.names=TRUE))
               if(length(filtsF) == 0) { # All reads were filtered out
                 stop("No reads passed the filter (were truncLenF/R longer than the read lengths?)")
               }
@@ -329,7 +339,7 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
               file.remove(filtsR[1:i])
 
               #save err file for use with remaining samples
-              err <- c(errF,errR)
+              err <- list(errF,errR)
               saveRDS(err,errFile)
  
               mergers <- vector("list", length(filtsF))
@@ -341,14 +351,16 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
                 denoisedF[1:i] <- sapply(ddsF, getN)
               }
               rm(drpsF); rm(drpsR); rm(ddsF); rm(ddsR)
-              #make an table for the already processed samples.
+
+              seqtab <- makeSequenceTable(mergers[1:i])
+
+              #TODO make sure this is equivalent to naming mergers (that theyre printed in the same order)
               if (mergeTechReps) {
                 sampleNames <- sapply(strsplit(sample.names[1:i], ".", fixed=TRUE),"[",1)
-                names(mergers[1:i]) <- sampleNames
+                rownames(seqtab) <- sampleNames
               } else {
-                names(mergers[1:i]) <- sample.names[1:i]
+                rownames(seqtab) <- sample.names[1:i]
               }
-              seqtab <- makeSequenceTable(mergers[1:i])
 
               seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus",
                                                   minFoldParentOverAbundance=1,
@@ -622,7 +634,7 @@ findTruncLen = function(forwardReads = NULL, reverseReads = NULL, sample_size = 
       i <- 1
 
       # Goes through the percentile distribution until the forward length and reverse sums more the amplicon length and the minimum required overlap
-      while(f_quant[i] + r_quant[i] < readLen + overlap) {
+      while((f_quant[i] + r_quant[i]) < (readLen + overlap)) {
         i <- i+1
       }
 
@@ -701,7 +713,8 @@ if (is.null(groups)) {
   errFile <- file.path(inputDir, "err.rds")
   seqtab <- buildErrors(dataDir, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
 } else {
-  i <- 1;
+  seqtabs <- list()
+  #i <- 1;
   for (group in groups) {
     myFiles <- samples.info$NAMES[samples.info$GROUPS == group]
     errFile <- paste0(group, "_err.rds")
@@ -714,8 +727,8 @@ if (is.null(groups)) {
       myFiles <- paste0(myFiles, ".fastq")
     }
     myFiles <- file.path(dataDir, myFiles)
-    seqtabs[i] <- buildErrors(myFiles, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
-    i = i + 1;
+    seqtabs[[group]] <- buildErrors(myFiles, errFile, readType, truncLen, truncLenR, trimLeft, trimLeftR, platform, readLen)
+    #i = i + 1;
   }
   if (mergeTechReps) {
     seqtab <- mergeSequenceTables(tables=seqtabs, repeats="sum")
