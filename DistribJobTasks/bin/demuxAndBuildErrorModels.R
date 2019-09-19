@@ -293,8 +293,10 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
                                         maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
                                         multithread=1))
               }
-              filtsF <- grep(paste(filtsF, collapse = "|"),list.files(filt.path, pattern="_R1_001.fastq", full.names=TRUE))
-              filtsR <- grep(paste(filtsR, collapse = "|"), list.files(filt.path, pattern="_R2_001.fastq", full.names=TRUE))
+	      files <- list.files(filt.path, pattern="_R1_001.fastq", full.names=TRUE)
+              filtsF <- files[grep(paste(filtsF, collapse = "|"), files)]
+              files <- list.files(filt.path, pattern="_R2_001.fastq", full.names=TRUE)
+              filtsR <- files[grep(paste(filtsR, collapse = "|"), files)]
               if(length(filtsF) == 0) { # All reads were filtered out
                 stop("No reads passed the filter (were truncLenF/R longer than the read lengths?)")
               }
