@@ -39,9 +39,8 @@ if (length(featureFile) == 0) {
                 #VECTORIZED_ALIGNMENT=FALSE)
     }
     mergers <- mergePairs(ddF, drpF, ddR, drpR)
-    #denoisedF <- getN(ddF)
-
-    #names(mergers) <- sample.name
+    getN <- function(x) sum(getUniques(x))
+    denoisedF <- getN(ddF)
 
     seqtab <- makeSequenceTable(mergers)
     rownames(seqtab) <- sample.name
