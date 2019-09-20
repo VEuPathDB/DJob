@@ -269,13 +269,13 @@ sub initServer {
   while (defined (my $file = readdir (DIR))) {
     my ($name, $dir, $ext) = fileparse($file, qr/\.[^.]*/);
     next if ($file eq "." || $file eq "..");
+    my $reverse = '_R2_001';	
+    next if (index($file, $reverse) != -1);
+    next if ($ext ne '.fastq' & $ext ne '.rds');
     push(@fileArr,$file);
   }
 
   my $count = scalar(@fileArr);
-  if ($isPaired eq 'true') {
-    $count = $count / 2;
-  }
   print STDERR Dumper($count);
   $self->{fileArray} = \@fileArr;
   $self->{size} = $count;
@@ -300,34 +300,48 @@ sub initSubTask {
 
 
   if(!$subTask->getRedoSubtask()){
-    #consider possibility using $start to find my file doesnt work with rds files in this dir also
-    my @files = @{$self->{fileArray}}[$start];
-    foreach my $file (@files) {
-      $self->runCmdOnNode($node, "cp $samplesDir/$file $serverSubTaskDir");
-      if ($file eq 'featureTable.rds') {
-        $isFeatureTable = 1;
+    my $file = @{$self->{fileArray}}[$start];
+    my $sample = "";
+
+    if ($isPaired) {
+    my ($ext) = $file =~ /(\.[^.]+)$/;
+	print STDERR Dumper($file);
+      if ($ext eq '.fastq') {
+        my @split = split /_/, $file;
+        $sample = @split[0];
+        $self->runCmdOnNode($node, "cp $samplesDir/${sample}_*.fastq $serverSubTaskDir");
+      } else {
+        $self->runCmdOnNode($node, "cp $samplesDir/$file $serverSubTaskDir");
       }
+    } else {
+      $self->runCmdOnNode($node, "cp $samplesDir/$file $serverSubTaskDir");
     }
+
+    if ($file eq 'featureTable.rds') {
+      $isFeatureTable = 1;
+    }
+    
   
     if (!$isFeatureTable) {
       if (!$samplesInfoFile || $samplesInfoFile eq 'none') {
         $self->runCmdOnNode($node, "cp $inputDir/err.rds $serverSubTaskDir"); 
       } else {
-        print STDERR Dumper($files[0]);
-        my ($sampleName, $dir, $ext) = fileparse($files[0]);
+        my ($sampleName, $dir, $ext) = fileparse($file);
         open my $tempHandle, '<', $samplesInfoFile;
         my $firstLine = <$tempHandle>;
         close $tempHandle;
-        my @header = split, $firstLine;
-        if (grep(/GROUPS/, @header)) {
+        chomp($firstLine);
+	my @header = split /\t/, $firstLine;
+	my %headerHash = map { $_ => 1 } @header;
+	if (exists($headerHash{GROUPS})) { 
           if ($isPaired eq 'true') {
-            $sampleName = substr($sampleName, 0, index($sampleName, '_'));
+            $sampleName = $sample;
           }
           open my $fh, '<', $samplesInfoFile;
           chomp(my @lines = <$fh>);
           close $fh;
           my @match = grep(/$sampleName/, @lines);
-          @match = split, $match[0];
+          @match = split /\t/, $match[0];
           my ( $index ) = grep { $header[$_] eq 'GROUPS' } 0 .. $#header;
           my $group = $match[$index];
           my $errFile = $inputDir . "/" . $group . "_err.rds";
