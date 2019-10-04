@@ -5,7 +5,7 @@ use warnings;
 use Getopt::Long;
 use CBIL::Util::Utils;
 
-my ($genomicSeqsFile, $bamFile, $gtfFile, $samtoolsIndex, $sampleName, $window, $snpsClusterDir);
+my ($genomicSeqsFile, $bamFile, $gtfFile, $geneFootprintFile, $samtoolsIndex, $sampleName, $window, $snpsClusterDir);
 my $workingDir = ".";
 
 #get args
@@ -13,6 +13,7 @@ my $workingDir = ".";
             "genomicSeqsFile|g=s"=> \$genomicSeqsFile,
             "bamFile|b=s"=> \$bamFile,
             "gtfFile=s"=>\$gtfFile,
+            "geneFootprintFile=s" => \$geneFootprintFile,
             "samtoolsIndex|s=s"=>\$samtoolsIndex,
             "workingDir|w=s"=>\$workingDir,
             "sampleName=s"=>\$sampleName,
@@ -22,6 +23,7 @@ my $workingDir = ".";
 die "Genomic Sequence file not found\n".&getParams() unless -e $genomicSeqsFile;
 die "Bam file not found\n".&getParams() unless -e $bamFile;
 die "Gtf file not found\n" .&getParams() unless -e $gtfFile;
+die "Gene footprint file not found\n" .&getParams() unless -e $geneFootprintFile;
 die "Samtools index not found\n" .&getParams() unless -e $samtoolsIndex;
 die "you must provide a sample name\n".&getParams() unless $sampleName;
 
@@ -36,14 +38,32 @@ print L "runCNVTasks.pl run starting ".&getDate()."\n\n";
 my $out = "$workingDir/$sampleName.bed";
 
 
-###run cufflinks###
-print L &getDate(). ": running Cufflinks...\n";
-my $cmd = "cufflinks -u -N -p 4 -b $genomicSeqsFile -G $gtfFile -o $workingDir/Cufflinks $bamFile";
+###sort bam file by name###
+print L &getDate(). ": sorting bam file for htseq-count...\n";
+my $cmd = "samtools sort -n $bamFile > $workingDir/namesort_$bamFile";
 print L &getDate(). ": $cmd\n";
-if (-e "$workingDir/Cufflinks/genes.fpkm_tracking") {
-    print L &getDate(). "Cufflinks command succeeded in previous run\n\n";
+if (-e "$workingDir/namesort_$bamFile") {
+    print L &getDate(). ": Sorting succeeded in previous run\n\n";
 } else {
-    &runCmd ($cmd); print L "\n";
+    &runCmd ($cmd);
+}
+
+###run htseq count###
+print L &getDate(). ": running htseq-count...\n";
+$cmd = "htseq-count -f bam -s no -t CDS -i gene_id -a 0 $workingDir/namesort_$bamFile >$workingDir/counts_$sampleName.txt";
+print L &getDate(). ": $cmd\n";
+&runCmd($cmd);
+unless (-e "$workingDir/counts_$sampleName.txt") {
+    die "Counts file $workingDir/counts_$sampleName.txt was not successfully created\n";
+}
+
+###calculate FPKMS###
+print L &getDate(). ": calculating fpkms...\n";
+$cmd = "makeFpkmFromHtseqCounts.pl --geneFootprintFille $geneFootprintFile --countFile $workingDir/counts_$sampleName.txt --fpkmFile $workingDir/fpkm_$sampleName.txt";
+print L &getDate(). ": $cmd\n";
+&runCmd($cmd);
+unless (-e "$workingDir/fpkm_$sampleName.txt") {
+    die "FPKM file $workingDir/fpkm_$sampleName.txt was not successfully created\n";
 }
 
 ###make binned coverage file###
@@ -118,6 +138,7 @@ sub cleanUp {
     &runCmd("/bin/rm $bedFile");
     &runCmd("/bin/rm $workingDir/genome.txt");
     &runCmd("/bin/rm -r $snpsClusterDir");
+    &runCmd("/bin/rm $workingDir/namesort_$bamFile");
 }
 
 sub getDate {
