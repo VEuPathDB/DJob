@@ -22,28 +22,28 @@ if (length(featureFile) == 0) {
       #this means technical replicates must have identical files names up to first point 
       sample.name <- sapply(strsplit(basename(sample), ".", fixed=TRUE), `[`, 1)
     } else { 
-      sample.name <- sapply(strsplit(basename(sampleF), "_filt.fastq"), `[`, 1)
+      sample.name <- sapply(strsplit(basename(sampleF), "_", fixed = TRUE), `[`, 1)
     }
     drpF <- derepFastq(sampleF)
     if (platform == "454") {
-      ddF <- dada(drpF, err=errModel[1], multithread=1,
+      ddF <- dada(drpF, err=errModel[[1]], multithread=1,
                   HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
       drpR <- derepFastq(sampleR)
-      ddR <- dada(drpR, err=errModel[2], multithread=1,
+      ddR <- dada(drpR, err=errModel[[2]], multithread=1,
                   HOMOPOLYMER_GAP_PENALTY=-1, BAND_SIZE=32)
     } else {
-      ddF <- dada(drpF, err=errModel[1], multithread=1)#,
+      ddF <- dada(drpF, err=errModel[[1]], multithread=1)#,
                  # VECTORIZED_ALIGNMENT=FALSE)
       drpR <- derepFastq(sampleR)
-      ddR <- dada(drpR, err=errModel[2], multithread=1)#,
+      ddR <- dada(drpR, err=errModel[[2]], multithread=1)#,
                 #VECTORIZED_ALIGNMENT=FALSE)
     }
     mergers <- mergePairs(ddF, drpF, ddR, drpR)
+    getN <- function(x) sum(getUniques(x))
     denoisedF <- getN(ddF)
 
-    names(mergers) <- sample.name
-
     seqtab <- makeSequenceTable(mergers)
+    rownames(seqtab) <- sample.name
   } else {
     sample <- list.files(dataDir, pattern = ".fastq", full.names = TRUE)
     if (mergeTechReps) {
