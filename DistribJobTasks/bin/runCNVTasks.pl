@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use CBIL::Util::Utils;
+use File::Basename;
 
 my ($genomicSeqsFile, $bamFile, $gtfFile, $geneFootprintFile, $samtoolsIndex, $sampleName, $window, $snpsClusterDir);
 my $workingDir = ".";
@@ -36,13 +37,14 @@ $| = 1;
 print L "runCNVTasks.pl run starting ".&getDate()."\n\n";
 
 my $out = "$workingDir/$sampleName.bed";
+my $bamFileBase = basename($bamFile);
 
 
 ###sort bam file by name###
 print L &getDate(). ": sorting bam file for htseq-count...\n";
-my $cmd = "samtools sort -n $bamFile > $workingDir/namesort_$bamFile";
+my $cmd = "samtools sort -n $bamFile > $workingDir/namesort_$bamFileBase";
 print L &getDate(). ": $cmd\n";
-if (-e "$workingDir/namesort_$bamFile") {
+if (-e "$workingDir/namesort_$bamFileBase") {
     print L &getDate(). ": Sorting succeeded in previous run\n\n";
 } else {
     &runCmd ($cmd);
@@ -50,7 +52,7 @@ if (-e "$workingDir/namesort_$bamFile") {
 
 ###run htseq count###
 print L &getDate(). ": running htseq-count...\n";
-$cmd = "htseq-count -f bam -s no -t CDS -i gene_id -a 0 $workingDir/namesort_$bamFile >$workingDir/counts_$sampleName.txt";
+$cmd = "htseq-count -f bam -s no -t CDS -i gene_id -a 0 $workingDir/namesort_$bamFileBase >$workingDir/counts_$sampleName.txt";
 print L &getDate(). ": $cmd\n";
 &runCmd($cmd);
 unless (-e "$workingDir/counts_$sampleName.txt") {
@@ -59,7 +61,7 @@ unless (-e "$workingDir/counts_$sampleName.txt") {
 
 ###calculate FPKMS###
 print L &getDate(). ": calculating fpkms...\n";
-$cmd = "makeFpkmFromHtseqCounts.pl --geneFootprintFille $geneFootprintFile --countFile $workingDir/counts_$sampleName.txt --fpkmFile $workingDir/fpkm_$sampleName.txt";
+$cmd = "makeFpkmFromHtseqCounts.pl --geneFootprintFile $geneFootprintFile --countFile $workingDir/counts_$sampleName.txt --fpkmFile $workingDir/fpkm_$sampleName.txt";
 print L &getDate(). ": $cmd\n";
 &runCmd($cmd);
 unless (-e "$workingDir/fpkm_$sampleName.txt") {
@@ -138,7 +140,7 @@ sub cleanUp {
     &runCmd("/bin/rm $bedFile");
     &runCmd("/bin/rm $workingDir/genome.txt");
     &runCmd("/bin/rm -r $snpsClusterDir");
-    &runCmd("/bin/rm $workingDir/namesort_$bamFile");
+    &runCmd("/bin/rm $workingDir/namesort_$bamFileBase");
 }
 
 sub getDate {
