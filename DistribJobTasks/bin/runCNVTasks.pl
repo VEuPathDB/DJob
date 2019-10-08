@@ -52,7 +52,7 @@ if (-e "$workingDir/namesort_$bamFileBase") {
 
 ###run htseq count###
 print L &getDate(). ": running htseq-count...\n";
-$cmd = "htseq-count -f bam -s no -t CDS -i gene_id -a 0 $workingDir/namesort_$bamFileBase >$workingDir/counts_$sampleName.txt";
+$cmd = "htseq-count -f bam -s no -t CDS -i gene_id -a 0 $workingDir/namesort_$bamFileBase $gtfFile > $workingDir/counts_$sampleName.txt";
 print L &getDate(). ": $cmd\n";
 &runCmd($cmd);
 unless (-e "$workingDir/counts_$sampleName.txt") {
