@@ -179,7 +179,7 @@ ilSingleErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
              if (length(files) == 1) {
                #create filtered dir and paths from a given dir
                unfilts <- sort(list.files(files, pattern=".fastq", full.names = TRUE))
-               sample.names <- sapply(strsplit(basename(unfilts), ".fastq"), `[`, 1)
+	       sample.names <- sapply(strsplit(basename(unfilts), ".fastq"), `[`, 1)
                filt.path <- file.path(files, "filtered")
                filts <- file.path(filt.path, paste0(sample.names, "_filt.fastq"))
              } else {
@@ -268,6 +268,10 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
               if (length(files) == 1) {
                 unfiltsF <- sort(list.files(files, pattern="_R1_001.fastq", full.names = TRUE))
                 unfiltsR <- sort(list.files(files, pattern="_R2_001.fastq", full.names = TRUE))
+		if (length(unfiltsF) == 0) {
+		  unfiltsF <- sort(list.files(files, pattern="_1.fastq", full.names = TRUE))
+                  unfiltsR <- sort(list.files(files, pattern="_2.fastq", full.names = TRUE))
+                }
                 # Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
                 sample.names <- sapply(strsplit(basename(unfiltsF), "_"), `[`, 1)
                 filt.path <- file.path(files, "filtered")
@@ -276,6 +280,10 @@ ilPairedErr <- function(files = NULL, errFile = NULL, truncLen = NULL, trimLeft 
               } else {
                 unfiltsF <- files[grep("_R1_001",files)]
                 unfiltsR <- files[grep("_R2_001", files)]
+		if (length(unfiltsF) == 0) {
+		  unfiltsF <- files[grep("_1.fastq",files)]
+                  unfiltsR <- files[grep("_2.fastq", files)]
+                }
                 sample.names <- sapply(strsplit(basename(unfiltsF), "_"), `[`, 1)
                 filt.path <- file.path(dirname(files[1]), "filtered")
                 filtsF <- file.path(filt.path, basename(unfiltsF))
