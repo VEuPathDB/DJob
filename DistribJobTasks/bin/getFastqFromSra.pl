@@ -18,18 +18,17 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$
             "deflineVars=s" => \$deflineVars,
            );
 
-my $cwd = getcwd();
-chdir($workingDir) if $workingDir;
+if ($workingDir){
+  chdir($workingDir) or die "$!: cannot change dir to $workingDir";
+}
+printf("$0 downloading fastqs to %s\n", getcwd());
 
 if (defined $sampleIdList) {
   my @tmp;
   foreach my $s (split(/,\s*/,$sampleIdList)){
     push(@tmp,$s);
   }
-  &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
+  CBIL::Util::Sra::getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 } elsif (defined $studyId) {
-  print STDERR "calling CBIL::sra.pm";
-  &getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq, $deflineVars);
+  CBIL::Util::Sra::getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq, $deflineVars);
 }
-
-chdir($cwd) if $workingDir;
