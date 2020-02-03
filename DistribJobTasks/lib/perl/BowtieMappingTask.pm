@@ -15,6 +15,7 @@ my @properties =
 (
 	["mateA", "none", "full path to file of reads"],
 	["mateB", "none", "full path to file of paired ends reads"],
+  ["sraSampleIdQueryList", "none", "Comma delimited list of identifiers that can be used to retrieve SRS samples"],
 	["bowtieIndex", "none", "full path of the bowtie indices .. likely same as fasta file"],
 	["isColorspace", "false", "input sequence reads are in SOLiD colorspace.  Quality files must be exactly matename.qual"],
     ["removePCRDuplicates", "true", "remove PCR duplicates for any analysis involving read depth, e.g., ploidy, CNV, mapping replication origins"],
@@ -25,6 +26,7 @@ my @properties =
 
  ["writeBedFile", "true", "[true]|false: if true then runs bamToBed on unique and non unique mappers"],
  ["topLevelSeqSizeFile", "none", "required if writeBedFile turned on"],
+ ["hasPairedEnds", "false", "true|[false]: if true then no adaptor or quality trimming is carried out"]
 
 );
 
@@ -36,6 +38,32 @@ sub new {
 # called once 
 sub initServer {
   my ($self, $inputDir) = @_;
+
+  my $baseName;
+  my $sidlist = $self->getProperty('sraSampleIdQueryList');
+  my $isPairedEnd = $self->getProperty('hasPairedEnds');
+  my $mateA = $self->getProperty('mateA');
+  my $mateB = $self->getProperty('mateB');
+
+  if($sidlist && $sidlist ne 'none'){ ##have a value and other than default
+    $mateA = "$inputDir/reads_1.fastq";
+    $self->setProperty('mateA',"$mateA");
+    $mateB = "$inputDir/reads_2.fastq";
+    $self->setProperty('mateB',"$mateB");
+    $baseName = "reads";
+
+    print "retrieving reads from SRA for '$sidlist'\n";
+    my $sraCmd = "getDataFromSra.pl --workingDir $inputDir --readsOne $mateA --readsTwo $mateB --sampleIdList '$sidlist' --pairs $isPairedEnd";
+    &runCmd($sraCmd);
+
+  } else {
+    if(-e $mateA && $mateA ne 'none'){
+      print "reads file $mateA already present so not retrieving from SRA\n";
+    } else{  ##need to retrieve here
+      print STDERR "....... something is wrong";
+    } 
+  }
+
 }
 
 sub initNode {
@@ -64,9 +92,6 @@ sub makeSubTaskCommand {
     my $wDir = "$node->{masterDir}/mainresult";
     my $bowtie2 = $self->getProperty ("bowtie2");
 
-
-       
-    
     my $cmd = "runBowtieMapping.pl --mateA $mateA".(-e "$mateB" ? " --mateB $mateB" : "");
     $cmd .= " --bowtieIndex $bowtieIndex";
     $cmd .= " --bowtie2 $bowtie2";
