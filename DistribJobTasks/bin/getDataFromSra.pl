@@ -18,8 +18,10 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace, 
             );
 
 my $cwd = getcwd();
-chdir($workingDir) if $workingDir;
-
+if ($workingDir){
+  chdir($workingDir) or die "$!: could not change directory to $workingDir";
+}
+printf("$0 downloading fastqs to %s\n", getcwd());
 my @tmp;
 foreach my $s (split(/,\s*/,$sampleIdList)){
   push(@tmp,$s);
@@ -32,4 +34,3 @@ if($isColorspace){
     &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 }
 
-chdir($cwd) if $workingDir;
