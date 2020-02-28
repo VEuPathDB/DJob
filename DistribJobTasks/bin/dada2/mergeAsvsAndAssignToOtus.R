@@ -25,15 +25,18 @@ seqs <- asvTable$rn
 
 totalChunks=ceiling(length(seqs)/opt$chunkSize)
 taxaL <- vector("list", totalChunks)
+bootstrapsL <- vector("list", totalChunks)
 for(chunkNum in seq(totalChunks)){
   i.lo <-  opt$chunkSize * (chunkNum - 1) + 1
   i.hi <-  min(opt$chunkSize * chunkNum + 1 , length(seqs))
   message("Assigning taxonomy from ", opt$assignTaxonomyRefPath, " for ASVs ", i.lo, ":",i.hi, " out of total ", length(seqs))
-  taxa <- assignTaxonomy(seqs[i.lo:i.hi], opt$assignTaxonomyRefPath, tryRC = TRUE)
+  assignment <- assignTaxonomy(seqs[i.lo:i.hi], opt$assignTaxonomyRefPath, tryRC = TRUE, outputBootstraps = TRUE)
+  taxa <- assignment$tax
   message("Adding species from " , opt$addSpeciesRefPath)
   taxa <- addSpecies(taxa, opt$addSpeciesRefPath, tryRC = TRUE)
   taxa <- as.data.table(taxa, keep.rownames=TRUE)
   taxaL[[chunkNum]] <- taxa
+  bootstrapsL[[chunkNum]] <- as.data.table(assignment$boot, keep.rownames=TRUE)
 }
 
 # Join on the ASV strings
@@ -45,6 +48,9 @@ if(!dir.exists(dirname(opt$outPath))){
   dir.create(dirname(opt$outPath), recursive=TRUE)
 }
 write.table(results, file = paste0(opt$outPath, ".full"), quote=FALSE, sep = '\t', col.names = TRUE, row.names=FALSE, na="")
+
+message("Writing bootstrap scores to ", paste0(opt$outPath, ".bootstraps"))
+write.table(rbindlist(bootstrapsL), file = paste0(opt$outPath, ".bootstraps"), quote=FALSE, sep = '\t', col.names = TRUE, row.names=FALSE, na="")
 
 naphylumixs <- which(is.na(results$Phylum))
 if (length(naphylumixs)){
