@@ -1,3 +1,10 @@
+#! /usr/bin/env R
+# This script is designed to be run once per dataset after data files have been provisioned
+# Given a folder of amplicon sequencing reads, with one file per sample,
+# filters the reads for quality and trim/truncate them as required
+# Produces a folder of filtered fastqs
+# Also produces error models for the next step of the workflow
+
 suppressPackageStartupMessages(library(dada2))
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(ShortRead))

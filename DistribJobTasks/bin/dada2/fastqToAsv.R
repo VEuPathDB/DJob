@@ -1,3 +1,9 @@
+#!/usr/bin/env R
+# This script is designed to run in parallel, once per sample: it takes about a minute for a typical fastq with 5000 reads
+# Uses dada2::dada to denoise filtered amplicon reads
+# Requires filtered reads and error models
+# Produces an RDS file: a data frame of count per ASV
+
 suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(dada2))
 suppressPackageStartupMessages(library(optparse))

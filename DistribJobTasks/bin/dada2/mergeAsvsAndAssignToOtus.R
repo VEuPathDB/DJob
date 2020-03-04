@@ -1,3 +1,9 @@
+#!/usr/bin/env R
+# Given a directory of `dada` results (data frames of count per ASV, one file in RDS format per sample) and a reference taxonomy,
+# aggregates the results together and assigns taxons to ASVs
+# then applies filtering (mainly ASVs that didn't map to at least a phylum) and aggregate
+# Produces a result file: a TSV of absolute abundances per lineage and sample
+# Also produces two additional files with more resolution: ASVs and bootstrap scores used to assign them
 library(data.table)
 library(dada2)
 library(optparse)
