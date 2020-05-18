@@ -28,24 +28,13 @@ while ($line=<IN>) {
 }
 close(IN);
 
-&doTPMCalculation ($geneLengths, $countFile, $tpmFile);
-
-if ($antisenseCountFile) {
-    if ($antisenseTpmFile) {
-        &doTPMCalculation ($geneLengths, $antisenseCountFile,  $antisenseTpmFile);
-    } else {
-        die "An antisense count file $antisenseCountFile has been provided, but no antisense TPM file has been specified for writing output. Please add this using the --antisenseTpmFile flag.\n";
-    }
-}
-
-
+&doTPMCalculation ($geneLengths, $countFile, $antisenseCountFile, $tpmFile, $antisenseTpmFile);
 
 
 sub _calcRPK {
     my %specialCounters = ('__no_feature'=>1, '__ambiguous'=>1, '__too_low_aQual'=>1, '__not_aligned'=>1, '__alignment_not_unique'=>1);
-    my ($geneLengths, $countFile) = @_;
+    my ($geneLengths, $countFile, $rpkSum) = @_;
     my $rpkHash;
-    my $rpkSum = 0;
     open (IN, "<$countFile") or die "Cannot open file $countFile. Please check and try again\n$!\n";
     while (<IN>) {
         my ($geneId, $count) = split /\t/, $_;
@@ -62,8 +51,8 @@ sub _calcRPK {
 
 sub _calcTPM {
     my ($rpkHash, $rpkSum) = @_;
+    $rpkSum = $rpkSum/1000000;
     my $tpmHash;
-    my $tpmSum = 0;
     while (my($geneId, $rpk) = each %{$rpkHash}) {
         my $tpm =  $rpk/$rpkSum;
         $tpmHash->{$geneId} = $tpm;
@@ -81,9 +70,18 @@ sub _writeTPM {
 }
 
 sub doTPMCalculation {
-    my ($geneLengths, $countFile, $tpmFile) = @_;
-    my ($rpkSum, $rpkHash) = &_calcRPK($geneLengths, $countFile);
-    $rpkSum = $rpkSum/1000000;
-    my $tpmHash = &_calcTPM($rpkHash, $rpkSum);
+    my ($geneLengths, $countFile, $antisenseCountFile, $tpmFile, $antisenseTpmFile) = @_;
+    my ($rpkSum, $senseRpkHash) = &_calcRPK($geneLengths, $countFile, 0);
+    if ($antisenseCountFile) {
+        if ($antisenseTpmFile) {
+            ($rpkSum, my $antisenseRpkHash) = &_calcRPK($geneLengths, $antisenseCountFile, $rpkSum);
+            my $antisenseTpmHash = &_calcTPM($antisenseRpkHash, $rpkSum);
+            &_writeTPM($antisenseTpmFile, $antisenseTpmHash);
+        } else {
+            die "An antisense count file $antisenseCountFile has been provided, but no antisense TPM file has been specified for writing output. Please add this using the --antisenseTpmFile flag.\n";
+        }
+    }
+
+    my $tpmHash = &_calcTPM($senseRpkHash, $rpkSum);
     &_writeTPM($tpmFile, $tpmHash);
 }
