@@ -491,8 +491,7 @@ sub cleanUpServer {
 	    $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts");
 
 
-	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --tpmFile $mainResultDir/genes.htseq-$mode.firststrand.tpm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.tpm");
-	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts --tpmFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.tpm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts --antisenseTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.tpm");
+	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $mainResultDir/genes.htseq-$mode.firststrand.counts --senseNUCountFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts --senseUniqueTpmFile $mainResultDir/genes.htseq-$mode.firststrand.tpm --senseNUTpmFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.tpm --antisenseUniqueCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseNUCountFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts --antisenseUniqueTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.tpm --antisenseNUTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.tpm");
 
 
 	}
@@ -501,11 +500,10 @@ sub cleanUpServer {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
         $self->runCmdOnNode($node, "htseq-count -a 0 --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
-	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --tpmFile $mainResultDir/genes.htseq-$mode.unstranded.tpm");
 
 
         $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts");
-	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts --tpmFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.tpm");
+	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $mainResultDir/genes.htseq-$mode.unstranded.counts --senseNUCountFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts --senseUniqueTpmFile $mainResultDir/genes.htseq-$mode.unstranded.tpm --senseNUTpmFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.tpm");
 
       }
     }
