@@ -97,21 +97,21 @@ sub initServer {
   
     if (glob("$samplesDir/*.fq")) {
       print STDERR "changing samples file ext from .fq to .fastq";
-      `rename .fq .fastq *.fq`;
+      `rename .fq .fastq $samplesDir/*.fq`;
     }
     die "$samplesDir contains no fastqs"
       unless glob("$samplesDir/*fastq");
      
-    if (glob("*_R1_001.fastq")){
-      `rename _R1_001.fastq _1.fastq *_R1_001.fastq`;
+    if (glob("$samplesDir/*_R1_001.fastq")){
+      `rename _R1_001.fastq _1.fastq $samplesDir/*_R1_001.fastq`;
     }
-    if (glob("*_R2_001.fastq")){
-      `rename _R2_001.fastq _2.fastq *_R2_001.fastq`;
+    if (glob("$samplesDir/*_R2_001.fastq")){
+      `rename _R2_001.fastq _2.fastq $samplesDir/*_R2_001.fastq`;
     }
 
     if($isPaired eq 'true'){
-       die "No forward fastqs" unless glob("*_1.fastq");
-       die "No reverse fastqs" unless glob("*_2.fastq");
+       die "No forward fastqs" unless glob("$samplesDir/*_1.fastq");
+       die "No reverse fastqs" unless glob("$samplesDir/*_2.fastq");
     }
     $fastqsInDir = $samplesDir;
   } else {
