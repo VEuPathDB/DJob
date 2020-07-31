@@ -49,7 +49,7 @@ while(my $line = <INFILE>) {
 	}
     }
 
-    die "XS:A tag not found for read $qname" unless($xs);
+    next unless ($xs);
     die "NH:i tag not found for read $qname" unless($nh);
 
     my $mapperType = "nu";
