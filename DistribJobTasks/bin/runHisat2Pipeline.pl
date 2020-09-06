@@ -6,7 +6,6 @@ use CBIL::Util::Utils;
 
 my($mateA,$mateB,$sampleName,$delIntFiles,$hisat2Index,$hisat2,$extraHisatParams, $ppn, $maxIntronLen, $quantify, $maskedFile, $topLevelGeneFootprintFile, $junctions, $isStranded, $writeCov);
 my $workingDir = ".";
-#TODO check and update these
 &GetOptions( 
             "mateA|ma=s"=> \$mateA,
             "mateB|mb=s" => \$mateB,
@@ -43,9 +42,9 @@ open(L,">>$workingDir/runHisat2Mapping.log");
 select L;
 $| = 1;
 
-print L "runHisat2Mapping.pl run starting ".&getDate()."\n\n";
+print L &getDate().":\trunHisat2Mapping.pl run starting\n\n";
 
-print L "Determining input file type ".&getDate()."\n\n";
+print L &getDate().":\tDetermining input file type\n\n";
 my $mateAType = &getFileType($mateA);
 my $mateBType;
 
@@ -55,15 +54,15 @@ if ($mateB) {
         die "Mate A $mateA and mate B $mateB files are not of the same type.\n"
     }
 }
-print L "Input file type is $mateAType ".&getDate()."\n\n";
+print L &getDate().":\tInput file type is $mateAType\n\n";
 
 if ($mateB) {
-    print L "Running in paired end mode".&getDate()."\n\n";
+    print L &getDate().":\tRunning in paired end mode\n\n";
 } else {
-    print L "Mate B not specified. Running in single end mode.".&getDate()."\n\n";
+    print L &getDate().":\tMate B not specified. Running in single end mode\n\n";
 }
 
-print L "Running FASTQC on raw reads".&getDate()."\n\n";
+print L &getDate().":\tRunning FASTQC on raw reads\n\n";
 
 my ($mateAEncoding, $mateBEncoding);
 $mateAEncoding = &runFastQC($mateA, $workingDir);
@@ -75,16 +74,16 @@ if ($mateB) {
     }
 }
 
-print L "Files are using $mateAEncoding for quality encoding".&getDate()."\n\n";
+print L &getDate().":\tFiles are using $mateAEncoding for quality encoding\n\n";
 
-print L "Running Trimmomatic".&getDate()."\n\n";
+print L &getDate().":\tRunning Trimmomatic\n\n";
 &runCmd("mkdir -p  $workingDir/trimmedReads");
 
 if ($mateB) {
-    print L "Running Trimmomatic in paired-end mode. Trimmomatic will remove adaptors from TruSeq2 and TruSeq3 compatible kits.".&getDate()."\n\n";
+    print L &getDate().":\tRunning Trimmomatic in paired-end mode. Trimmomatic will remove adaptors from TruSeq2 and TruSeq3 compatible kits\n\n";
     &runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar PE -trimlog ${workingDir}/trimLog $mateA $mateB -$mateAEncoding -baseout ${workingDir}/trimmedReads/${sampleName} ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 } else {
-    print L "Running Trimmomatic in single-end mode. Trimmomatic will remove adaptors from TruSeq2 and TruSeq3 compatible kits.".&getDate()."\n\n";
+    print L &getDate().":\tRunning Trimmomatic in single-end mode. Trimmomatic will remove adaptors from TruSeq2 and TruSeq3 compatible kits\n\n";
     &runCmd("java -jar \$eupath_dir/workflow-software/software/Trimmomatic/0.36/trimmomatic.jar SE -trimlog ${workingDir}/trimLog -$mateAEncoding $mateA ${workingDir}/trimmedReads/${sampleName}_1P ILLUMINACLIP:\$GUS_HOME/data/DJob/DistribJobTasks/All_adaptors-SE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:20");
 }
 
@@ -97,7 +96,7 @@ if ($mateB) {
     die "Trimmed read file $trimmedB cannot be located.  Please check trimming was successful\n\n" unless (-e $trimmedB);
 }
 
-print L "Re-running FASTQC on trimmed reads".&getDate()."\n\n!";
+print L &getDate().":\tRe-running FASTQC on trimmed reads\n\n";
 &runFastQC($trimmedA, $workingDir);
 
 if ($mateB) {
@@ -105,31 +104,31 @@ if ($mateB) {
 }
 
 
-print L "Aligning with Hisat2".&getDate()."\n\n";
+print L &getDate().":\tAligning with Hisat2\n\n";
 
 my $type;
 if ($mateAType eq "fastq") {
-    print L "Aligning using fastq input".&getDate()."\n\n";
+    print L &getDate().":\tAligning using fastq input\n\n";
     $type = "-q";
 } elsif ($mateAType eq "fasta") {
-    print L "Aligning using fasta input".&getDate()."\n\n";
+    print L &getDate().":\tAligning using fasta input\n\n";
     $type = "-f";
 }
 
 my $cmd;
 if ($mateB) {
-    print L "Aligning in paired end mode\n\n".&getDate()."";
+    print L &getDate().":\tAligning in paired end mode\n\n";
     $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type --max-introlen $maxIntronLen -1 $trimmedA -2 $trimmedB | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
 } else {
-    print L "Aligning in single end mode\n\n".&getDate()."";
+    print L &getDate().":\tAligning in single end mode\n\n";
     $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type --max-intronlen $maxIntronLen -U $trimmedA | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
 }
 
-print L "Alignment command: $cmd".&getDate()."\n\n";
+print L &getDate().":\tAlignment command: $cmd\n\n";
 &runCmd($cmd);
 
 if ($quantify) {
-    print L "Preparing for quantification".&getDate()."\n\n";
+    print L &getDate().":\tPreparing for quantification\n\n";
     &runCmd("samtools view -bh -F 4 -f 8 $workingDir/${sampleName}_sorted.bam > $workingDir/pair1.bam");
     &runCmd("samtools view -bh -F 8 -f 4 $workingDir/${sampleName}_sorted.bam > $workingDir/pair2.bam");
     &runCmd("samtools view -b -F 12 $workingDir/${sampleName}_sorted.bam > $workingDir/pairs.bam");
@@ -137,45 +136,45 @@ if ($quantify) {
 
     &runCmd("samtools sort -n $workingDir/trimmed.bam > $workingDir/${sampleName}_sortedByName.bam");
 
-    print L "Starting read quantification".&getDate()."\n\n";
+    print L &getDate().":\tStarting read quantification\n\n";
 
     die "Masked gtf file $maskedFile cannot be opened for reading\n\n$!\n" unless defined($maskedFile);
     die "Gene footprint file $topLevelGeneFootprintFile cannot be opened for reading\n\n$!\n" unless defined($topLevelGeneFootprintFile);
 
     if ($isStranded) {
-        print L "Quantifying in stranded mode".&getDate()."\n\n";
-        print L "Counting unique reads".&getDate()."\n\n";
+        print L &getDate().":\tQuantifying in stranded mode\n\n";
+        print L &getDate().":\tCounting unique reads\n\n";
 
         &runCmd("htseq-count -a 0 -f bam -s reverse -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.firststrand.counts");
         &runCmd("htseq-count -a 0 -f bam -s yes -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.secondstrand.counts");
 
-        print L "Counting nonunique reads".&getDate()."\n\n";
+        print L &getDate().":\tCounting nonunique reads\n\n";
         &runCmd("htseq-count -a 0 -f bam --nonunique all -s reverse -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.firststrand.nonunique.counts");
         &runCmd("htseq-count -a 0 -f bam --nonunique all -s yes -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.secondstrand.nonunique.counts");
 
-        print L "Calculating TPM".&getDate()."\n\n";
+        print L &getDate().":\tCalculating TPM\n\n";
         &runCmd("makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $workingDir/genes.htseq-union.firststrand.counts --senseNUCountFile $workingDir/genes.htseq-union.firststrand.nonunique.counts --senseUniqueTpmFile $workingDir/genes.htseq-union.firststrand.tpm --senseNUTpmFile $workingDir/genes.htseq-union.firststrand.nonunique.tpm --antisenseUniqueCountFile $workingDir/genes.htseq-union.secondstrand.counts --antisenseNUCountFile $workingDir/genes.htseq-union.secondstrand.nonunique.counts --antisenseUniqueTpmFile $workingDir/genes.htseq-union.secondstrand.tpm --antisenseNUTpmFile $workingDir/genes.htseq-union.secondstrand.nonunique.tpm");
 
     } else { 
-        print L "Quantifying in unstranded mode".&getDate()."\n\n";
-        print L "Counting unique reads".&getDate()."\n\n";
+        print L &getDate().":\tQuantifying in unstranded mode\n\n";
+        print L &getDate().":\tCounting unique reads\n\n";
         &runCmd("htseq-count -a 0 -f bam -s no -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.unstranded.counts");
 
-        print L "Counting nonunique reads".&getDate()."\n\n";
+        print L &getDate().":\tCounting nonunique reads\n\n";
         &runCmd("htseq-count -a 0 -f bam --nonunique all -s no -t exon -i gene_id $workingDir/${sampleName}_sortedByName.bam $maskedFile > $workingDir/genes.htseq-union.unstranded.nonunique.counts");
 
-        print L "Calculating TPM".&getDate()."\n\n";
+        print L &getDate().":\tCalculating TPM\n\n";
         &runCmd("makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $workingDir/genes.htseq-union.unstranded.counts --senseNUCountFile $workingDir/genes.htseq-union.unstranded.nonunique.counts --senseUniqueTpmFile $workingDir/genes.htseq-union.unstranded.tpm --senseNUTpmFile $workingDir/genes.htseq-union.unstranded.nonunique.tpm");
     }
 }
 
 if ($junctions) {
-    print L "Quantifying junctions".&getDate()."\n\n";
+    print L &getDate().":\tQuantifying junctions\n\n";
     &runCmd("gsnapSam2Junctions.pl --is_bam --input_file $workingDir/${sampleName}_sorted.bam --output_file $workingDir/junctions.tab");
 }
 
 if ($writeCov) {
-    print L "Writing coverage files".&getDate()."\n\n";
+    print L &getDate().":\tWriting coverage files\n\n";
  
     my $isPairedEnd = (-e $mateB) ? 1 : 0;
     my $strandSpecific = $isStranded ? 1 : 0;  
@@ -264,7 +263,7 @@ sub phred {
 } 
             
 if($delIntFiles){
-  print L "deleting extra files\n";
+  print L &getDate().":\tDeleting extra files\n\n";
   &runCmd("rm -r $workingDir/trimmedReads");
 
   &runCmd("rm $workingDir/*pair*bam $workingDir/trimmed.bam $workingDir/${sampleName}_sortedByName.bam");  
