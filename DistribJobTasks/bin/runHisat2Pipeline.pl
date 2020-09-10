@@ -118,7 +118,7 @@ if ($mateAType eq "fastq") {
 my $cmd;
 if ($mateB) {
     print L &getDate().":\tAligning in paired end mode\n\n";
-    $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type --max-introlen $maxIntronLen -1 $trimmedA -2 $trimmedB | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
+    $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type --max-intronlen $maxIntronLen -1 $trimmedA -2 $trimmedB | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
 } else {
     print L &getDate().":\tAligning in single end mode\n\n";
     $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type --max-intronlen $maxIntronLen -U $trimmedA | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
