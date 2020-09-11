@@ -113,19 +113,25 @@ sub makeSubTaskCommand {
       
 
     #add boolean properties
-    if ($self->getProperty("deleteIntermediateFiles")) {
+    my $deleteIntermediateFiles = $self->getProperty("deleteIntermediateFiles");
+    my $quantify = $self->getProperty("quantify");
+    my $quantifyJunctions = $self->getProperty("quantifyJunctions");
+    my $writeCovFiles = $self->getProperty("writeCovFiles");
+    my $isStrandSpecific = $self->getProperty ("isStrandSpecific");
+
+    if ($deleteIntermediateFiles && lc($deleteIntermediateFiles) eq 'true') {
         $cmd = $cmd . " --deleteIntermediateFiles";
     }
-    if ($self->getProperty("quantify")) {
+    if ($quantify && lc($quantify) eq 'true') {
         $cmd = $cmd . " --quantify";
     }
-    if ($self->getProperty("quantifyJunctions")) {
+    if ($quantifyJunctions && lc($quantifyJunctions) eq 'true') {
         $cmd = $cmd . " --junctions";
     }
-    if ($self->getProperty("writeCovFiles")) {
+    if ($writeCovFiles && lc($writeCovFiles) eq 'true') {
         $cmd = $cmd . " --writeCov";
     }
-    if ($self->getProperty("isStrandSpecific")) {
+    if ($isStrandSpecific && lc($isStrandSpecific) eq 'true') {
         $cmd = $cmd . " --isStranded";
     }
 
