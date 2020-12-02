@@ -145,6 +145,14 @@ sub integrateSubTaskResults {
 ##cleanup materDir here and remove extra files that don't want to transfer back to compute node
 sub cleanUpServer {
   my($self, $inputDir, $mainResultDir, $node) = @_;
+  my $sidlist = $self->getProperty('sraSampleIdQueryList');
+
+  if($sidlist && $sidlist ne 'none' && lc($self->getProperty('deleteIntermediateFiles')) eq 'true'){ ##have a value and other than default so reads were retrieved from sra
+    my $mateA = $self->getProperty('mateA');
+    my $mateB = $self->getProperty('mateB');
+    unlink($mateA) if -e "$mateA";
+    unlink($mateB) if -e "$mateB";
+  }
   return 1;
 }
 
