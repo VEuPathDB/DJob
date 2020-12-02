@@ -97,7 +97,7 @@ sub makeSubTaskCommand {
     my $cmd = "runHisat2Pipeline.pl --mateA $mateA --hisat2Index $genomeDatabase --sampleName results --workingDir $mainResultDir --ppn $ppn --maxIntronLen $maxIntronLen --maskedFile $maskedFile --topLevelGeneFootprintFile $topLevelGeneFootprintFile --hisat2 $hisat2";
 
 
-    if ($mateB) {
+    if ($mateB && -e $mateB) {
         $cmd = $cmd . " --mateB $mateB";
     }
 
