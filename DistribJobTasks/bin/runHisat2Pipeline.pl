@@ -1,4 +1,4 @@
-#!@perl@
+#!/usr/bin/perl
 use lib "$ENV{GUS_HOME}/lib/perl";
 use strict;
 use Getopt::Long;
@@ -120,7 +120,7 @@ if ($mateB) {
     print L &getDate().":\tAligning in paired end mode\n\n";
     $cmd = "$hisat2 $extraHisatParams -p $ppn -x $hisat2Index $type";
     if ($maxIntronLen < 20) {
-        print L &getData().":\tMax intron length is $maxIntronLen. As this is less than 20, we will align in --no-spliced-alignment mode.\n\n";
+        print L &getDate().":\tMax intron length is $maxIntronLen. As this is less than 20, we will align in --no-spliced-alignment mode.\n\n";
         $cmd = "$cmd --no-spliced-alignment -1 $trimmedA -2 $trimmedB | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
     } else {
         $cmd = "$cmd --max-intronlen $maxIntronLen -1 $trimmedA -2 $trimmedB | samtools view -bS - | samtools sort -T $workingDir/$sampleName - > $workingDir/${sampleName}_sorted.bam";
