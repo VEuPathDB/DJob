@@ -93,12 +93,12 @@ sub initServer {
   if ($samplesDir){
     my @zipFiles = glob("$samplesDir/*.gz");
     foreach my $zipFile (@zipFiles) {
-      print STDERR "unzipping $zipFile";
+      print STDERR "unzipping $zipFile\n";
       `gunzip $zipFile`;
     }
   
     if (glob("$samplesDir/*.fq")) {
-      print STDERR "changing samples file ext from .fq to .fastq";
+      print STDERR "changing samples file ext from .fq to .fastq\n";
       `rename .fq .fastq $samplesDir/*.fq`;
     }
     die "$samplesDir contains no fastqs"
