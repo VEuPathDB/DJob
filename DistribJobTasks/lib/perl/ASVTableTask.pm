@@ -20,6 +20,7 @@ use strict;
 my @properties = 
     (
      ["sraStudyId", "none", "an SRA studyId to use to retrieve all related samples"],
+     ["sraSampleAndRunIdsPath", "none", "a file with sample then run IDs to retrieve from SRA, and then name as sample.run"],
      ["dataDir",   "none",     "full path to directory of demultiplexed reads files - alternative to providing a SRA study ID"],
      ["workingDir",   "",     "dir for temporary files"],
      ["platform",  "illumina",  "valid options: 'illumina', '454'"],
@@ -49,9 +50,10 @@ sub initServer {
 
   (my $samplesDir = $self->getProperty('dataDir')) =~s/^none$//;
   (my $sraStudyId = $self->getProperty('sraStudyId')) =~s/^none$//;
+  (my $sraSampleAndRunIdsPath = $self->getProperty('sraSampleAndRunIdsPath')) =~s/^none$//;
   
-  die "Must provide either --sraStudyId or --dataDir"
-   unless $samplesDir xor $sraStudyId;
+  die "Must provide either --sraStudyId or --dataDir or --sraSampleAndRunIdsPath"
+   unless 1 == grep {$_} ($samplesDir, $sraStudyId, $sraSampleAndRunIdsPath);
   
 
   my $workingDir = $self->getProperty('workingDir');
@@ -114,12 +116,15 @@ sub initServer {
        die "No reverse fastqs" unless glob("$samplesDir/*_2.fastq");
     }
     $fastqsInDir = $samplesDir;
-  } else {
+  } elsif ($sraStudyId) {
     make_path "$workingDir/fastqsFromSra";
     &runCmd("getFastqFromSra.pl --workingDir $workingDir/fastqsFromSra --studyId '$sraStudyId' --pairs $isPaired"); 
-
     $fastqsInDir = "$workingDir/fastqsFromSra";
-  } 
+  } elsif($sraSampleAndRunIdsPath){
+    make_path "$workingDir/fastqsFromSra";
+    &runCmd("getFastqFromSra.pl --workingDir $workingDir/fastqsFromSra --sampleAndRunIdsPath '$sraSampleAndRunIdsPath' --pairs $isPaired");
+    $fastqsInDir = "$workingDir/fastqsFromSra";
+  }
 
   if (! -e "$workingDir/filtered"){
     my $cmd = <<"EOF";
@@ -209,9 +214,9 @@ sub initSubTask {
       my $firstLine = <$tempHandle>;
       close $tempHandle;
       chomp($firstLine);
-	my @header = split /\t/, $firstLine;
-	my %headerHash = map { $_ => 1 } @header;
-	if (exists($headerHash{GROUPS})) { 
+      my @header = split /\t/, $firstLine;
+      my %headerHash = map { $_ => 1 } @header;
+      if (exists($headerHash{GROUPS})) { 
         if ($isPaired eq 'true') {
           # In general not true for single end manual delivery files
           my ($pfx, @__) = split /_/, $file;

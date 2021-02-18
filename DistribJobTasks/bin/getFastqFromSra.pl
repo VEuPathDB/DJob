@@ -6,7 +6,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId,$deflineVars);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId,$deflineVars, $sampleAndRunIdsPath);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,
@@ -16,6 +16,7 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$
 	    "pairs=s" => \$hasPairedEnds,
             "studyId=s" => \$studyId,
             "deflineVars=s" => \$deflineVars,
+            "sampleAndRunIdsPath=s" => \$sampleAndRunIdsPath,
            );
 
 if ($workingDir){
@@ -31,4 +32,17 @@ if (defined $sampleIdList) {
   CBIL::Util::Sra::getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
 } elsif (defined $studyId) {
   CBIL::Util::Sra::getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq, $deflineVars);
+} elsif (defined $sampleAndRunIdsPath){
+  my @runs;
+  open(my $fh, "<", $sampleAndRunIdsPath) or die "$!: $sampleAndRunIdsPath"; 
+  while(<$fh>){
+    chomp;
+    my ($srs, $srr, $libraryLayout) = split "\t";
+    die "Bad line: $_ - Need sample then run, at least" unless $srs && $srr;
+    $libraryLayout //= $hasPairedEnds ? 'PAIRED' : 'SINGLE';
+    push @runs, [$srs, $srr, $libraryLayout];
+  }
+  die "No runs in $sampleAndRunIdsPath" ? unless @runs;
+  CBIL::Util::Sra::getFastqForStudyRuns(\@runs, $hasPairedEnds, $doNotGetFastq, $deflineVars);
+
 }
