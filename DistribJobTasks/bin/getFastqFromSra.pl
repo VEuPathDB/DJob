@@ -1,5 +1,4 @@
-#!@perl@
-
+#!/usr/bin/env perl
 use strict; 
 use lib "$ENV{GUS_HOME}/lib/perl";
 use CBIL::Util::Sra;
@@ -42,7 +41,7 @@ if (defined $sampleIdList) {
     $libraryLayout //= $hasPairedEnds ? 'PAIRED' : 'SINGLE';
     push @runs, [$srs, $srr, $libraryLayout];
   }
-  die "No runs in $sampleAndRunIdsPath" ? unless @runs;
+  die "No runs in $sampleAndRunIdsPath ?" unless @runs;
   CBIL::Util::Sra::getFastqForStudyRuns(\@runs, $hasPairedEnds, $doNotGetFastq, $deflineVars);
 
 }
