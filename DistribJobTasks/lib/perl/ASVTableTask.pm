@@ -30,7 +30,7 @@ my @properties =
      ["trimLeftR", "none", "number of bases to remove from beginning of reverse reads"],
      ["truncLen", "none", "length in bases to truncate sequence to for forward reads"],
      ["truncLenR", "none", "length in bases to truncate sequence to for reverse reads"],
-     ["readLen", 250, "default is 250"],
+     ["maxLen", "none", "max len for 454 reads"],
      ["mergeTechReps", "false" , "default is 'false'"],
      ["trainingSetFile", "", "training set for taxonomic assignment"],
      ["speciesAssignmentFile", "", "reference sequences for species, matched by identity"],
@@ -80,10 +80,10 @@ sub initServer {
   (my $trimLeftR = $self->getProperty('trimLeftR')) =~s/^none$//;
   (my $truncLen = $self->getProperty('truncLen')) =~s/^none$//;
   (my $truncLenR = $self->getProperty('truncLenR')) =~s/^none$//;
-  (my $readLen = $self->getProperty('readLen')) =~s/^none$//;
+  (my $maxLen = $self->getProperty('maxLen')) =~s/^none$//;
 
-  if (not $readLen and $platform eq '454') {
-    die "must provide maximum read length as parameter 'readLen' for 454 data.";
+  if (not $maxLen and $platform eq '454') {
+    die "must provide maximum read length as parameter 'maxLen' for 454 data.";
   } 
 
 
@@ -127,15 +127,14 @@ sub initServer {
   }
 
   if (! -e "$workingDir/filtered"){
+  # Takes a while - a thousand samples per day
     my $cmd = <<"EOF";
-Rscript $ENV{GUS_HOME}/bin/dada2/filterFastqsAndBuildErrorModels.R 
+Rscript $ENV{GUS_HOME}/bin/dada2/filterFastqs.R 
 --fastqsInDir $fastqsInDir
 --fastqsOutDir $workingDir/filtered.tmp
---errorsOutDir $workingDir 
 --isPaired $isPaired 
---readLen $readLen 
+--maxLen $maxLen 
 --platform $platform 
---mergeTechReps $mergeTechReps
 EOF
     $cmd =~ s/\n/ /g;
     $cmd .= " --samplesInfo $samplesInfo" if $samplesInfo;
@@ -145,11 +144,28 @@ EOF
     $cmd .= " --truncLenR $truncLenR" if $truncLenR;
 
     &runCmd($cmd);
+    die "Failed: no fastqs in output filtering dir $workingDir/filtered.tmp"
+       unless glob("$workingDir/filtered.tmp/*.fastq");
+
     move("$workingDir/filtered.tmp", "$workingDir/filtered");
+  }
+  if (! glob("$workingDir/*err.rds")){
+  # This has ran out of memory in the past. Submit with more if needed.
+    my $cmd = <<"EOF";
+Rscript $ENV{GUS_HOME}/bin/dada2/buildErrorModels.R 
+--fastqsInDir $workingDir/filtered
+--errorsOutDir $workingDir 
+--errorsFileNameSuffix err.rds
+--isPaired $isPaired 
+--platform $platform 
+EOF
+    $cmd =~ s/\n/ /g;
+    $cmd .= " --samplesInfo $samplesInfo" if $samplesInfo;
+    &runCmd($cmd);
   }
 
   # These naughty files triggered this bug, fixed in Jan 2020: https://github.com/Bioconductor/ShortRead/pull/2
-  # If you're reading this in year 2021 verify Bioconductor has released sometime in 2020, and that you have the good ShortRead locally
+  # If you're reading this in year 2022 verify Bioconductor has released sometime in 2020 or 2021, and that you have the good ShortRead locally
   # Then delete this code and the message
   if ($sraStudyId eq 'ERP005806'){
     unlink("$workingDir/filtered/ERS454101.ERR503975_filt.fastq");
