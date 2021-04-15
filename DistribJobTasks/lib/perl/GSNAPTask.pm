@@ -161,21 +161,21 @@ sub initServer {
 	    open IN3, "$mateA" or die "cant open $mateA";
 	    my $count = 0;
 	    while (my $line =<IN3>) {
-		chomp $line;
-		$count ++;
-		if ($count == 4) {
-		    $count = 0;
-		    if ($line !~ /^I+$/) { #is anything but just Is
-			$is_fake = 0;
-			last;
+		    chomp $line;
+		    $count ++;
+		    if ($count == 4) {
+		        $count = 0;
+		        if ($line !~ /^I+$/) { #is anything but just Is
+			        $is_fake = 0;
+			        last;
+		        }
+		        else {
+			        $is_fake = 1;
+		        }
 		    }
 		    else {
-			$is_fake = 1;
+		        next;
 		    }
-		}
-		else {
-		    next;
-		}
 	    }
 	    close IN3;
 	    &runCmd("fastqc $mateA -o $inputDir --extract");
@@ -183,7 +183,7 @@ sub initServer {
 	    $fastQcFolder =~ s/\.fastq$//;
 	    $fastQcFolder =~ s/\.fq$//;
 	    $fastQcFolder .= "_fastqc";
-            $mateAencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+        $mateAencoding = $is_fake ? "phred33" : phred("$inputDir/$fastQcFolder/fastqc_data.txt");
 	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateA   Encoding: $mateAencoding\n";    
 	}
@@ -193,7 +193,7 @@ sub initServer {
 	    $fastQcFolder =~ s/\.fastq$//;
 	    $fastQcFolder =~ s/\.fq$//;
 	    $fastQcFolder .= "_fastqc";
-            $mateBencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+        $mateBencoding = $is_fake ? "phred33" : phred("$inputDir/$fastQcFolder/fastqc_data.txt");
 	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateB   Encoding: $mateBencoding\n";
 	}
