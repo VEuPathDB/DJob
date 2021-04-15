@@ -64,11 +64,37 @@ if ($mateB) {
 
 print L &getDate().":\tRunning FASTQC on raw reads\n\n";
 
+# if we have faked quality scores, we need to set the encoding manually
+# fastqc gets the estimate wrong
+my $isFake;
 my ($mateAEncoding, $mateBEncoding);
-$mateAEncoding = &runFastQC($mateA, $workingDir);
+if (-e "$mateA") {
+    open (FQ, "$mateA") or die "Cannot open file $mateA for reading\n";
+    my $count = 0;
+    while (my $line = <FQ>) {
+        chomp $line;
+        $count ++;
+        if ($count == 4) {
+            $count = 0;
+            if ($line !~ /^I+$/) { #anything but just I
+                $isFake = 0;
+                last;
+            }
+            else {
+                $isFake = 1;
+            }
+        }
+        else {
+            next;
+        }
+    }
+}
+
+
+$mateAEncoding = &runFastQC($mateA, $workingDir, $isFake);
 
 if ($mateB) {
-    $mateBEncoding = &runFastQC($mateB, $workingDir);
+    $mateBEncoding = &runFastQC($mateB, $workingDir, $isFake);
     if ($mateAEncoding ne $mateBEncoding) {
         die "ERROR: The two read files use different phred encoding\n";
     }
@@ -219,15 +245,17 @@ sub getFileType {
 }
 
 sub runFastQC {
-    my ($file, $workingDir) = @_;
+    my ($file, $workingDir, $isFake) = @_;
     my ($fastQcFolder) = ( $file =~ m/([^\/]+)$/ );
     $fastQcFolder =~ s/\.fastq$//;
     $fastQcFolder =~ s/\.fq$//;
     $fastQcFolder .= "_fastqc";
     &runCmd("fastqc $file -o $workingDir --extract");
-    my $encoding = &phred("$workingDir/$fastQcFolder/fastqc_data.txt");
+    my $encoding = $isFake ? "phred33" : &phred("$workingDir/$fastQcFolder/fastqc_data.txt");
     return $encoding;
 }
+
+
 
 sub phred {
     (my $fastqcFile) = @_;
