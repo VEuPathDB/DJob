@@ -161,21 +161,21 @@ sub initServer {
 	    open IN3, "$mateA" or die "cant open $mateA";
 	    my $count = 0;
 	    while (my $line =<IN3>) {
-		chomp $line;
-		$count ++;
-		if ($count == 4) {
-		    $count = 0;
-		    if ($line !~ /^I+$/) { #is anything but just Is
-			$is_fake = 0;
-			last;
+		    chomp $line;
+		    $count ++;
+		    if ($count == 4) {
+		        $count = 0;
+		        if ($line !~ /^I+$/) { #is anything but just Is
+			        $is_fake = 0;
+			        last;
+		        }
+		        else {
+			        $is_fake = 1;
+		        }
 		    }
 		    else {
-			$is_fake = 1;
+		        next;
 		    }
-		}
-		else {
-		    next;
-		}
 	    }
 	    close IN3;
 	    &runCmd("fastqc $mateA -o $inputDir --extract");
@@ -183,7 +183,7 @@ sub initServer {
 	    $fastQcFolder =~ s/\.fastq$//;
 	    $fastQcFolder =~ s/\.fq$//;
 	    $fastQcFolder .= "_fastqc";
-            $mateAencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+        $mateAencoding = $is_fake ? "phred33" : phred("$inputDir/$fastQcFolder/fastqc_data.txt");
 	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateA   Encoding: $mateAencoding\n";    
 	}
@@ -193,7 +193,7 @@ sub initServer {
 	    $fastQcFolder =~ s/\.fastq$//;
 	    $fastQcFolder =~ s/\.fq$//;
 	    $fastQcFolder .= "_fastqc";
-            $mateBencoding = phred("$inputDir/$fastQcFolder/fastqc_data.txt");
+        $mateBencoding = $is_fake ? "phred33" : phred("$inputDir/$fastQcFolder/fastqc_data.txt");
 	    print "Determining Phred encoding from FASTQC output.\n";
             print "File: $mateB   Encoding: $mateBencoding\n";
 	}
@@ -491,8 +491,7 @@ sub cleanUpServer {
 	    $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=yes --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts");
 
 
-	    $self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.fpkm");
-	    $self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts --fpkmFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.fpkm --antisenseCountFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts --antisenseFpkmFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.fpkm");
+	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $mainResultDir/genes.htseq-$mode.firststrand.counts --senseNUCountFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.counts --senseUniqueTpmFile $mainResultDir/genes.htseq-$mode.firststrand.tpm --senseNUTpmFile $mainResultDir/genes.htseq-$mode.firststrand.nonunique.tpm --antisenseUniqueCountFile $mainResultDir/genes.htseq-$mode.secondstrand.counts --antisenseNUCountFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.counts --antisenseUniqueTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.tpm --antisenseNUTpmFile $mainResultDir/genes.htseq-$mode.secondstrand.nonunique.tpm");
 
 
 	}
@@ -501,11 +500,10 @@ sub cleanUpServer {
       for (my $i=0; $i<@modes; $i++) {
         my $mode = $modes[$i];
         $self->runCmdOnNode($node, "htseq-count -a 0 --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.counts");
-	$self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.fpkm");
 
 
         $self->runCmdOnNode($node, "htseq-count -a 0 --nonunique all --format=bam --order=name --stranded=no --type=exon --idattr=gene_id --mode=$mode $mainResultDir/${outputFileBasename}_sortedByName.bam $maskedFile > $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts");
-	$self->runCmdOnNode($node, "makeFpkmFromHtseqCounts.pl --geneFootprintFile $topLevelGeneFootprintFile --countFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts --fpkmFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.fpkm");
+	    $self->runCmdOnNode($node, "makeTpmFromHtseqCountsDJob.pl --geneFootprintFile $topLevelGeneFootprintFile --senseUniqueCountFile $mainResultDir/genes.htseq-$mode.unstranded.counts --senseNUCountFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.counts --senseUniqueTpmFile $mainResultDir/genes.htseq-$mode.unstranded.tpm --senseNUTpmFile $mainResultDir/genes.htseq-$mode.unstranded.nonunique.tpm");
 
       }
     }
