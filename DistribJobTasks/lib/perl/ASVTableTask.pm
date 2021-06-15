@@ -143,6 +143,7 @@ EOF
     $cmd .= " --truncLen $truncLen" if $truncLen;
     $cmd .= " --truncLenR $truncLenR" if $truncLenR;
 
+    print STDERR "Running: $cmd";
     &runCmd($cmd);
     die "Failed: no fastqs in output filtering dir $workingDir/filtered.tmp"
        unless glob("$workingDir/filtered.tmp/*.fastq");
@@ -161,6 +162,7 @@ Rscript $ENV{GUS_HOME}/bin/dada2/buildErrorModels.R
 EOF
     $cmd =~ s/\n/ /g;
     $cmd .= " --samplesInfo $samplesInfo" if $samplesInfo;
+    print STDERR "Running: $cmd";
     &runCmd($cmd);
   }
 
@@ -300,6 +302,7 @@ Rscript $ENV{GUS_HOME}/bin/dada2/mergeAsvsAndAssignToOtus.R
 EOF
     $cmd =~ s/\n/ /g;
     unless (-s $resultFile){
+       print STDERR "Running: $cmd";
        $self->runCmdOnNode($node, $cmd); 
     }
 }

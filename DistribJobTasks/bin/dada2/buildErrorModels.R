@@ -33,11 +33,10 @@ errorModelsSingle <- function(inputFiles, errFile, platform, verbose) {
              NREADS <- 0
              drps <- vector("list", length(inputFiles))
              for(i in seq_along(inputFiles)) {
-               message("Dereplicating fastq: ", inputFiles[[i]])
-               drps[[i]] <- derepFastq(inputFiles[[i]])
-               NREADS <- NREADS + sum(drps[[i]]$uniques)
-               message("Total reads dereplicated so far: ", NREADS)
-               if(NREADS > 1000000) { break }
+               drps[[i]] <- derepFastq(inputFiles[[i]], verbose = verbose)
+               NREADS <- NREADS + sum(length(getUniques(drps[[i]])))
+               if(verbose){message("Total reads dereplicated so far: ", NREADS)}
+               if(NREADS > 400000) { break }
              }
              # Run dada in self-consist mode on those samples
              dds <- vector("list", length(inputFiles))
@@ -79,12 +78,11 @@ errorModelsPaired <- function(inputFilesF, inputFilesR, fastqsInDir, errFile, pl
               denoisedF <- rep(0, length(inputFilesF))
               getN <- function(x) sum(getUniques(x))
               for(i in seq_along(inputFilesF)) {
-                message("Dereplicating fastqs: ", inputFilesF[[i]], inputFilesR[[i]])
-                drpsF[[i]] <- derepFastq(inputFilesF[[i]])
-                drpsR[[i]] <- derepFastq(inputFilesR[[i]])
-                NREADS <- NREADS + sum(drpsF[[i]]$uniques)
-                message("Total reads dereplicated so far: ", NREADS)
-                if(NREADS > 1000000) { break }
+                drpsF[[i]] <- derepFastq(inputFilesF[[i]], verbose = verbose)
+                drpsR[[i]] <- derepFastq(inputFilesR[[i]], verbose = verbose)
+                NREADS <- NREADS + sum(length(getUniques(drpsF[[i]])))
+                if(verbose){message("Total reads dereplicated so far: ", NREADS)}
+                if(NREADS > 400000) { break }
               }
               # Run dada in self-consist mode on those samples
               drpsF <- drpsF[1:i]
@@ -146,11 +144,11 @@ if (!is.null(samples.info) && "GROUPS" %in% colnames(samples.info)) {
   unlink(errFile)
   message("Preparing the error file: ", errFile)
   if (opt$isPaired) {
-    filesF <- sort(list.files(opt$fastqsInDir, pattern="_1.fastq", full.names = TRUE))
-    filesR <- sort(list.files(opt$fastqsInDir, pattern="_2.fastq", full.names = TRUE))
+    filesF <- sort(list.files(opt$fastqsInDir, pattern = "_1.fastq", full.names = TRUE))
+    filesR <- sort(list.files(opt$fastqsInDir, pattern = "_2.fastq", full.names = TRUE))
     errorModelsPaired(filesF, filesR, errFile, platform = opt$platform, verbose = opt$verbose)
   } else {
-    myFiles <- sort(list.files(opt$fastqsInDir, pattern=".fastq", full.names = TRUE))
+    myFiles <- sort(list.files(opt$fastqsInDir, pattern = ".fastq", full.names = TRUE))
     errorModelsSingle(myFiles, errFile, platform = opt$platform, verbose = opt$verbose)
   }
 }
