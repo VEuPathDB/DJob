@@ -66,7 +66,7 @@ errorModelsSingle <- function(inputFiles, errFile, platform, verbose) {
 }
 
 
-errorModelsPaired <- function(inputFilesF, inputFilesR, fastqsInDir, errFile, platform, verbose) {
+errorModelsPaired <- function(inputFilesF, inputFilesR, errFile, platform, verbose) {
               if (length(inputFilesF) != length(inputFilesR)){ 
                 stop("errorModelsPaired found an unequal number of input files: ", length(inputFilesF), " forward and ", length(inputFilesR), " reverse")
               } 
