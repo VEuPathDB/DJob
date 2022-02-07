@@ -66,7 +66,7 @@ sub getInputSetSize {
     &runCmd($cmd);
 
     opendir(DIR, $tarballsDir) || die "can't open inputDir '$tarballsDir'\n";
-    my @files = map { "$baseDir/$tarballsDir/$_"; } grep(/\w/, readdir(DIR)); # skip . and ..
+    my @files = map { "$baseDir/$tarballsDir/$_"; } grep(/\.tar(\.gz)?$/, readdir(DIR)); # skip . and ..
     $self->{tarFiles} = \@files;
     closedir(DIR);
     return scalar(@files);
