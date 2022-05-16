@@ -133,7 +133,6 @@ Rscript $ENV{GUS_HOME}/bin/dada2/filterFastqs.R
 --fastqsInDir $fastqsInDir
 --fastqsOutDir $workingDir/filtered.tmp
 --isPaired $isPaired 
---maxLen $maxLen 
 --platform $platform 
 EOF
     $cmd =~ s/\n/ /g;
@@ -142,6 +141,8 @@ EOF
     $cmd .= " --trimLeftR $trimLeftR" if $trimLeftR;
     $cmd .= " --truncLen $truncLen" if $truncLen;
     $cmd .= " --truncLenR $truncLenR" if $truncLenR;
+    $cmd .= " --maxLen $maxLen" if $maxLen;
+    
 
     print STDERR "Running: $cmd";
     &runCmd($cmd);
