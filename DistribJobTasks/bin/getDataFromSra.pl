@@ -31,6 +31,10 @@ if($isColorspace){
     &getCsForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq);
     
 }else{
-    &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
+    if ($workingDir =~ m/FungiDB|AmoebaDB|CryptoDB|GiardiaDB|PiroplasmaDB|TrichDB|VectorBase|HostDB|MicrosporidiaDB|PlasmoDB|TriTrypDB|ToxoDB/){
+     &getFastqForSraRunId("$sampleIdList", $hasPairedEnds);
+    }else{
+     &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
+    }
 }
 
