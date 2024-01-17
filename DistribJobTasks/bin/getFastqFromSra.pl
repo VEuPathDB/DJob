@@ -16,6 +16,7 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$
             "studyId=s" => \$studyId,
             "deflineVars=s" => \$deflineVars,
             "sampleAndRunIdsPath=s" => \$sampleAndRunIdsPath,
+            "apiKey=s" => \$apiKey,
            );
 
 if ($workingDir){
@@ -28,7 +29,7 @@ if (defined $sampleIdList) {
   foreach my $s (split(/,\s*/,$sampleIdList)){
     push(@tmp,$s);
   }
-  CBIL::Util::Sra::getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
+  CBIL::Util::Sra::getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds, $apiKey);
 } elsif (defined $studyId) {
   CBIL::Util::Sra::getFastqForStudyId($studyId, $hasPairedEnds, $doNotGetFastq, $deflineVars);
 } elsif (defined $sampleAndRunIdsPath){
