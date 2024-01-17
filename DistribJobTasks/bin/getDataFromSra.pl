@@ -15,7 +15,6 @@ my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace, 
             "sampleIdList=s" => \$sampleIdList,
             "isColorspace!" => \$isColorspace,
 	    "pairs=s" =>\$hasPairedEnds,
-            "apiKey=s" => \$apiKey,
             );
 
 my $cwd = getcwd();
@@ -29,13 +28,13 @@ foreach my $s (split(/,\s*/,$sampleIdList)){
 }
 
 if($isColorspace){
-    &getCsForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $apiKey);
+    &getCsForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq);
     
 }else{
     if ($workingDir =~ m/FungiDB|AmoebaDB|CryptoDB|GiardiaDB|PiroplasmaDB|TrichDB|VectorBase|HostDB|MicrosporidiaDB|PlasmoDB|TriTrypDB|ToxoDB/){
-     &getFastqForSraRunId("$sampleIdList", $hasPairedEnds, $apiKey);
+     &getFastqForSraRunId("$sampleIdList", $hasPairedEnds);
     }else{
-     &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds, $apiKey);
+     &getFastqForSampleIds(\@tmp, "$readsOne", "$readsTwo", $doNotGetFastq, $hasPairedEnds);
     }
 }
 

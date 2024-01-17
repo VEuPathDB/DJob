@@ -45,7 +45,9 @@ sub initNode {
     my $gaBinPath = $self->getProperty("gaBinPath"); 
    
     my $queryType = $self->getProperty("queryType");
-
+    
+    # Set environment variable
+    $ENV{LD_LIBRARY_PATH} = '/appl/libpng-1.2.58/lib';
 
     my $cmd = "startGfServer --binPath $gaBinPath --nodePort $node->{gfport} --targetDir $targetDirPath".($queryType eq 'prot' ? " --trans" : "");
 
@@ -91,7 +93,8 @@ sub makeSubTaskCommand {
     my $dbType = $queryType eq 'dna' ? 'dna' : 'dnax';
     my $tmpBlatParams = $self->getProperty('blatParams');
     my $blatParams = $tmpBlatParams eq 'none' ? "" : $tmpBlatParams;
-
+    # Set environment variable
+    $ENV{LD_LIBRARY_PATH} = '/appl/libpng-1.2.58/lib';
     my $cmd = ($gaBinPath eq 'default' ? "" : "$gaBinPath/")."gfClient -nohead -maxIntron=$maxIntron -t=$dbType -q=$queryType -dots=10 $blatParams localhost $port $targetPath seqsubset.fsa out.psl";
 
     return $cmd;
