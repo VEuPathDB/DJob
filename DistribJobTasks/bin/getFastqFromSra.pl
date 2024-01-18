@@ -5,7 +5,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId,$deflineVars, $sampleAndRunIdsPath);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList,$hasPairedEnds,$studyId,$deflineVars, $sampleAndRunIdsPath, $apiKey);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,

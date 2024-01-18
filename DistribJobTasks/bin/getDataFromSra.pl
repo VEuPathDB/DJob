@@ -6,7 +6,7 @@ use CBIL::Util::Sra;
 use Cwd;
 use Getopt::Long;
 
-my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace, $hasPairedEnds);
+my($doNotGetFastq,$workingDir,$readsOne,$readsTwo,$sampleIdList, $isColorspace, $hasPairedEnds, $apiKey);
 
 &GetOptions("doNotGetFastq!" => \$doNotGetFastq,
             "workingDir=s" => \$workingDir,
